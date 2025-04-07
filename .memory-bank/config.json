@@ -1,0 +1,13 @@
+{
+  "version": "1.0.0",
+  "lastUpdated": "2025-04-07T22:26:03+08:00",
+  "project": {
+    "name": "IT342-SPOT",
+    "type": "typescript",
+    "buildInfo": {
+      "incremental": true,
+      "composite": true,
+      "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.app.tsbuildinfo"
+    }
+  }
+}

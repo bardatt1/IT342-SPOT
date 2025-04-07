@@ -1,0 +1,30 @@
+{
+  "lastUpdated": "2025-04-07T22:31:38+08:00",
+  "frontend": {
+    "name": "spot-frontend",
+    "framework": {
+      "build": "vite",
+      "ui": "react",
+      "styling": "tailwindcss"
+    },
+    "dependencies": {
+      "ui": {
+        "radix-ui": "Various UI components",
+        "lucide-react": "Icons",
+        "class-variance-authority": "UI variants",
+        "tailwind": ["tailwindcss", "tailwind-merge", "tailwindcss-animate"]
+      },
+      "routing": "react-router-dom",
+      "core": {
+        "react": "^18.2.0",
+        "typescript": "^5.3.3"
+      }
+    },
+    "scripts": {
+      "dev": "vite",
+      "build": "tsc && vite build",
+      "lint": "eslint",
+      "preview": "vite preview"
+    }
+  }
+}

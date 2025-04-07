@@ -1,0 +1,7 @@
+edu\cit\spot\dto\AuthResponse$AuthResponseBuilder.class
+edu\cit\spot\dto\AuthResponse.class
+edu\cit\spot\entity\UserRole.class
+edu\cit\spot\dto\SignupRequest.class
+edu\cit\spot\config\SecurityConfig.class
+edu\cit\spot\dto\AuthRequest.class
+edu\cit\spot\security\JwtAuthenticationFilter.class

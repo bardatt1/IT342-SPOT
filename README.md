@@ -11,6 +11,7 @@ The platform also enhances communication between teachers, students, and parents
 
 ### 1️⃣ Seat Plan Management (Web) 
 
+
 This function allows teachers to create and manage digital seat plans for their classrooms. They can define the classroom layout, assign students to specific seats, and update the arrangement as needed.
 
 ### 2️⃣ Attendance Management (Web and Mobile) 
@@ -32,6 +33,7 @@ Sends real-time notifications to students, teachers, or parents regarding attend
 ### 6️⃣ QR Code Generation and Validation (Web and Mobile) 
 
 This function generates unique QR codes for each class session. Students can scan the QR code using their mobile devices to automatically mark their attendance in the system. 
+
 
 ## 🔗 Links
 

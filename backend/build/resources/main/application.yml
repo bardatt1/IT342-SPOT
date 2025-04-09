@@ -1,0 +1,54 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:spot_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+      settings:
+        web-allow-others: false
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.H2Dialect
+
+security:
+  jwt:
+    secret: ${JWT_SECRET:your-256-bit-secret-key-here}
+    expiration: 86400000 # 24 hours in milliseconds
+  cors:
+    allowed-origins: 
+      - http://localhost:5173 # Vite dev server
+      - http://localhost:8080 # Production
+    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
+    allowed-headers: Authorization,Content-Type
+    exposed-headers: Authorization
+
+google:
+  oauth2:
+    client-id: ${GOOGLE_CLIENT_ID}
+    client-secret: ${GOOGLE_CLIENT_SECRET}
+    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/api/auth/google/callback}
+
+websocket:
+  endpoint: /ws
+  topic-prefix: /topic
+  application-prefix: /app
+  allowed-origins: ${security.cors.allowed-origins}
+
+server:
+  port: 8080
+  servlet:
+    context-path: /api
+
+logging:
+  level:
+    edu.cit.spot: DEBUG
+    org.springframework.security: INFO

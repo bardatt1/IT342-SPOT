@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    url: jdbc:h2:mem:spot_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
+    username: sa
+    password: 
+    driver-class-name: org.h2.Driver
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+  jpa:
+    hibernate:
+      ddl-auto: create-drop # This will recreate the database on each startup (development only)
+    show-sql: true
+    properties:
+      hibernate:
+        format_sql: true
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+security:
+  jwt:
+    # This is a development-only secret. In production, use a proper secret and store it securely
+    secret: 9a4f2c8d3b7a1e6f45c8a0b3f267d8b1d4e6f3c8a9d2b5f8e3a7c4d9f1b6e8a
+    expiration: 86400000 # 24 hours
+
+# Development Google OAuth credentials
+# You'll need to replace these with your actual credentials from Google Cloud Console
+google:
+  oauth2:
+    client-id: your-google-client-id
+    client-secret: your-google-client-secret
+    redirect-uri: http://localhost:8080/api/auth/google/callback

@@ -11,27 +11,29 @@ The platform also enhances communication between teachers, students, and parents
 
 ### 1️⃣ Seat Plan Management (Web) 
 
-        This function allows teachers to create and manage digital seat plans for their classrooms. They can define the classroom layout, assign students to specific seats, and update the arrangement as needed. 
+
+This function allows teachers to create and manage digital seat plans for their classrooms. They can define the classroom layout, assign students to specific seats, and update the arrangement as needed.
 
 ### 2️⃣ Attendance Management (Web and Mobile) 
 
-        This function enables teachers to track student attendance manually or automatically. It includes features for marking attendance as Present, Absent, or Late. It can also support automated attendance tracking using QR codes or facial recognition. 
+This function enables teachers to track student attendance manually or automatically. It includes features for marking attendance as Present, Absent, or Late. It can also support automated attendance tracking using QR codes or facial recognition. 
 
 ### 3️⃣ Reporting and Analytics (Web) 
 
-        This function generates attendance reports and insights for teachers and administrators. It provides analytics on student attendance trends over time, helping educators identify patterns. 
+This function generates attendance reports and insights for teachers and administrators. It provides analytics on student attendance trends over time, helping educators identify patterns. 
 
 ### 4️⃣ Student Inquiry System (Mobile) 
 
-        This function allows students to view their attendance records and request corrections if needed. It provides transparency and accountability in attendance tracking. 
+This function allows students to view their attendance records and request corrections if needed. It provides transparency and accountability in attendance tracking. 
 
 ### 5️⃣ Notification System (Web and Mobile) 
 
-        Sends real-time notifications to students, teachers, or parents regarding attendance updates. This keeps everyone informed about attendance records and potential issues. 
+Sends real-time notifications to students, teachers, or parents regarding attendance updates. This keeps everyone informed about attendance records and potential issues. 
 
 ### 6️⃣ QR Code Generation and Validation (Web and Mobile) 
 
-        This function generates unique QR codes for each class session. Students can scan the QR code using their mobile devices to automatically mark their attendance in the system. 
+This function generates unique QR codes for each class session. Students can scan the QR code using their mobile devices to automatically mark their attendance in the system. 
+
 
 ## 🔗 Links
 

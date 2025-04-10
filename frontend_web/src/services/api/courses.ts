@@ -64,7 +64,7 @@ export const courseApi = {
   // Get all upcoming sessions for a teacher
   getUpcomingSessions: async () => {
     console.log('Fetching upcoming sessions with explicit auth headers');
-    return api.get<Session[]>(`/api/sessions/upcoming`, {
+    return api.get<Session[]>(`/dashboard/upcoming-sessions`, {
       headers: getAuthHeaders()
     });
   },
@@ -72,7 +72,7 @@ export const courseApi = {
   // Get active sessions for a student
   getActiveSessionsForStudent: async () => {
     console.log('Fetching active sessions for student with explicit auth headers');
-    return api.get<Session[]>(`/api/sessions/active`, {
+    return api.get<Session[]>(`/api/sessions/course/{courseId}/active`, {
       headers: getAuthHeaders()
     });
   },

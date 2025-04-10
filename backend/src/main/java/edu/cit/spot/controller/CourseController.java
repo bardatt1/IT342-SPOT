@@ -19,7 +19,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 @RestController
-@RequestMapping("/courses")
+@RequestMapping("/api/courses")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Courses", description = "Operations for managing courses")

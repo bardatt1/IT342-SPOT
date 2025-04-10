@@ -22,7 +22,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
-@RequestMapping("/sessions")
+@RequestMapping("/api/sessions")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Sessions", description = "Operations for managing class sessions")

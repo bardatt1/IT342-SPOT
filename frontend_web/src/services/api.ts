@@ -1,6 +1,7 @@
 import axios, { AxiosRequestHeaders } from 'axios';
+import { env } from '@/config/env';
 
-const API_URL = 'http://localhost:8080/';
+const API_URL = `${env.apiUrl}/`;
 
 const api = axios.create({
   baseURL: API_URL,

@@ -27,6 +27,7 @@ import ManageSeatsPage from '@/pages/MainApp/ManageSeats'
 import AttendancePage from '@/pages/MainApp/Attendance'
 import AnalyticsPage from '@/pages/MainApp/Analytics'
 import QRGenerationPage from '@/pages/MainApp/QRGeneration'
+import CreateCoursePage from '@/pages/MainApp/CreateCourse'
 
 function App() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
@@ -141,6 +142,13 @@ function App() {
           <AuthGuard>
             <MainLayout>
               <QRGenerationPage />
+            </MainLayout>
+          </AuthGuard>
+        } />
+        <Route path="/create-course" element={
+          <AuthGuard>
+            <MainLayout>
+              <CreateCoursePage />
             </MainLayout>
           </AuthGuard>
         } />

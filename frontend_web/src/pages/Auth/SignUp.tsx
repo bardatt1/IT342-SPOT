@@ -52,6 +52,7 @@ export default function SignUpPage({ setIsAuthenticated }: SignUpPageProps) {
       localStorage.setItem('auth_timestamp', Date.now().toString());
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('userRole', response.data.user.role);
       
       // Log for debugging
       console.log('Signup auth data saved:', {
@@ -97,6 +98,7 @@ export default function SignUpPage({ setIsAuthenticated }: SignUpPageProps) {
             const authResponse = await authApi.googleLogin(response.access_token, 'STUDENT');
             localStorage.setItem('token', authResponse.data.token);
             localStorage.setItem('user', JSON.stringify(authResponse.data.user));
+            localStorage.setItem('userRole', authResponse.data.user.role);
             toast({
               title: 'Success',
               description: 'Signed up with Google successfully!',

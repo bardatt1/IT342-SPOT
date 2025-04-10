@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import tokenDebugUtils from '@/utils/tokenDebug';
 import { useToast } from '@/components/ui/use-toast';
+import { env } from '@/config/env';
 
 /**
  * A debugging component that can be added to any page to diagnose auth issues
@@ -70,7 +71,7 @@ export const TokenDebugger: React.FC = () => {
       
       console.log('Attempting direct fetch with headers:', authHeaders);
       
-      const result = await fetch('http://localhost:8080/api/courses', {
+      const result = await fetch(`${env.apiUrl}/api/courses`, {
         method: 'GET',
         headers: authHeaders,
         credentials: 'include' // Try with credentials

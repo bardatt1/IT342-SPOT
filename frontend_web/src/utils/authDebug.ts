@@ -110,6 +110,7 @@ export const clearAndLogAuth = () => {
   // Clear auth data
   localStorage.removeItem('token');
   localStorage.removeItem('user');
+  localStorage.removeItem('userRole'); // Also clear the separately stored userRole
   
   console.log('After cleanup:');
   logAuthState();

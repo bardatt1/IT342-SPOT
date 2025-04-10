@@ -1,5 +1,6 @@
 import axios from 'axios'
 import { getAuthHeader } from './utils'
+import { env } from '@/config/env'
 
 export interface AttendanceMetrics {
   overallAttendanceRate: number
@@ -17,7 +18,7 @@ export interface AttendanceMetrics {
   }[]
 }
 
-const API_URL = 'http://localhost:8080/api'
+const API_URL = `${env.apiUrl}/api`
 
 export const analyticsApi = {
   // Get overall attendance metrics

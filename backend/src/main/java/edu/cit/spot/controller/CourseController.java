@@ -2,6 +2,7 @@ package edu.cit.spot.controller;
 
 import edu.cit.spot.entity.Course;
 import edu.cit.spot.entity.User;
+import edu.cit.spot.entity.UserRole;
 import edu.cit.spot.service.CourseService;
 import edu.cit.spot.service.UserService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -37,6 +38,28 @@ public class CourseController {
     public ResponseEntity<List<Course>> getAllCourses() {
         List<Course> courses = courseService.getAllCourses();
         log.info("Retrieved all courses, count: {}", courses.size());
+        return ResponseEntity.ok(courses);
+    }
+    
+    @Operation(summary = "Get teacher's courses", description = "Returns all courses taught by the authenticated teacher")
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved teacher's courses"),
+        @ApiResponse(responseCode = "403", description = "Not authorized - user is not a teacher"),
+        @ApiResponse(responseCode = "401", description = "Not authenticated")
+    })
+    @GetMapping("/teaching")
+    public ResponseEntity<List<Course>> getTeacherCourses() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        User teacher = userService.findByEmail(auth.getName());
+        
+        // Verify the user is a teacher
+        if (teacher.getRole() != UserRole.TEACHER) {
+            log.warn("User {} attempted to access teacher courses but is not a teacher", teacher.getEmail());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        
+        List<Course> courses = courseService.getCoursesByTeacher(teacher);
+        log.info("Retrieved {} courses taught by teacher {}", courses.size(), teacher.getEmail());
         return ResponseEntity.ok(courses);
     }
 

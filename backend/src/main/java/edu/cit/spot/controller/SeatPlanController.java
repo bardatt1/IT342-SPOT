@@ -13,11 +13,12 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/seats")
+@RequestMapping("/api/seats")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Seat Plans", description = "Operations for managing classroom seat plans")
@@ -25,10 +26,10 @@ public class SeatPlanController {
 
     private final SeatPlanService seatPlanService;
 
-    @Operation(summary = "Get seat plan and assignments for a class", description = "Returns the seat plan layout and student assignments for a specific class")
+    @Operation(summary = "Get all seat plans for a class", description = "Returns all seat plans and their assignments for a specific class")
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved seat plan"),
-        @ApiResponse(responseCode = "404", description = "Class or seat plan not found"),
+        @ApiResponse(responseCode = "200", description = "Successfully retrieved seat plans"),
+        @ApiResponse(responseCode = "204", description = "No seat plans found for this class"),
         @ApiResponse(responseCode = "401", description = "Not authenticated")
     })
     @GetMapping("/{classId}")
@@ -41,14 +42,29 @@ public class SeatPlanController {
             return ResponseEntity.noContent().build();
         }
         
-        // Get the active seat plan, or the first one if none is active
-        SeatPlan activePlan = seatPlans.stream()
+        // Create a response with all seat plans and mark which one is active
+        Map<String, Object> result = new HashMap<>();
+        result.put("seatPlans", seatPlans);
+        
+        // Also include the active plan ID if one exists
+        seatPlans.stream()
                 .filter(SeatPlan::isActive)
                 .findFirst()
-                .orElse(seatPlans.get(0));
+                .ifPresent(activePlan -> result.put("activePlanId", activePlan.getId()));
         
-        Map<String, Object> result = seatPlanService.getSeatPlanWithAssignments(activePlan.getId());
-        log.info("Retrieved seat plan {} for class {}", activePlan.getId(), classId);
+        // Get assignments for all seat plans
+        Map<Long, List<SeatAssignment>> allAssignments = new HashMap<>();
+        for (SeatPlan plan : seatPlans) {
+            Map<String, Object> planData = seatPlanService.getSeatPlanWithAssignments(plan.getId());
+            if (planData.containsKey("assignments")) {
+                @SuppressWarnings("unchecked")
+                List<SeatAssignment> assignments = (List<SeatAssignment>) planData.get("assignments");
+                allAssignments.put(plan.getId(), assignments);
+            }
+        }
+        result.put("assignments", allAssignments);
+        
+        log.info("Retrieved {} seat plans for class {}", seatPlans.size(), classId);
         
         return ResponseEntity.ok(result);
     }
@@ -89,10 +105,25 @@ public class SeatPlanController {
             return ResponseEntity.notFound().build();
         }
         
-        SeatPlan updatedPlan = seatPlanService.updateSeatPlan(targetPlan.getId(), seatPlan);
-        log.info("Updated seat plan with ID: {}", updatedPlan.getId());
+        // If setting this plan to active, explicitly use the setActiveSeatPlan method
+        // to ensure all other plans are deactivated
+        if (seatPlan.isActive()) {
+            // First update other properties
+            SeatPlan updatedPlan = seatPlanService.updateSeatPlan(targetPlan.getId(), seatPlan);
+            
+            // Then explicitly set this as the active plan
+            seatPlanService.setActiveSeatPlan(updatedPlan.getId());
+            log.info("Updated seat plan with ID: {} and set as active", updatedPlan.getId());
+            
+            return ResponseEntity.ok(updatedPlan);
+        } else {
+            // Normal update without changing active status
+            SeatPlan updatedPlan = seatPlanService.updateSeatPlan(targetPlan.getId(), seatPlan);
+            log.info("Updated seat plan with ID: {}", updatedPlan.getId());
+            
+            return ResponseEntity.ok(updatedPlan);
+        }
         
-        return ResponseEntity.ok(updatedPlan);
     }
 
     @Operation(summary = "Delete seat plan", description = "Deletes a seat plan layout and all its assignments")

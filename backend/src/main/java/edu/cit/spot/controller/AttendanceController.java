@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/attendance")
+@RequestMapping("/api/attendance")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Attendance", description = "Operations for tracking and managing student attendance")

@@ -49,7 +49,15 @@ export const courseApi = {
   // Get all courses for a teacher
   getCourses: async () => {
     console.log('Fetching courses with explicit auth headers');
-    return api.get<Course[]>(`/api/courses`, {
+    return api.get<Course[]>(`/api/courses/teaching`, {
+      headers: getAuthHeaders()
+    });
+  },
+
+  // Get courses for a teacher (alias for consistency)
+  getTeacherCourses: async () => {
+    console.log('Fetching teacher courses with explicit auth headers');
+    return api.get<Course[]>(`/api/courses/teaching`, {
       headers: getAuthHeaders()
     });
   },
@@ -64,15 +72,15 @@ export const courseApi = {
   // Get all upcoming sessions for a teacher
   getUpcomingSessions: async () => {
     console.log('Fetching upcoming sessions with explicit auth headers');
-    return api.get<Session[]>(`/dashboard/upcoming-sessions`, {
+    return api.get<Session[]>(`/api/dashboard/upcoming-sessions`, {
       headers: getAuthHeaders()
     });
   },
 
-  // Get active sessions for a student
-  getActiveSessionsForStudent: async () => {
-    console.log('Fetching active sessions for student with explicit auth headers');
-    return api.get<Session[]>(`/api/sessions/course/{courseId}/active`, {
+  // Get active sessions for a student in a specific course
+  getActiveSessionsForStudent: async (courseId: number) => {
+    console.log(`Fetching active sessions for student in course ${courseId}`);
+    return api.get<Session[]>(`/api/sessions/course/${courseId}/active`, {
       headers: getAuthHeaders()
     });
   },

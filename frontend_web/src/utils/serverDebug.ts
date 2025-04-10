@@ -1,6 +1,7 @@
 /**
  * Utility for diagnosing server-side issues
  */
+import { env } from '@/config/env';
 
 // This interface represents the shape of endpoint test results
 // The result objects follow this structure even though we're not explicitly typing them
@@ -17,8 +18,6 @@ interface ServerTestResults {
   };
   [key: string]: any;
 }
-
-
 
 /**
  * Makes direct fetch calls to test endpoints with different authentication approaches
@@ -48,7 +47,7 @@ export const testServerEndpoints = async (): Promise<ServerTestResults> => {
     }
     // Test 1: Standard Bearer token
     console.log('Test 1: Standard Bearer token');
-    const test1 = await fetch('http://localhost:8080/api/courses', {
+    const test1 = await fetch(`${env.apiUrl}/api/courses`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -68,7 +67,7 @@ export const testServerEndpoints = async (): Promise<ServerTestResults> => {
     
     // Test 2: Token without Bearer prefix
     console.log('Test 2: Token without Bearer prefix');
-    const test2 = await fetch('http://localhost:8080/api/courses', {
+    const test2 = await fetch(`${env.apiUrl}/api/courses`, {
       method: 'GET',
       headers: {
         'Authorization': token,
@@ -88,7 +87,7 @@ export const testServerEndpoints = async (): Promise<ServerTestResults> => {
     
     // Test 3: Using a non-protected endpoint (if available)
     console.log('Test 3: Public endpoint test');
-    const test3 = await fetch('http://localhost:8080/api/public/health', {
+    const test3 = await fetch(`${env.apiUrl}/api/public/health`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -98,7 +97,7 @@ export const testServerEndpoints = async (): Promise<ServerTestResults> => {
     
     // Test 3b: Try auth/me endpoint
     console.log('Test 3b: Testing auth/me endpoint');
-    const test3b = await fetch('http://localhost:8080/api/auth/me', {
+    const test3b = await fetch(`${env.apiUrl}/api/auth/me`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -126,7 +125,7 @@ export const testServerEndpoints = async (): Promise<ServerTestResults> => {
     
     // Test 4: Using OPTIONS request to check CORS
     console.log('Test 4: CORS preflight check');
-    const test4 = await fetch('http://localhost:8080/api/courses', {
+    const test4 = await fetch(`${env.apiUrl}/api/courses`, {
       method: 'OPTIONS',
       headers: {
         'Accept': 'application/json',
@@ -139,7 +138,7 @@ export const testServerEndpoints = async (): Promise<ServerTestResults> => {
     
     // Test 5: Using token as URL parameter (query string)
     console.log('Test 5: Token as query parameter');
-    const test5 = await fetch(`http://localhost:8080/api/courses?token=${encodeURIComponent(token)}`, {
+    const test5 = await fetch(`${env.apiUrl}/api/courses?token=${encodeURIComponent(token)}`, {
       method: 'GET',
       headers: {
         'Accept': 'application/json',
@@ -150,7 +149,7 @@ export const testServerEndpoints = async (): Promise<ServerTestResults> => {
     
     // Test 6: Using a different protected endpoint
     console.log('Test 6: Testing sessions endpoint');
-    const test6 = await fetch('http://localhost:8080/api/sessions', {
+    const test6 = await fetch(`${env.apiUrl}/api/sessions`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${token}`,
@@ -162,7 +161,7 @@ export const testServerEndpoints = async (): Promise<ServerTestResults> => {
     
     // Test 7: POST request to /api/auth/validate
     console.log('Test 7: Testing explicit token validation');
-    const test7 = await fetch('http://localhost:8080/api/auth/validate', {
+    const test7 = await fetch(`${env.apiUrl}/api/auth/validate`, {
       method: 'POST',
       headers: {
         'Accept': 'application/json',
@@ -258,10 +257,10 @@ export const checkRoleBasedAccess = async (): Promise<Record<string, any>> => {
     
     // Test endpoints that should be accessible to different roles
     const endpoints = [
-      { name: 'courses', url: 'http://localhost:8080/api/courses', expectedRoles: ['ADMIN', 'TEACHER'] },
-      { name: 'sessions', url: 'http://localhost:8080/api/sessions', expectedRoles: ['ADMIN', 'TEACHER'] },
-      { name: 'students', url: 'http://localhost:8080/api/students', expectedRoles: ['ADMIN', 'TEACHER'] },
-      { name: 'teachers', url: 'http://localhost:8080/api/teachers', expectedRoles: ['ADMIN'] },
+      { name: 'courses', url: `${env.apiUrl}/api/courses`, expectedRoles: ['ADMIN', 'TEACHER'] },
+      { name: 'sessions', url: `${env.apiUrl}/api/sessions`, expectedRoles: ['ADMIN', 'TEACHER'] },
+      { name: 'students', url: `${env.apiUrl}/api/students`, expectedRoles: ['ADMIN', 'TEACHER'] },
+      { name: 'teachers', url: `${env.apiUrl}/api/teachers`, expectedRoles: ['ADMIN'] },
     ];
     
     for (const endpoint of endpoints) {

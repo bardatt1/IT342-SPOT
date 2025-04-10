@@ -36,13 +36,16 @@ export default function ManageSeatsPage() {
       try {
         setLoading(true)
         const response = await seatPlanApi.getSeatPlans(parseInt(courseId))
-        setSeatPlans(response.data)
+        const seatPlanData = response.data || []
+        setSeatPlans(seatPlanData)
         
         // Set active seat plan if exists
-        const active = response.data.find((sp: SeatPlan) => sp.isActive)
-        if (active) {
-          setActiveSeatPlan(active)
-          setSeats(active.seats || [])
+        if (Array.isArray(seatPlanData) && seatPlanData.length > 0) {
+          const active = seatPlanData.find((sp: SeatPlan) => sp.isActive)
+          if (active) {
+            setActiveSeatPlan(active)
+            setSeats(active.seats || [])
+          }
         }
       } catch (err: any) {
         console.error('Error fetching seat plans:', err)
@@ -61,7 +64,7 @@ export default function ManageSeatsPage() {
   }, [courseId, toast])
 
   const handleAssignStudent = async (seatId: number) => {
-    if (!activeSeatPlan) return
+    if (!activeSeatPlan || !courseId) return
     
     const studentName = prompt('Enter student name:')
     if (studentName) {
@@ -71,7 +74,12 @@ export default function ManageSeatsPage() {
         // In a real app, we'd have a student selection dropdown
         const studentId = Math.floor(Math.random() * 1000) // Simulated student ID
         
-        await seatPlanApi.assignStudentToSeat(activeSeatPlan.id, seatId, studentId)
+        await seatPlanApi.assignStudentToSeat(
+          activeSeatPlan.id, 
+          seatId, 
+          studentId, 
+          parseInt(courseId)
+        )
         
         // Update local state
         setSeats(seats.map(seat => 
@@ -95,12 +103,16 @@ export default function ManageSeatsPage() {
   }
   
   const handleRemoveStudent = async (seatId: number) => {
-    if (!activeSeatPlan) return
+    if (!activeSeatPlan || !courseId) return
     
     if (confirm('Remove student from this seat?')) {
       try {
         setSaving(true)
-        await seatPlanApi.removeStudentFromSeat(activeSeatPlan.id, seatId)
+        await seatPlanApi.removeStudentFromSeat(
+          activeSeatPlan.id, 
+          seatId, 
+          parseInt(courseId)
+        )
         
         // Update local state
         setSeats(seats.map(seat => 
@@ -120,6 +132,28 @@ export default function ManageSeatsPage() {
       } finally {
         setSaving(false)
       }
+    }
+  }
+  
+  const handleSelectSeatPlan = async (seatPlanId: number) => {
+    if (!courseId) return
+    
+    try {
+      setLoading(true)
+      const response = await seatPlanApi.getSeatPlan(
+        seatPlanId, 
+        parseInt(courseId)
+      )
+      setActiveSeatPlan(response.data)
+      setSeats(response.data.seats || [])
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: 'Failed to load seat plan.',
+        variant: 'destructive'
+      })
+    } finally {
+      setLoading(false)
     }
   }
   
@@ -161,35 +195,31 @@ export default function ManageSeatsPage() {
     }
   }
   
-  const handleSelectSeatPlan = async (seatPlanId: number) => {
-    try {
-      setLoading(true)
-      const response = await seatPlanApi.getSeatPlan(seatPlanId)
-      setActiveSeatPlan(response.data)
-      setSeats(response.data.seats || [])
-    } catch (err: any) {
-      toast({
-        title: 'Error',
-        description: 'Failed to load seat plan.',
-        variant: 'destructive'
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
-  
   const handleSetActive = async (seatPlanId: number) => {
     if (!courseId) return
     
     try {
       setSaving(true)
-      await seatPlanApi.setActiveSeatPlan(seatPlanId, parseInt(courseId))
+      await seatPlanApi.setActiveSeatPlan(
+        seatPlanId, 
+        parseInt(courseId)
+      )
       
-      // Update all seat plans to reflect the change
-      setSeatPlans(seatPlans.map(sp => ({
-        ...sp,
-        isActive: sp.id === seatPlanId
-      })))
+      // Update all seat plans to reflect the change, make sure seatPlans is an array
+      if (Array.isArray(seatPlans)) {
+        setSeatPlans(seatPlans.map(sp => ({
+          ...sp,
+          isActive: sp.id === seatPlanId
+        })))
+      }
+      
+      // Also update the active seat plan if it exists
+      if (activeSeatPlan) {
+        setActiveSeatPlan({
+          ...activeSeatPlan,
+          isActive: activeSeatPlan.id === seatPlanId
+        })
+      }
       
       toast({
         title: 'Success',
@@ -199,6 +229,39 @@ export default function ManageSeatsPage() {
       toast({
         title: 'Error',
         description: 'Failed to set seat plan as active.',
+        variant: 'destructive'
+      })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  // Add the updateSeatLabel function
+  const updateSeatLabel = async (seatId: number, label: string) => {
+    if (!activeSeatPlan || !courseId) return
+    
+    try {
+      setSaving(true)
+      await seatPlanApi.updateSeatLabel(
+        activeSeatPlan.id, 
+        seatId, 
+        label, 
+        parseInt(courseId)
+      )
+      
+      // Update local state
+      setSeats(seats.map(seat => 
+        seat.id === seatId ? { ...seat, label } : seat
+      ))
+      
+      toast({
+        title: 'Success',
+        description: 'Seat label updated.'
+      })
+    } catch (err: any) {
+      toast({
+        title: 'Error',
+        description: 'Failed to update seat label.',
         variant: 'destructive'
       })
     } finally {
@@ -245,21 +308,25 @@ export default function ManageSeatsPage() {
             <div className="flex flex-wrap items-center gap-4">
               <span className="text-sm font-medium text-gray-700">Select Seat Plan:</span>
               <div className="flex flex-wrap gap-2">
-                {seatPlans.map((seatPlan) => (
-                  <button
-                    key={seatPlan.id}
-                    className={`px-3 py-1 text-sm rounded-full ${seatPlan.id === activeSeatPlan?.id
-                      ? 'bg-primary text-white'
-                      : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                    onClick={() => handleSelectSeatPlan(seatPlan.id)}
-                  >
-                    {seatPlan.name}
-                    {seatPlan.isActive && (
-                      <span className="ml-1 text-xs bg-green-500 text-white px-1 rounded">Active</span>
-                    )}
-                  </button>
-                ))}
+                {Array.isArray(seatPlans) && seatPlans.length > 0 ? (
+                  seatPlans.map((seatPlan) => (
+                    <button
+                      key={seatPlan.id}
+                      className={`px-3 py-1 text-sm rounded-full ${seatPlan.id === activeSeatPlan?.id
+                        ? 'bg-primary text-white'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                      }`}
+                      onClick={() => handleSelectSeatPlan(seatPlan.id)}
+                    >
+                      {seatPlan.name}
+                      {seatPlan.isActive && (
+                        <span className="ml-1 text-xs bg-green-500 text-white px-1 rounded">Active</span>
+                      )}
+                    </button>
+                  ))
+                ) : (
+                  <p className="text-sm text-gray-500">No seat plans available</p>
+                )}
                 <button
                   className="px-3 py-1 text-sm rounded-full bg-gray-100 text-gray-700 hover:bg-gray-200 flex items-center"
                   onClick={() => setShowNewSeatPlanForm(true)}
@@ -344,8 +411,17 @@ export default function ManageSeatsPage() {
                     key={seat.id}
                     className="aspect-square border rounded-lg flex flex-col items-center justify-center p-2 hover:bg-gray-50 relative"
                   >
-                    {/* Seat label */}
-                    <div className="absolute top-1 left-1 text-xs text-gray-400">
+                    {/* Seat label - make it clickable to edit */}
+                    <div 
+                      className="absolute top-1 left-1 text-xs text-gray-400 cursor-pointer hover:text-primary"
+                      onClick={() => {
+                        const newLabel = prompt('Enter new seat label:', seat.label);
+                        if (newLabel && newLabel !== seat.label) {
+                          updateSeatLabel(seat.id, newLabel);
+                        }
+                      }}
+                      title="Click to edit label"
+                    >
                       {seat.label || `R${seat.row+1}C${seat.column+1}`}
                     </div>
                     

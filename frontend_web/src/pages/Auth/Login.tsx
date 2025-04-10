@@ -66,7 +66,7 @@ export default function LoginPage({ setIsAuthenticated }: LoginPageProps) {
         email: formData.email,
         firstName: formData.email.split('@')[0], // Extract name from email
         lastName: '',
-        role: 'STUDENT' // Default role
+        role: 'TEACHER' // Default role
       };
       
       console.log('Using user data:', userData);
@@ -79,6 +79,9 @@ export default function LoginPage({ setIsAuthenticated }: LoginPageProps) {
       localStorage.setItem('auth_timestamp', Date.now().toString());
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(userData));
+      
+      // Store the role separately for more reliable role-based UI decisions
+      localStorage.setItem('userRole', userData.role);
       
       // Log stored data synchronously to confirm it was saved
       const storedToken = localStorage.getItem('token');

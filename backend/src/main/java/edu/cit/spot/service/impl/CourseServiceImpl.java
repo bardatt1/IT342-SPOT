@@ -53,10 +53,22 @@ public class CourseServiceImpl implements CourseService {
     public Course updateCourse(Long id, Course courseDetails) {
         Course course = getCourseById(id);
         
-        course.setName(courseDetails.getName());
-        course.setDescription(courseDetails.getDescription());
-        course.setSchedule(courseDetails.getSchedule());
-        course.setRoom(courseDetails.getRoom());
+        // Only update fields that are provided (not null)
+        if (courseDetails.getName() != null) {
+            course.setName(courseDetails.getName());
+        }
+        
+        if (courseDetails.getDescription() != null) {
+            course.setDescription(courseDetails.getDescription());
+        }
+        
+        if (courseDetails.getSchedule() != null) {
+            course.setSchedule(courseDetails.getSchedule());
+        }
+        
+        if (courseDetails.getRoom() != null) {
+            course.setRoom(courseDetails.getRoom());
+        }
         
         // Don't update course code as it's usually fixed
         // Only update if provided and different from current

@@ -66,10 +66,36 @@ public class SeatPlanServiceImpl implements SeatPlanService {
     public SeatPlan updateSeatPlan(Long id, SeatPlan seatPlanDetails) {
         SeatPlan seatPlan = getSeatPlanById(id);
         
-        seatPlan.setName(seatPlanDetails.getName());
-        seatPlan.setLayoutJson(seatPlanDetails.getLayoutJson());
-        seatPlan.setRows(seatPlanDetails.getRows());
-        seatPlan.setColumns(seatPlanDetails.getColumns());
+        // Handle partial updates - only update fields that are not null
+        if (seatPlanDetails.getName() != null) {
+            seatPlan.setName(seatPlanDetails.getName());
+        }
+        
+        if (seatPlanDetails.getLayoutJson() != null) {
+            seatPlan.setLayoutJson(seatPlanDetails.getLayoutJson());
+        }
+        
+        if (seatPlanDetails.getRows() != null) {
+            seatPlan.setRows(seatPlanDetails.getRows());
+        }
+        
+        if (seatPlanDetails.getColumns() != null) {
+            seatPlan.setColumns(seatPlanDetails.getColumns());
+        }
+        
+        // Handle the active status if it's explicitly set in the request
+        if (seatPlanDetails.isActive()) {
+            // If setting to active, deactivate all other seat plans for this course
+            Course course = seatPlan.getCourse();
+            List<SeatPlan> courseSeatPlans = seatPlanRepository.findByCourse(course);
+            for (SeatPlan plan : courseSeatPlans) {
+                if (!plan.getId().equals(id)) {
+                    plan.setActive(false);
+                    seatPlanRepository.save(plan);
+                }
+            }
+            seatPlan.setActive(true);
+        }
         
         return seatPlanRepository.save(seatPlan);
     }

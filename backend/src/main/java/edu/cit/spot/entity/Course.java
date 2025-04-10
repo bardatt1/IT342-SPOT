@@ -1,5 +1,6 @@
 package edu.cit.spot.entity;
 
+import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import jakarta.persistence.*;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -30,6 +31,7 @@ public class Course {
     
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "teacher_id", nullable = false)
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private User teacher;
     
     @ManyToMany
@@ -38,5 +40,6 @@ public class Course {
         joinColumns = @JoinColumn(name = "course_id"),
         inverseJoinColumns = @JoinColumn(name = "student_id")
     )
+    @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
     private Set<User> students = new HashSet<>();
 }

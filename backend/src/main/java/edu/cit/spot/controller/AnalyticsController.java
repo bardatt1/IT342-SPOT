@@ -14,7 +14,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/analytics")
+@RequestMapping("/api/analytics")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "Analytics", description = "Operations for attendance analytics and reporting")

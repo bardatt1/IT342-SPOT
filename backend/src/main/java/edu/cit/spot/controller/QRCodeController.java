@@ -21,7 +21,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/qrcode")
+@RequestMapping("/api/qrcode")
 @RequiredArgsConstructor
 @Slf4j
 @Tag(name = "QR Code", description = "Operations for QR code generation and management")

@@ -1,6 +1,8 @@
 /**
  * Utility to diagnose token-related issues
  */
+import { env } from '@/config/env';
+
 export const tokenDebugUtils = {
   /**
    * Test if the current token is valid by making a request to the server
@@ -19,7 +21,7 @@ export const tokenDebugUtils = {
       // Skip validation endpoint since it's giving 403s
       // Instead, try to fetch a protected resource directly
       console.log('Testing protected endpoint access with token');
-      const response = await fetch('http://localhost:8080/api/courses', {
+      const response = await fetch(`${env.apiUrl}/api/courses`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token.trim()}`,

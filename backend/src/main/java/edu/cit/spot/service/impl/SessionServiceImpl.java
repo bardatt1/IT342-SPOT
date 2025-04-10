@@ -173,14 +173,39 @@ public class SessionServiceImpl implements SessionService {
     @Transactional
     public Session updateSession(Session session) {
         // Verify the session exists
-        getSessionById(session.getId());
+        Session existingSession = getSessionById(session.getId());
         
         // Only allow updates to non-completed sessions
-        if (session.getStatus() == SessionStatus.COMPLETED) {
+        if (existingSession.getStatus() == SessionStatus.COMPLETED) {
             throw new IllegalStateException("Cannot update a completed session");
         }
         
-        return sessionRepository.save(session);
+        // Only update fields that are provided (not null)
+        if (session.getTitle() != null) {
+            existingSession.setTitle(session.getTitle());
+        }
+        
+        if (session.getDescription() != null) {
+            existingSession.setDescription(session.getDescription());
+        }
+        
+        if (session.getStartTime() != null) {
+            existingSession.setStartTime(session.getStartTime());
+        }
+        
+        if (session.getEndTime() != null) {
+            existingSession.setEndTime(session.getEndTime());
+        }
+        
+        if (session.getStatus() != null) {
+            existingSession.setStatus(session.getStatus());
+        }
+        
+        if (session.getCourse() != null) {
+            existingSession.setCourse(session.getCourse());
+        }
+        
+        return sessionRepository.save(existingSession);
     }
     
     @Override

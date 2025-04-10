@@ -46,6 +46,18 @@ export default function HomePage() {
   }
   const userRole = user?.role || 'UNKNOWN'
 
+  // Helper function to check if user is a teacher - used in multiple places
+  const isTeacher = () => {
+    // First check the dedicated userRole storage we added in Login
+    const storedRole = localStorage.getItem('userRole');
+    if (storedRole === 'TEACHER') return true;
+    
+    // Fall back to checking user object
+    return userRole === 'TEACHER' || 
+      user?.role === 'TEACHER' || 
+      (localStorage.getItem('token') !== null && userString?.includes('"role":"TEACHER"'));
+  }
+
   // Fetch courses and upcoming sessions
   useEffect(() => {
     const fetchData = async () => {
@@ -70,7 +82,9 @@ export default function HomePage() {
         let sessionsResponse
         
         if (userRole === 'STUDENT') {
-          sessionsResponse = await courseApi.getActiveSessionsForStudent()
+          // Modified to use getUpcomingSessions instead since we want all active sessions
+          // across all courses, not just for a specific course
+          sessionsResponse = await courseApi.getUpcomingSessions()
         } else {
           sessionsResponse = await courseApi.getUpcomingSessions()
         }
@@ -261,9 +275,9 @@ export default function HomePage() {
       ) : courses.length === 0 ? (
         <div className="bg-white rounded-xl shadow-sm p-6 text-center text-gray-500">
           <p>You don't have any courses yet.</p>
-          {userRole === 'TEACHER' && (
-            <Button className="mt-4">
-              Create a Course
+          {isTeacher() && (
+            <Button className="mt-4" asChild>
+              <Link to="/create-course">Create a Course</Link>
             </Button>
           )}
         </div>

@@ -1,5 +1,7 @@
 import { Button } from './button'
-import spotLogo from '../../img/spot-logo.png'; 
+import spotLogo from '../../img/spot-logo.png';
+import { Link } from 'react-router-dom';
+import { useEffect, useState } from 'react';
 
 export function Nav() {
   const scrollToSection = (sectionId: string) => {
@@ -8,6 +10,14 @@ export function Nav() {
       element.scrollIntoView({ behavior: 'smooth' });
     }
   };
+
+  // Check if user is authenticated
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
+  
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    setIsAuthenticated(!!token);
+  }, []);
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 flex justify-center pt-4">
@@ -37,14 +47,34 @@ export function Nav() {
             </button>
           </div>
         </div>
-        <div className="ml-12">
-          <Button 
-            asChild 
-            className="rounded-full bg-white hover:bg-gray-100 text-gray-900 px-6 shadow-lg"
-            size="sm"
-          >
-            Join Spot
-          </Button>
+        <div className="ml-12 flex items-center space-x-4">
+          {isAuthenticated ? (
+            <>
+              <Link to="/home" className="text-[15px] text-white/90 hover:text-white transition-colors font-medium">
+                Dashboard
+              </Link>
+              <Button 
+                asChild 
+                className="rounded-full bg-red-500 hover:bg-red-600 text-white px-6 shadow-lg"
+                size="sm"
+              >
+                <Link to="/logout">Logout</Link>
+              </Button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" className="text-[15px] text-white/90 hover:text-white transition-colors font-medium">
+                Login
+              </Link>
+              <Button 
+                asChild 
+                className="rounded-full bg-white hover:bg-gray-100 text-gray-900 px-6 shadow-lg"
+                size="sm"
+              >
+                <Link to="/signup">Join SPOT</Link>
+              </Button>
+            </>
+          )}
         </div>
       </div>
     </nav>

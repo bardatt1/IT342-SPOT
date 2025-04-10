@@ -1,4 +1,62 @@
+import { useState, useEffect } from 'react'
+import { useToast } from '@/components/ui/use-toast'
+import { analyticsApi, AttendanceMetrics } from '@/services/api/analytics'
+import { Loader2 } from 'lucide-react'
+
 export default function AnalyticsPage() {
+  const { toast } = useToast()
+  const [loading, setLoading] = useState(true)
+  const [metrics, setMetrics] = useState<AttendanceMetrics | null>(null)
+  
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setLoading(true)
+        const response = await analyticsApi.getAttendanceMetrics()
+        setMetrics(response.data)
+      } catch (err: any) {
+        console.error('Error fetching analytics:', err)
+        toast({
+          title: 'Error',
+          description: 'Could not load analytics data. Using sample data instead.',
+          variant: 'destructive'
+        })
+        
+        // Use sample data as fallback
+        setMetrics({
+          overallAttendanceRate: 92,
+          averageLateStudents: 3,
+          totalClasses: 12,
+          totalStudents: 156,
+          attendanceTrend: [
+            { date: '2023-01-01', attendanceRate: 90 },
+            { date: '2023-01-15', attendanceRate: 92 },
+            { date: '2023-02-01', attendanceRate: 94 }
+          ],
+          classwiseAttendance: [
+            { courseCode: 'IT342', courseName: 'Web Development', attendanceRate: 94 },
+            { courseCode: 'IT343', courseName: 'Database Systems', attendanceRate: 88 },
+            { courseCode: 'IT344', courseName: 'Network Security', attendanceRate: 91 }
+          ]
+        })
+      } finally {
+        setLoading(false)
+      }
+    }
+    
+    fetchAnalytics()
+  }, [toast])
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center space-y-4">
+          <Loader2 className="h-12 w-12 animate-spin text-primary" />
+          <p className="text-lg text-gray-500">Loading analytics data...</p>
+        </div>
+      </div>
+    )
+  }
+  
   return (
     <div className="min-h-screen bg-gray-50 py-10">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -26,7 +84,7 @@ export default function AnalyticsPage() {
                     </dt>
                     <dd className="flex items-baseline">
                       <div className="text-2xl font-semibold text-gray-900">
-                        92%
+                        {metrics?.overallAttendanceRate || 0}%
                       </div>
                       <div className="ml-2 flex items-baseline text-sm font-semibold text-green-600">
                         <svg className="w-3 h-3" fill="currentColor" viewBox="0 0 12 12">
@@ -58,7 +116,7 @@ export default function AnalyticsPage() {
                     </dt>
                     <dd className="flex items-baseline">
                       <div className="text-2xl font-semibold text-gray-900">
-                        3
+                        {metrics?.averageLateStudents || 0}
                       </div>
                       <div className="ml-2 flex items-baseline text-sm font-semibold text-red-600">
                         <svg className="w-3 h-3 transform rotate-180" fill="currentColor" viewBox="0 0 12 12">
@@ -89,7 +147,7 @@ export default function AnalyticsPage() {
                       Total Classes
                     </dt>
                     <dd className="text-2xl font-semibold text-gray-900">
-                      12
+                      {metrics?.totalClasses || 0}
                     </dd>
                   </dl>
                 </div>
@@ -112,7 +170,7 @@ export default function AnalyticsPage() {
                       Total Students
                     </dt>
                     <dd className="text-2xl font-semibold text-gray-900">
-                      156
+                      {metrics?.totalStudents || 0}
                     </dd>
                   </dl>
                 </div>
@@ -141,16 +199,16 @@ export default function AnalyticsPage() {
             </h3>
             <div className="mt-4">
               <div className="space-y-4">
-                {['IT342', 'IT343', 'IT344'].map((className) => (
-                  <div key={className} className="bg-gray-50 rounded-lg p-4">
+                {metrics?.classwiseAttendance?.map((course) => (
+                  <div key={course.courseCode} className="bg-gray-50 rounded-lg p-4">
                     <div className="flex items-center justify-between">
-                      <h4 className="text-sm font-medium text-gray-900">{className}</h4>
-                      <span className="text-sm text-gray-500">94% attendance</span>
+                      <h4 className="text-sm font-medium text-gray-900">{course.courseCode}</h4>
+                      <span className="text-sm text-gray-500">{course.attendanceRate}% attendance</span>
                     </div>
                     <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
                       <div
                         className="bg-primary h-2 rounded-full"
-                        style={{ width: '94%' }}
+                        style={{ width: `${course.attendanceRate}%` }}
                       />
                     </div>
                   </div>

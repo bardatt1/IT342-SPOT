@@ -1,10 +1,15 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { useState, Dispatch, SetStateAction, useEffect } from 'react'
 import { authApi } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
+import { logAuthState, clearAndLogAuth } from '@/utils/authDebug'
 
-export default function LoginPage() {
+type LoginPageProps = {
+  setIsAuthenticated?: Dispatch<SetStateAction<boolean | null>>
+}
+
+export default function LoginPage({ setIsAuthenticated }: LoginPageProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -12,6 +17,24 @@ export default function LoginPage() {
     email: '',
     password: '',
   });
+
+  // Check if we already have valid auth data on login page load
+  useEffect(() => {
+    // Check if there's existing auth data
+    const token = localStorage.getItem('token');
+    const userStr = localStorage.getItem('user');
+    
+    // Only clear existing data if it's corrupted (not if it's valid)
+    if ((token === 'undefined' || token === 'null') || 
+        (userStr === 'undefined' || userStr === 'null')) {
+      console.log('Found corrupted auth data on login page, clearing it');
+      clearAndLogAuth();
+    } else if (token && userStr) {
+      // If we already have valid auth data, redirect to home
+      console.log('Found valid auth data on login page, redirecting to home');
+      navigate('/home');
+    }
+  }, [navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -22,18 +45,64 @@ export default function LoginPage() {
     e.preventDefault();
     setLoading(true);
     try {
+      // Simplify the login process - don't clear anything first
+      console.log('Attempting login with credentials:', { email: formData.email });
+      
       const response = await authApi.login(formData);
+      console.log('Login response received:', {
+        success: true,
+        tokenReceived: !!response.data.token,
+        userDataReceived: !!response.data.user
+      });
+      
+      // The API is returning a token but sometimes no user data. Let's handle this case.
+      if (!response.data.token) {
+        throw new Error('Server returned success but missing token');
+      }
+      
+      // If we have a token but no user, create a default user object from email
+      const userData = response.data.user || {
+        id: 0, // We'll use a placeholder ID
+        email: formData.email,
+        firstName: formData.email.split('@')[0], // Extract name from email
+        lastName: '',
+        role: 'STUDENT' // Default role
+      };
+      
+      console.log('Using user data:', userData);
+      
+      // Store auth data directly
+      console.log('Saving authentication data to localStorage');
+      
+      // Add a timestamp to indicate fresh login data - this will prevent other components
+      // from clearing this data during initial validation
+      localStorage.setItem('auth_timestamp', Date.now().toString());
       localStorage.setItem('token', response.data.token);
-      localStorage.setItem('user', JSON.stringify(response.data.user));
+      localStorage.setItem('user', JSON.stringify(userData));
+      
+      // Log stored data synchronously to confirm it was saved
+      const storedToken = localStorage.getItem('token');
+      const storedUser = localStorage.getItem('user');
+      console.log('Stored authentication data:', {
+        tokenSaved: !!storedToken,
+        userDataSaved: !!storedUser
+      });
+      
       toast({
         title: 'Success',
         description: 'Logged in successfully!',
       });
-      navigate('/app/home');
-    } catch (error) {
+      
+      // Update authentication state
+      if (setIsAuthenticated) {
+        setIsAuthenticated(true);
+      }
+      navigate('/home');
+    } catch (error: any) {
+      console.error('Login error:', error.response?.data || error.message);
       toast({
         title: 'Error',
-        description: 'Invalid credentials',
+        description: error.response?.data?.message || 'Invalid credentials',
         variant: 'destructive',
       });
     } finally {
@@ -49,18 +118,34 @@ export default function LoginPage() {
       callback: async (response: any) => {
         if (response.access_token) {
           try {
+            // Clear any existing auth data first
+            clearAndLogAuth();
+            
             const authResponse = await authApi.googleLogin(response.access_token);
+            console.log('Google login response:', authResponse.data);
+            
+            // Store auth data
             localStorage.setItem('token', authResponse.data.token);
             localStorage.setItem('user', JSON.stringify(authResponse.data.user));
+            
+            // Verify data was stored correctly
+            logAuthState();
+            
             toast({
               title: 'Success',
               description: 'Logged in with Google successfully!',
             });
-            navigate('/app/home');
-          } catch (error) {
+            
+            // Update authentication state
+            if (setIsAuthenticated) {
+              setIsAuthenticated(true);
+            }
+            navigate('/home');
+          } catch (error: any) {
+            console.error('Google login error:', error.response?.data || error.message);
             toast({
               title: 'Error',
-              description: 'Failed to authenticate with Google',
+              description: error.response?.data?.message || 'Failed to authenticate with Google',
               variant: 'destructive',
             });
           }

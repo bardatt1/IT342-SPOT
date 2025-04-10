@@ -39,6 +39,8 @@ public class User implements UserDetails {
     private String googleId;
     private String profilePicture;
     private boolean enabled = true;
+    private boolean active = true;
+    private String phoneNumber;
 
     public User() {}
 
@@ -120,6 +122,22 @@ public class User implements UserDetails {
 
     public void setEnabled(boolean enabled) {
         this.enabled = enabled;
+    }
+    
+    public boolean isActive() {
+        return active;
+    }
+
+    public void setActive(boolean active) {
+        this.active = active;
+    }
+    
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
     }
 
     @Override

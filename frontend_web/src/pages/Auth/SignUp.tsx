@@ -1,10 +1,14 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
-import { useState } from 'react'
+import { useState, Dispatch, SetStateAction } from 'react'
 import { authApi } from '@/services/api'
 import { useToast } from '@/components/ui/use-toast'
 
-export default function SignUpPage() {
+type SignUpPageProps = {
+  setIsAuthenticated?: Dispatch<SetStateAction<boolean | null>>
+}
+
+export default function SignUpPage({ setIsAuthenticated }: SignUpPageProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
@@ -43,12 +47,25 @@ export default function SignUpPage() {
       };
       console.log('Submitting signup data:', signupData);
       const response = await authApi.signup(signupData);
+      
+      // Add timestamp for fresh signup, matching login implementation
+      localStorage.setItem('auth_timestamp', Date.now().toString());
       localStorage.setItem('token', response.data.token);
       localStorage.setItem('user', JSON.stringify(response.data.user));
+      
+      // Log for debugging
+      console.log('Signup auth data saved:', {
+        token: response.data.token?.substring(0, 15) + '...',
+        user: response.data.user
+      });
       toast({
         title: 'Success',
         description: 'Account created successfully!',
       });
+      // Update authentication state
+      if (setIsAuthenticated) {
+        setIsAuthenticated(true);
+      }
       navigate('/home');
     } catch (error: any) {
       console.error('API Error:', error);
@@ -84,7 +101,11 @@ export default function SignUpPage() {
               title: 'Success',
               description: 'Signed up with Google successfully!',
             });
-            navigate('/app/home');
+            // Update authentication state
+            if (setIsAuthenticated) {
+              setIsAuthenticated(true);
+            }
+            navigate('/home');
           } catch (error) {
             toast({
               title: 'Error',

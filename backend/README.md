@@ -39,11 +39,9 @@ GOOGLE_REDIRECT_URI=http://localhost:8080/api/auth/google/callback
 
 ### 4. Build and Run
 ```bash
-# Build the project
-mvn clean install
-
 # Run with development profile
-mvn spring-boot:run -Dspring-boot.run.profiles=dev
+.\gradlew.bat bootRun
+
 ```
 
 The server will start at `http://localhost:8080`

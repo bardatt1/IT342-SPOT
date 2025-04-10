@@ -74,17 +74,24 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   response => response,
   async (error) => {
+    // Add retry attempt tracking to config to prevent infinite loops
+    if (!error.config) {
+      error.config = {};
+    }
+    error.config.__retryCount = error.config.__retryCount || 0;
+
     // Log detailed error info for debugging
     if (error.response) {
       console.error(`API Error ${error.response.status}:`, {
         url: error.config.url,
         method: error.config.method,
         status: error.response.status,
-        data: error.response.data
+        data: error.response.data,
+        retryCount: error.config.__retryCount
       });
       
       // Handle 401/403 errors (auth issues)
-      if (error.response.status === 401 || error.response.status === 403) {
+      if ((error.response.status === 401 || error.response.status === 403) && error.config.__retryCount < 1) {
         console.error('Authentication error:', error.response.data);
         
         // Log the token that was used
@@ -95,28 +102,41 @@ api.interceptors.response.use(
           console.log('No Authorization header was present in the request');
         }
         
-        // Try to refresh the token first before giving up
-        // This simulates a token refresh without actually calling the backend
-        try {
-          console.log('Attempting to refresh token after 403/401 error');
-          
-          // Get current token
-          const currentToken = localStorage.getItem('token');
-          if (currentToken) {
-            // Force token 'refresh' by removing and re-adding it
-            const tempToken = currentToken;
-            localStorage.removeItem('token');
-            await new Promise(resolve => setTimeout(resolve, 100));
-            localStorage.setItem('token', tempToken);
-            localStorage.setItem('auth_timestamp', Date.now().toString());
+        // Check if we've recently tried to refresh the token (within last 5 seconds)
+        const lastRefreshTime = localStorage.getItem('last_token_refresh_time');
+        const now = Date.now();
+        const canRefresh = !lastRefreshTime || (now - parseInt(lastRefreshTime)) > 5000;
+        
+        if (canRefresh) {
+          try {
+            console.log('Attempting to refresh token after 403/401 error');
             
-            // Retry the original request
-            console.log('Token refreshed, retrying request');
-            error.config.headers['Authorization'] = `Bearer ${tempToken}`;
-            return api(error.config);
+            // Get current token
+            const currentToken = localStorage.getItem('token');
+            if (currentToken) {
+              // Mark that we're refreshing to prevent more refreshes
+              localStorage.setItem('last_token_refresh_time', now.toString());
+              
+              // Force token 'refresh' by removing and re-adding it
+              const tempToken = currentToken;
+              localStorage.removeItem('token');
+              await new Promise(resolve => setTimeout(resolve, 100));
+              localStorage.setItem('token', tempToken);
+              localStorage.setItem('auth_timestamp', now.toString());
+              
+              // Increment retry count to prevent infinite loops
+              error.config.__retryCount += 1;
+              
+              // Retry the original request
+              console.log('Token refreshed, retrying request');
+              error.config.headers['Authorization'] = `Bearer ${tempToken}`;
+              return api(error.config);
+            }
+          } catch (refreshError) {
+            console.error('Error during token refresh:', refreshError);
           }
-        } catch (refreshError) {
-          console.error('Error during token refresh:', refreshError);
+        } else {
+          console.log(`Skipping token refresh - last refresh was too recent (${(now - parseInt(lastRefreshTime))/1000}s ago)`);
         }
       }
     } else if (error.request) {

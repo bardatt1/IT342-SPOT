@@ -2,6 +2,7 @@
  * Auth Debug Utilities
  * Provides functions to help debug authentication issues
  */
+import { env } from '@/config/env';
 
 export const logAuthState = () => {
   try {
@@ -52,7 +53,7 @@ export const testToken = async () => {
     console.log('Testing protected endpoint access with token');
     try {
       // Use a fetch API directly to avoid interceptors
-      const response = await fetch(`http://localhost:8080/api/courses`, {
+      const response = await fetch(`${env.apiUrl}/api/courses`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${token.trim()}`,

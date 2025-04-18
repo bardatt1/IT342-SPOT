@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { courseApi, Course, Session } from '@/services/api/courses'
-import { CalendarClock, Users, BookOpen, Layers, AlertCircle } from 'lucide-react'
+import { CalendarClock, Users, BookOpen, Layers, AlertCircle, PlusCircle } from 'lucide-react'
 import { useToast } from '@/components/ui/use-toast'
 
 const formatDate = (dateString: string) => {
@@ -26,6 +26,7 @@ const formatTime = (timeString: string) => {
 
 export default function HomePage() {
   const { toast } = useToast()
+  const navigate = useNavigate()
   const [courses, setCourses] = useState<Course[]>([])
   const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([])
   const [loading, setLoading] = useState<{courses: boolean, sessions: boolean}>({ 
@@ -109,13 +110,26 @@ export default function HomePage() {
   return (
     <div>
       {/* Welcome Section */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.firstName || 'User'}!</h1>
-        <p className="mt-2 text-gray-600">
-          {userRole === 'TEACHER' 
-            ? 'Manage your classes and track student attendance.'
-            : 'View your upcoming classes and attendance records.'}
-        </p>
+      <div className="mb-8 flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Welcome back, {user?.firstName || 'User'}!</h1>
+          <p className="mt-2 text-gray-600">
+            {userRole === 'TEACHER' 
+              ? 'Manage your classes and track student attendance.'
+              : 'View your upcoming classes and attendance records.'}
+          </p>
+        </div>
+        
+        {/* Create Course button for teachers only */}
+        {isTeacher() && (
+          <Button
+            onClick={() => navigate('/create-course')}
+            className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+          >
+            <PlusCircle className="h-5 w-5" />
+            Create Course
+          </Button>
+        )}
       </div>
 
       {/* Stats Cards */}

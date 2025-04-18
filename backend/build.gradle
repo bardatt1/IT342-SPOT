@@ -8,19 +8,11 @@ plugins {
 group = 'edu.cit'
 version = '0.0.1-SNAPSHOT'
 
-// Set Java version explicitly for all tasks
 java {
 	toolchain {
 		languageVersion = JavaLanguageVersion.of(21)
 		vendor = JvmVendorSpec.ADOPTIUM
 	}
-	sourceCompatibility = JavaVersion.VERSION_21
-	targetCompatibility = JavaVersion.VERSION_21
-}
-
-// Enforce Java 21 compatibility for all compile tasks
-tasks.withType(JavaCompile).configureEach {
-    options.release = 21
 }
 
 repositories {

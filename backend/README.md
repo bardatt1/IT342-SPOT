@@ -6,14 +6,16 @@ This is the backend API for the Student Position and Orientation Tracking (SPOT)
 ## Prerequisites
 - Java 21 (Eclipse Temurin/Adoptium)
 - Gradle
-- PostgreSQL (for production) or H2 (for development)
+- MySQL (for testing Wampserver MySQL)
 
 ## Development Setup
 
 ### 1. Database Setup
 ```bash
-# Start PostgreSQL container
-docker-compose up -d
+# Open WampServer makesure it is running
+# Open a Browser (Prefered when setting up your Wampserver)
+# Type in localhost/phpMyAdmin
+# Login directly (leave password blank)
 ```
 
 ### 2. Google OAuth Setup

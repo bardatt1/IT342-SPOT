@@ -1,100 +1,103 @@
 package edu.cit.spot.service.impl;
 
+import edu.cit.spot.dto.course.CourseDto;
+import edu.cit.spot.dto.course.CourseUpdateRequest;
+import edu.cit.spot.dto.course.CreateCourseRequest;
 import edu.cit.spot.entity.Course;
-import edu.cit.spot.entity.User;
 import edu.cit.spot.exception.ResourceNotFoundException;
 import edu.cit.spot.repository.CourseRepository;
-import edu.cit.spot.repository.UserRepository;
 import edu.cit.spot.service.CourseService;
-import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class CourseServiceImpl implements CourseService {
-    private final CourseRepository courseRepository;
-    private final UserRepository userRepository;
 
-    @Override
-    public List<Course> getAllCourses() {
-        return courseRepository.findAll();
-    }
-
-    @Override
-    public Course getCourseById(Long id) {
-        return courseRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Course not found with id: " + id));
-    }
-
-    @Override
-    public List<Course> getCoursesByTeacher(User teacher) {
-        return courseRepository.findByTeacher(teacher);
-    }
-
-    @Override
-    public List<Course> getCoursesByStudent(User student) {
-        return courseRepository.findByStudentsContains(student);
-    }
+    @Autowired
+    private CourseRepository courseRepository;
 
     @Override
     @Transactional
-    public Course createCourse(Course course) {
-        if (courseRepository.existsByCourseCode(course.getCourseCode())) {
-            throw new IllegalArgumentException("Course with code " + course.getCourseCode() + " already exists");
-        }
-        return courseRepository.save(course);
-    }
-
-    @Override
-    @Transactional
-    public Course updateCourse(Long id, Course courseDetails) {
-        Course course = getCourseById(id);
-        
-        course.setName(courseDetails.getName());
-        course.setDescription(courseDetails.getDescription());
-        course.setSchedule(courseDetails.getSchedule());
-        course.setRoom(courseDetails.getRoom());
-        
-        // Don't update course code as it's usually fixed
-        // Only update if provided and different from current
-        if (courseDetails.getCourseCode() != null && 
-            !courseDetails.getCourseCode().equals(course.getCourseCode()) && 
-            !courseRepository.existsByCourseCode(courseDetails.getCourseCode())) {
-            course.setCourseCode(courseDetails.getCourseCode());
+    public CourseDto createCourse(CreateCourseRequest request) {
+        // Check if course code is already in use
+        if (courseRepository.existsByCourseCode(request.courseCode())) {
+            throw new IllegalArgumentException("Course code is already in use: " + request.courseCode());
         }
         
-        return courseRepository.save(course);
+        // Create new course
+        Course course = new Course();
+        course.setCourseName(request.courseName());
+        course.setCourseDescription(request.courseDescription());
+        course.setCourseCode(request.courseCode());
+        
+        Course savedCourse = courseRepository.save(course);
+        
+        return CourseDto.fromEntity(savedCourse);
+    }
+
+    @Override
+    public CourseDto getCourseById(Long id) {
+        Course course = courseRepository.findByIdWithSections(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Course", "id", id));
+        
+        return CourseDto.fromEntity(course);
+    }
+
+    @Override
+    public CourseDto getCourseByCourseCode(String courseCode) {
+        Course course = courseRepository.findByCourseCode(courseCode)
+            .orElseThrow(() -> new ResourceNotFoundException("Course", "courseCode", courseCode));
+        
+        return CourseDto.fromEntity(course);
     }
 
     @Override
     @Transactional
-    public void deleteCourse(Long id) {
-        Course course = getCourseById(id);
+    public CourseDto updateCourse(Long id, CourseUpdateRequest request) {
+        Course course = courseRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Course", "id", id));
+        
+        // Update course code if it's changed and not in use by another course
+        if (request.courseCode() != null && !request.courseCode().equals(course.getCourseCode())) {
+            if (courseRepository.existsByCourseCode(request.courseCode())) {
+                throw new IllegalArgumentException("Course code is already in use: " + request.courseCode());
+            }
+            course.setCourseCode(request.courseCode());
+        }
+        
+        // Update other fields if provided
+        if (request.courseName() != null) {
+            course.setCourseName(request.courseName());
+        }
+        if (request.courseDescription() != null) {
+            course.setCourseDescription(request.courseDescription());
+        }
+        
+        Course updatedCourse = courseRepository.save(course);
+        
+        return CourseDto.fromEntity(updatedCourse);
+    }
+
+    @Override
+    public List<CourseDto> getAllCourses() {
+        List<Course> courses = courseRepository.findAllWithSections();
+        
+        return courses.stream()
+            .map(CourseDto::fromEntity)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    public boolean deleteCourse(Long id) {
+        Course course = courseRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Course", "id", id));
+        
         courseRepository.delete(course);
-    }
-
-    @Override
-    @Transactional
-    public void enrollStudent(Long courseId, Long studentId) {
-        Course course = getCourseById(courseId);
-        User student = userRepository.findById(studentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
-        
-        course.getStudents().add(student);
-        courseRepository.save(course);
-    }
-
-    @Override
-    @Transactional
-    public void unenrollStudent(Long courseId, Long studentId) {
-        Course course = getCourseById(courseId);
-        User student = userRepository.findById(studentId)
-                .orElseThrow(() -> new ResourceNotFoundException("Student not found with id: " + studentId));
-        
-        course.getStudents().remove(student);
-        courseRepository.save(course);
+        return true;
     }
 }

@@ -1,54 +1,49 @@
 spring:
   datasource:
-    url: jdbc:h2:mem:spot_db;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE
-    username: sa
+    url: jdbc:mysql://localhost:3306/attendance_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    username: root
     password: 
-    driver-class-name: org.h2.Driver
-  h2:
-    console:
-      enabled: true
-      path: /h2-console
-      settings:
-        web-allow-others: false
+    driver-class-name: com.mysql.cj.jdbc.Driver
   jpa:
     hibernate:
       ddl-auto: update
     show-sql: true
     properties:
       hibernate:
+        dialect: org.hibernate.dialect.MySQL8Dialect
         format_sql: true
-        dialect: org.hibernate.dialect.H2Dialect
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope:
+              - email
+              - profile
 
-security:
-  jwt:
-    secret: ${JWT_SECRET:your-256-bit-secret-key-here}
-    expiration: 86400000 # 24 hours in milliseconds
-  cors:
-    allowed-origins: 
-      - http://localhost:5173 # Vite dev server
-      - http://localhost:8080 # Production
-    allowed-methods: GET,POST,PUT,DELETE,OPTIONS
-    allowed-headers: Authorization,Content-Type
-    exposed-headers: Authorization
+application:
+  frontend:
+    url: http://localhost:5173
+  security:
+    jwt:
+      secret: ${JWT_SECRET:711f0d51ef025deb87ba1fa4b2759ae0f75c493b4762b8a3c46b5999a9a7d7bed6d2be997aa4b4e9052daee9f665d290bf8a6144984134881caac0ccf7194f9087d553fbc80019265c0dd16aea709fdd255d7e027b7f989ade249fdbf89d1d5fbbf49f341792634a54df13e158cbdb76e4c67fdaf8434f19e1c99d5d968034a345793fcc753c593a75bfb10e62e0a1289ef7cc5fd81a054c536e51e2e598bd9fb8f6395c166d9d2d3df167f762cbd91d8de4b0ba449965234102d2e83606416264c140684fdbcf678c8131177071079cca9838eab0690e47ffabe32c21f1d670729e9a662618c35b8b08e572d966676b06e46c7272e8eed29ad5f479b653cae7bf140eb163838b0d1bf4772cb3db6fc3b17c7b46bd2aee4646a8289621baf068ecb43b30aa7de2ffc61da3533b3197604604fedb1af432c80dafbc6a9b197f9d2b621c3e010464583f0de59d70fb396bf89c0d7a82223d636d30e61c8a4693ad39fac35adcb2b118fc1fe742652bf0b9cdff9d8e3feb7f0e5aaf3f5c9db10c4c640a0347986b147dcdf51802e3d1942a2d3deded04ef1c1482623c4659108224f16fbb2d28a57e454bf3e8fe9392443749d8cde7ecf36b7d25843cf5205c60f0af953632bdc87de959da34a8ef9850dbfbce82a4057f81d78c626ca006430975b985bf8ba78a669d5803de072d8c8c5632f13b6bb049b4ff8731cc0e4b49fd04}
+      expirationMs: 86400000 # 24 hours
 
-google:
-  oauth2:
-    client-id: ${GOOGLE_CLIENT_ID}
-    client-secret: ${GOOGLE_CLIENT_SECRET}
-    redirect-uri: ${GOOGLE_REDIRECT_URI:http://localhost:8080/api/auth/google/callback}
-
-websocket:
-  endpoint: /ws
-  topic-prefix: /topic
-  application-prefix: /app
-  allowed-origins: ${security.cors.allowed-origins}
-
-server:
-  port: 8080
-  servlet:
-    context-path: /
+springdoc:
+  api-docs:
+    path: /v3/api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    operationsSorter: method
+    tagsSorter: alpha
+    try-it-out-enabled: true
+    filter: true
+  packages-to-scan: edu.cit.spot.controller
+  paths-to-match: /api/**
 
 logging:
   level:
-    edu.cit.spot: DEBUG
     org.springframework.security: INFO
+    edu.cit.spot: DEBUG

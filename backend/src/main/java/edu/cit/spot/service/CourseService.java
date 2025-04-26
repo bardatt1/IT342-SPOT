@@ -1,18 +1,22 @@
 package edu.cit.spot.service;
 
-import edu.cit.spot.entity.Course;
-import edu.cit.spot.entity.User;
+import edu.cit.spot.dto.course.CourseDto;
+import edu.cit.spot.dto.course.CreateCourseRequest;
+import edu.cit.spot.dto.course.CourseUpdateRequest;
 
 import java.util.List;
 
 public interface CourseService {
-    List<Course> getAllCourses();
-    Course getCourseById(Long id);
-    List<Course> getCoursesByTeacher(User teacher);
-    List<Course> getCoursesByStudent(User student);
-    Course createCourse(Course course);
-    Course updateCourse(Long id, Course course);
-    void deleteCourse(Long id);
-    void enrollStudent(Long courseId, Long studentId);
-    void unenrollStudent(Long courseId, Long studentId);
+    
+    CourseDto createCourse(CreateCourseRequest request);
+    
+    CourseDto getCourseById(Long id);
+    
+    CourseDto getCourseByCourseCode(String courseCode);
+    
+    CourseDto updateCourse(Long id, CourseUpdateRequest request);
+    
+    List<CourseDto> getAllCourses();
+    
+    boolean deleteCourse(Long id);
 }

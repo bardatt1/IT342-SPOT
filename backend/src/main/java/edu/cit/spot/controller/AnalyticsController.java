@@ -1,91 +1,79 @@
 package edu.cit.spot.controller;
 
-import edu.cit.spot.service.AttendanceService;
+import edu.cit.spot.dto.ApiResponse;
+import edu.cit.spot.dto.analytics.AttendanceAnalyticsDto;
+import edu.cit.spot.dto.analytics.StudentAttendanceDto;
+import edu.cit.spot.exception.GlobalExceptionHandler;
+import edu.cit.spot.service.AnalyticsService;
 import io.swagger.v3.oas.annotations.Operation;
-import io.swagger.v3.oas.annotations.responses.ApiResponse;
-import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
-import java.util.Map;
+import java.time.LocalDate;
+import java.util.List;
 
 @RestController
-@RequestMapping("/analytics")
-@RequiredArgsConstructor
-@Slf4j
-@Tag(name = "Analytics", description = "Operations for attendance analytics and reporting")
+@RequestMapping("/api/analytics")
+@Tag(name = "Analytics", description = "APIs for attendance analytics")
+@SecurityRequirement(name = "bearerAuth")
+@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
 public class AnalyticsController {
 
-    private final AttendanceService attendanceService;
-
-    @Operation(summary = "Get analytics for a class", description = "Returns attendance statistics for a specific class")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved analytics"),
-        @ApiResponse(responseCode = "404", description = "Class not found"),
-        @ApiResponse(responseCode = "401", description = "Not authenticated")
-    })
-    @GetMapping("/{classId}")
-    public ResponseEntity<Map<String, Object>> getClassAnalytics(@PathVariable Long classId) {
-        Map<String, Object> stats = attendanceService.getAttendanceStatsByCourse(classId);
-        log.info("Retrieved analytics for class {}", classId);
-        return ResponseEntity.ok(stats);
+    @Autowired
+    private AnalyticsService analyticsService;
+    
+    @GetMapping("/{sectionId}")
+    @Operation(summary = "Get section analytics", description = "Get attendance analytics for a specific section")
+    public ResponseEntity<ApiResponse<AttendanceAnalyticsDto>> getSectionAnalytics(@PathVariable Long sectionId) {
+        try {
+            AttendanceAnalyticsDto analytics = analyticsService.getSectionAnalytics(sectionId);
+            return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Analytics retrieved successfully", analytics));
+        } catch (Exception e) {
+            return GlobalExceptionHandler.errorResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
-
-    @Operation(summary = "Get global analytics", description = "Returns attendance statistics across all classes (admin view)")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved global analytics"),
-        @ApiResponse(responseCode = "401", description = "Not authenticated"),
-        @ApiResponse(responseCode = "403", description = "Not authorized to access this resource")
-    })
-    @GetMapping("/all")
-    public ResponseEntity<Map<String, Object>> getGlobalAnalytics() {
-        // In a real implementation, you would aggregate data from multiple classes
-        // For now, we'll return a simple placeholder
-        Map<String, Object> globalStats = new HashMap<>();
-        globalStats.put("totalClasses", 0);
-        globalStats.put("totalStudents", 0);
-        globalStats.put("totalSessions", 0);
-        globalStats.put("averageAttendanceRate", 0.0);
-        
-        log.info("Retrieved global analytics");
-        return ResponseEntity.ok(globalStats);
+    
+    @GetMapping("/{sectionId}/range")
+    @Operation(summary = "Get section analytics for date range", description = "Get attendance analytics for a specific section within a date range")
+    public ResponseEntity<ApiResponse<AttendanceAnalyticsDto>> getSectionAnalyticsForDateRange(
+            @PathVariable Long sectionId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+        try {
+            AttendanceAnalyticsDto analytics = analyticsService.getSectionAnalyticsForDateRange(sectionId, startDate, endDate);
+            return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Analytics retrieved successfully", analytics));
+        } catch (Exception e) {
+            return GlobalExceptionHandler.errorResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
-
-    @Operation(summary = "Get student analytics", description = "Returns attendance statistics for a specific student in a class")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully retrieved student analytics"),
-        @ApiResponse(responseCode = "404", description = "Class or student not found"),
-        @ApiResponse(responseCode = "401", description = "Not authenticated")
-    })
-    @GetMapping("/{classId}/student/{studentId}")
-    public ResponseEntity<Map<String, Object>> getStudentAnalytics(
-            @PathVariable Long classId, 
+    
+    @GetMapping("/{sectionId}/students")
+    @Operation(summary = "Get student attendance stats", description = "Get attendance statistics for all students in a section")
+    public ResponseEntity<ApiResponse<List<StudentAttendanceDto>>> getStudentAttendanceStats(@PathVariable Long sectionId) {
+        try {
+            List<StudentAttendanceDto> studentStats = analyticsService.getStudentAttendanceStats(sectionId);
+            return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Student attendance stats retrieved successfully", studentStats));
+        } catch (Exception e) {
+            return GlobalExceptionHandler.errorResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
+    @GetMapping("/{sectionId}/students/{studentId}")
+    @Operation(summary = "Get student attendance stats in section", description = "Get attendance statistics for a specific student in a section")
+    public ResponseEntity<ApiResponse<StudentAttendanceDto>> getStudentAttendanceStatsInSection(
+            @PathVariable Long sectionId,
             @PathVariable Long studentId) {
-        
-        Map<String, Object> studentStats = attendanceService.getAttendanceStatsByStudent(studentId);
-        log.info("Retrieved analytics for student {} in class {}", studentId, classId);
-        return ResponseEntity.ok(studentStats);
-    }
-
-    @Operation(summary = "Export attendance report", description = "Generates an exportable attendance report for a class")
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Successfully generated report"),
-        @ApiResponse(responseCode = "404", description = "Class not found"),
-        @ApiResponse(responseCode = "401", description = "Not authenticated")
-    })
-    @GetMapping("/{classId}/export")
-    public ResponseEntity<Map<String, Object>> exportAttendanceReport(@PathVariable Long classId) {
-        // In a real implementation, this would generate a CSV or PDF file
-        // For now, we'll return a simple placeholder response
-        Map<String, Object> response = new HashMap<>();
-        response.put("success", true);
-        response.put("message", "Export functionality will be implemented in future versions");
-        
-        log.info("Received request to export attendance report for class {}", classId);
-        return ResponseEntity.ok(response);
+        try {
+            StudentAttendanceDto studentStats = analyticsService.getStudentAttendanceStatsInSection(sectionId, studentId);
+            return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Student attendance stats retrieved successfully", studentStats));
+        } catch (Exception e) {
+            return GlobalExceptionHandler.errorResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
     }
 }

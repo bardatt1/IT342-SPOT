@@ -1,40 +1,36 @@
 package edu.cit.spot.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 
 @Entity
-@Table(name = "attendance")
 @Data
-@NoArgsConstructor
+@Table(name = "attendances")
 public class Attendance {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "session_id", nullable = false)
-    private Session session;
+    @JoinColumn(name = "student_id", nullable = false)
+    private Student student;
     
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "student_id", nullable = false)
-    private User student;
+    @JoinColumn(name = "section_id", nullable = false)
+    private Section section;
     
-    @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private AttendanceStatus status;
+    @NotNull
+    private LocalDate date;
     
-    @Column(nullable = false)
-    private LocalDateTime recordedAt;
+    @NotNull
+    @Column(name = "start_time")
+    private LocalTime startTime;
     
-    private String notes;
-    
-    private LocalDateTime updatedAt;
-    
-    public enum AttendanceStatus {
-        PRESENT, ABSENT, LATE, EXCUSED
-    }
+    @Column(name = "end_time")
+    private LocalTime endTime;
 }

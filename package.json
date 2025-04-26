@@ -1,9 +1,0 @@
-{
-  "name": "spot",
-  "version": "1.0.0",
-  "private": true,
-  "workspaces": [
-    "frontend_web",
-    "frontend_mobile"
-  ]
-}

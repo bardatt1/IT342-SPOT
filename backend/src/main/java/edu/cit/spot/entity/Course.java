@@ -1,42 +1,34 @@
 package edu.cit.spot.entity;
 
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.Data;
-import lombok.NoArgsConstructor;
 
-import java.util.HashSet;
-import java.util.Set;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Table(name = "courses")
 @Data
-@NoArgsConstructor
+@Table(name = "courses")
 public class Course {
+    
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @Column(nullable = false)
-    private String name;
-
-    @Column(nullable = false)
+    
+    @NotBlank
+    @Size(max = 100)
+    private String courseName;
+    
+    @Size(max = 500)
+    private String courseDescription;
+    
+    @NotBlank
+    @Size(max = 20)
+    @Column(unique = true)
     private String courseCode;
     
-    private String description;
-    
-    private String schedule;
-    
-    private String room;
-    
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "teacher_id", nullable = false)
-    private User teacher;
-    
-    @ManyToMany
-    @JoinTable(
-        name = "course_enrollment",
-        joinColumns = @JoinColumn(name = "course_id"),
-        inverseJoinColumns = @JoinColumn(name = "student_id")
-    )
-    private Set<User> students = new HashSet<>();
+    @OneToMany(mappedBy = "course", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+    private List<Section> sections = new ArrayList<>();
 }

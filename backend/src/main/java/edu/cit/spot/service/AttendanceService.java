@@ -1,21 +1,35 @@
 package edu.cit.spot.service;
 
-import edu.cit.spot.entity.Attendance;
+import edu.cit.spot.dto.attendance.AttendanceDto;
+import edu.cit.spot.dto.attendance.LogAttendanceRequest;
+import edu.cit.spot.dto.attendance.QRCodeResponse;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
-import java.util.Map;
 
 public interface AttendanceService {
-    List<Attendance> getAllAttendance();
-    Attendance getAttendanceById(Long id);
-    List<Attendance> getAttendanceBySessionId(Long sessionId);
-    List<Attendance> getAttendanceByCourseId(Long courseId);
-    List<Attendance> getAttendanceByStudentId(Long studentId);
-    Attendance recordAttendance(Long sessionId, Long studentId, Attendance.AttendanceStatus status);
-    Attendance updateAttendance(Long id, Attendance.AttendanceStatus status);
-    void deleteAttendance(Long id);
-    Map<String, Object> getAttendanceStatsByCourse(Long courseId);
-    Map<String, Object> getAttendanceStatsByStudent(Long studentId);
-    void markBulkAttendance(Long sessionId, List<Long> studentIds, Attendance.AttendanceStatus status);
+    
+    /**
+     * Log attendance for the current authenticated student
+     * 
+     * @param request The request containing QR code data
+     * @return The logged attendance record
+     */
+    AttendanceDto logAttendance(LogAttendanceRequest request);
+    
+    /**
+     * Generate QR code for the current authenticated teacher's section
+     * 
+     * @param sectionId The ID of the section to generate QR code for
+     * @return The generated QR code response
+     */
+    QRCodeResponse generateQRCode(Long sectionId);
+    
+    List<AttendanceDto> getAttendanceByStudentId(Long studentId);
+    
+    List<AttendanceDto> getAttendanceBySectionId(Long sectionId);
+    
+    List<AttendanceDto> getAttendanceBySectionAndDate(Long sectionId, LocalDate date);
+    
+    boolean deleteAttendance(Long id);
 }

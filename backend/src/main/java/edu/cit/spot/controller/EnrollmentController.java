@@ -28,7 +28,7 @@ public class EnrollmentController {
     
     @GetMapping("/student/{studentId}")
     @Operation(summary = "Get enrollments by student ID", description = "Get all enrollments for a specific student")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('STUDENT') and @securityUtil.isCurrentUser(#studentId))")
     public ResponseEntity<ApiResponse<List<EnrollmentDto>>> getEnrollmentsByStudentId(@PathVariable Long studentId) {
         try {
             List<EnrollmentDto> enrollments = enrollmentService.getEnrollmentsByStudentId(studentId);

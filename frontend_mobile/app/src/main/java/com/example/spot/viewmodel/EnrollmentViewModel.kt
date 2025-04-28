@@ -28,6 +28,17 @@ class EnrollmentViewModel : ViewModel() {
     private val _enrollAction = MutableStateFlow<EnrollActionState>(EnrollActionState.Idle)
     val enrollAction: StateFlow<EnrollActionState> = _enrollAction
     
+    init {
+        // Observe the enrollment cache for changes
+        viewModelScope.launch {
+            enrollmentRepository.enrollmentsCache.collect { cachedEnrollments ->
+                if (cachedEnrollments.isNotEmpty() && _enrollmentsState.value !is EnrollmentsState.Success) {
+                    _enrollmentsState.value = EnrollmentsState.Success(cachedEnrollments)
+                }
+            }
+        }
+    }
+    
     // Events
     fun loadStudentEnrollments() {
         _enrollmentsState.value = EnrollmentsState.Loading
@@ -80,6 +91,9 @@ class EnrollmentViewModel : ViewModel() {
             when (val result = enrollmentRepository.enrollStudent(enrollmentKey)) {
                 is NetworkResult.Success -> {
                     _enrollAction.value = EnrollActionState.Success(result.data)
+                    
+                    // No need to explicitly call loadStudentEnrollments here
+                    // as the cache update in the repository will trigger the flow collector
                 }
                 is NetworkResult.Error -> {
                     _enrollAction.value = EnrollActionState.Error(result.message)
@@ -89,6 +103,16 @@ class EnrollmentViewModel : ViewModel() {
         }
     }
     
+    /**
+     * Reset the enrollment action state to Idle
+     */
+    fun resetEnrollActionState() {
+        _enrollAction.value = EnrollActionState.Idle
+    }
+    
+    /**
+     * Reset all states to Idle
+     */
     fun resetStates() {
         _enrollmentsState.value = EnrollmentsState.Idle
         _enrollmentStatus.value = EnrollmentStatusState.Idle

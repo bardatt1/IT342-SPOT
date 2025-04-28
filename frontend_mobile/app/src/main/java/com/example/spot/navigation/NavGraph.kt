@@ -5,7 +5,10 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import com.example.spot.model.Student
 import com.example.spot.ui.theme.screens.*
+import com.example.spot.viewmodel.StudentState
+import com.google.gson.Gson
 
 object Routes {
     const val LOGIN = "login"
@@ -14,6 +17,7 @@ object Routes {
     const val DASHBOARD = "dashboard"
     const val CLASSES = "classes"
     const val PROFILE = "profile"
+    const val EDIT_PROFILE = "edit_profile"
     const val NOTIFICATIONS = "notifications"
     const val ATTENDANCE_LOG = "attendance_log"
     const val QR_SCANNER = "qr_scanner"
@@ -45,6 +49,11 @@ fun AppNavGraph(
         }
         composable(Routes.PROFILE) {
             ProfileScreen(navController)
+        }
+        composable(Routes.EDIT_PROFILE) {
+            // The EditProfileScreen will get the student data from the current StudentViewModel
+            // which is passed to it via viewModel = viewModel()
+            EditProfileScreen(navController = navController)
         }
         composable(Routes.NOTIFICATIONS) {
             NotificationsScreen(navController)

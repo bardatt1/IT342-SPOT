@@ -32,7 +32,7 @@ public class StudentController {
         summary = "Get student by ID", 
         description = "Retrieves a student's profile information by their ID in the SPOT system"
     )
-    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER') or @securityUtil.isCurrentUser(#id)")
     @StandardApiResponses
     @io.swagger.v3.oas.annotations.responses.ApiResponse(
         responseCode = "200",

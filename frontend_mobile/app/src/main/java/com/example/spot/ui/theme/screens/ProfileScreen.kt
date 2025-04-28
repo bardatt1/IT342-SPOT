@@ -16,13 +16,33 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.spot.model.Student
 import com.example.spot.navigation.Routes
 import com.example.spot.ui.theme.*
+import com.example.spot.viewmodel.StudentState
+import com.example.spot.viewmodel.StudentViewModel
 
 @Composable
-fun ProfileScreen(navController: NavController) {
+fun ProfileScreen(
+    navController: NavController,
+    studentViewModel: StudentViewModel = viewModel()
+) {
+    val studentState by studentViewModel.studentState.collectAsState()
     var showLogoutDialog by remember { mutableStateOf(false) }
+    
+    // Load student profile when component is created
+    LaunchedEffect(Unit) {
+        studentViewModel.loadStudentProfile()
+    }
+    
+    // Clean up when leaving screen
+    DisposableEffect(Unit) {
+        onDispose {
+            studentViewModel.resetStates()
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxSize()
@@ -33,80 +53,61 @@ fun ProfileScreen(navController: NavController) {
             colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
         )
 
-        // Profile content
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(16.dp),
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            // Profile picture placeholder
-            Box(
-                modifier = Modifier
-                    .size(100.dp)
-                    .clip(CircleShape)
-                    .background(Green700.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = "JS",
-                    color = Green700,
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+        // Content based on state
+        when (studentState) {
+            is StudentState.Loading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = Green700)
+                }
+            }
+            
+            is StudentState.Success -> {
+                val student = (studentState as StudentState.Success).student
+                ProfileContent(
+                    student = student,
+                    navController = navController,
+                    onLogoutClick = { showLogoutDialog = true }
                 )
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            // User name
-            Text(
-                text = "John Smith",
-                color = TextDark,
-                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
-            )
-
-            Spacer(modifier = Modifier.height(4.dp))
-
-            // User email
-            Text(
-                text = "john.smith@example.com",
-                color = Color.Gray,
-                style = MaterialTheme.typography.bodyMedium
-            )
-
-            Spacer(modifier = Modifier.height(32.dp))
-
-            // Profile options
-            ProfileOption(
-                title = "Edit Profile",
-                onClick = { /* Navigate to edit profile */ }
-            )
-
-            ProfileOption(
-                title = "Attendance History",
-                onClick = { navController.navigate(Routes.ATTENDANCE_LOG) }
-            )
-
-            ProfileOption(
-                title = "Settings",
-                onClick = { /* Navigate to settings */ }
-            )
-
-            ProfileOption(
-                title = "Help & Support",
-                onClick = { /* Navigate to help & support */ }
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
-
-            // Logout option
-            ProfileOption(
-                title = "Logout",
-                onClick = { showLogoutDialog = true },
-                isLogout = true
-            )
+            
+            is StudentState.Error -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally
+                    ) {
+                        Text(
+                            text = "Error loading profile",
+                            style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.error)
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        Text(
+                            text = (studentState as StudentState.Error).message,
+                            style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray),
+                            modifier = Modifier.padding(horizontal = 32.dp)
+                        )
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Button(
+                            onClick = { studentViewModel.loadStudentProfile() },
+                            colors = ButtonDefaults.buttonColors(containerColor = Green700)
+                        ) {
+                            Text("Retry")
+                        }
+                    }
+                }
+            }
+            
+            else -> {
+                // Idle state, do nothing
+            }
         }
     }
-
+    
     // Logout confirmation dialog
     if (showLogoutDialog) {
         AlertDialog(
@@ -138,34 +139,144 @@ fun ProfileScreen(navController: NavController) {
 }
 
 @Composable
+fun ProfileContent(
+    student: Student,
+    navController: NavController,
+    onLogoutClick: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        // Profile picture placeholder with initials
+        Box(
+            modifier = Modifier
+                .size(100.dp)
+                .clip(CircleShape)
+                .background(Green700.copy(alpha = 0.2f)),
+            contentAlignment = Alignment.Center
+        ) {
+            val initials = student.run {
+                val first = firstName.firstOrNull() ?: ""
+                val last = lastName.firstOrNull() ?: ""
+                "$first$last"
+            }
+            
+            Text(
+                text = initials.uppercase(),
+                color = Green700,
+                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // User full name
+        Text(
+            text = "${student.firstName} ${student.middleName ?: ""} ${student.lastName}".trim(),
+            color = TextDark,
+            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+        )
+
+        Spacer(modifier = Modifier.height(4.dp))
+
+        // User email
+        Text(
+            text = student.email,
+            color = Color.Gray,
+            style = MaterialTheme.typography.bodyMedium
+        )
+        
+        // Student specific fields
+        Spacer(modifier = Modifier.height(8.dp))
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+        ) {
+            Text(
+                text = "Student ID: ${student.studentPhysicalId}",
+                color = TextDark.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = "${student.program} • Year ${student.year}",
+                color = TextDark.copy(alpha = 0.7f),
+                style = MaterialTheme.typography.bodyMedium
+            )
+        }
+
+        Spacer(modifier = Modifier.height(32.dp))
+
+        // Profile options
+        ProfileOption(
+            title = "Edit Profile",
+            onClick = { navController.navigate(Routes.EDIT_PROFILE) }
+        )
+
+        ProfileOption(
+            title = "Attendance History",
+            onClick = { navController.navigate(Routes.ATTENDANCE_LOG) }
+        )
+
+        ProfileOption(
+            title = "Settings",
+            onClick = { /* Navigate to settings */ }
+        )
+
+        ProfileOption(
+            title = "Help & Support",
+            onClick = { /* Navigate to help & support */ }
+        )
+
+        Spacer(modifier = Modifier.weight(1f))
+
+        // Logout option
+        ProfileOption(
+            title = "Logout",
+            onClick = onLogoutClick,
+            isLogout = true
+        )
+    }
+}
+
+@Composable
 fun ProfileOption(
     title: String,
     onClick: () -> Unit,
     isLogout: Boolean = false
 ) {
-    TextButton(
-        onClick = onClick,
+    val textColor = if (isLogout) MaterialTheme.colorScheme.error else TextDark
+    
+    Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp)
+            .padding(vertical = 4.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        onClick = onClick
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth(),
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Text(
                 text = title,
-                style = MaterialTheme.typography.bodyLarge.copy(
-                    color = if (isLogout) Color.Red else TextDark,
-                    fontSize = 16.sp
-                ),
-                modifier = Modifier.weight(1f)
+                style = MaterialTheme.typography.bodyLarge,
+                color = textColor
             )
-            Icon(
-                imageVector = Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = if (isLogout) Color.Red else TextDark
-            )
+            
+            if (!isLogout) {
+                Icon(
+                    imageVector = Icons.Default.ChevronRight,
+                    contentDescription = null,
+                    tint = Green700
+                )
+            }
         }
     }
 }

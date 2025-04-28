@@ -30,6 +30,7 @@ import com.example.spot.ui.theme.Green700
 import com.example.spot.ui.theme.TextDark
 import com.example.spot.util.TokenManager
 import com.example.spot.viewmodel.EnrollmentViewModel
+import com.example.spot.viewmodel.EnrollActionState
 import com.example.spot.viewmodel.EnrollmentsState
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -43,6 +44,7 @@ fun DashboardScreen(
     enrollmentViewModel: EnrollmentViewModel = viewModel()
 ) {
     val enrollmentsState by enrollmentViewModel.enrollmentsState.collectAsState()
+    val enrollActionState by enrollmentViewModel.enrollAction.collectAsState()
     var userName by remember { mutableStateOf("Student") }
     var showEnrollModal by remember { mutableStateOf(false) }
     var enrollmentKey by remember { mutableStateOf("") }
@@ -60,6 +62,28 @@ fun DashboardScreen(
                 enrollmentViewModel.loadStudentEnrollments()
             } catch (e: Exception) {
                 // Log.e("DashboardScreen", "Error loading user data", e)
+            }
+        }
+    }
+    
+    // Handle enrollment action state changes
+    LaunchedEffect(enrollActionState) {
+        when (enrollActionState) {
+            is EnrollActionState.Success -> {
+                // Close the dialog and refresh enrollments on success
+                showEnrollModal = false
+                enrollmentKey = ""
+                enrollError = null
+                enrollmentViewModel.loadStudentEnrollments()
+                // Reset the action state to prevent reprocessing
+                enrollmentViewModel.resetEnrollActionState()
+            }
+            is EnrollActionState.Error -> {
+                // Show error message but keep dialog open
+                enrollError = (enrollActionState as EnrollActionState.Error).message
+            }
+            else -> {
+                // Do nothing for other states
             }
         }
     }
@@ -195,7 +219,11 @@ fun DashboardScreen(
     // Enrollment Dialog
     if (showEnrollModal) {
         AlertDialog(
-            onDismissRequest = { showEnrollModal = false },
+            onDismissRequest = { 
+                if (enrollActionState !is EnrollActionState.Loading) {
+                    showEnrollModal = false 
+                }
+            },
             title = { Text("Enroll in a Class") },
             text = {
                 Column {
@@ -204,7 +232,8 @@ fun DashboardScreen(
                         onValueChange = { enrollmentKey = it },
                         label = { Text("Enrollment Key") },
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        enabled = enrollActionState !is EnrollActionState.Loading
                     )
                     
                     if (enrollError != null) {
@@ -215,28 +244,50 @@ fun DashboardScreen(
                             style = MaterialTheme.typography.bodySmall
                         )
                     }
+                    
+                    if (enrollActionState is EnrollActionState.Loading) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.Center,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            CircularProgressIndicator(
+                                modifier = Modifier.size(24.dp),
+                                color = Green700,
+                                strokeWidth = 2.dp
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = "Enrolling...",
+                                style = MaterialTheme.typography.bodyMedium
+                            )
+                        }
+                    }
                 }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        // TODO: Implement enrollment with the key
                         if (enrollmentKey.isBlank()) {
                             enrollError = "Please enter a valid enrollment key"
                         } else {
                             enrollError = null
-                            showEnrollModal = false
-                            // Simulate enrollment success
-                            enrollmentViewModel.loadStudentEnrollments()
+                            // Call the enrollment function
+                            enrollmentViewModel.enrollInSection(enrollmentKey)
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Green700)
+                    colors = ButtonDefaults.buttonColors(containerColor = Green700),
+                    enabled = enrollActionState !is EnrollActionState.Loading && enrollmentKey.isNotBlank()
                 ) {
                     Text("Enroll")
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showEnrollModal = false }) {
+                TextButton(
+                    onClick = { showEnrollModal = false },
+                    enabled = enrollActionState !is EnrollActionState.Loading
+                ) {
                     Text("Cancel")
                 }
             }

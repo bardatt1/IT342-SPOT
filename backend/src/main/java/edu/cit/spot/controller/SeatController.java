@@ -39,6 +39,19 @@ public class SeatController {
         }
     }
     
+    @GetMapping("/section/{sectionId}")
+    @Operation(summary = "Get all seats for section display", description = "Get all seats for a specific section for the seat plan display. Available to all students who are enrolled in a section.")
+    @PreAuthorize("hasAnyRole('TEACHER', 'STUDENT')")
+    public ResponseEntity<ApiResponse<List<SeatDto>>> getAllSeatsForSection(@PathVariable Long sectionId) {
+        try {
+            // First check if the student is enrolled (authentication happens at service level)
+            List<SeatDto> seats = seatService.getSeatsBySectionId(sectionId);
+            return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Seats retrieved successfully", seats));
+        } catch (Exception e) {
+            return GlobalExceptionHandler.errorResponseEntity(e.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+    
     @GetMapping("/student")
     @Operation(summary = "Get seat by student and section", description = "Get a seat for a specific student in a section")
     public ResponseEntity<ApiResponse<SeatDto>> getSeatByStudentAndSectionId(

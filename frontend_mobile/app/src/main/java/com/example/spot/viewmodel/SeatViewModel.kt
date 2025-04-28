@@ -25,8 +25,8 @@ class SeatViewModel : ViewModel() {
     private val _studentSeatState = MutableStateFlow<StudentSeatState>(StudentSeatState.Idle)
     val studentSeatState: StateFlow<StudentSeatState> = _studentSeatState
     
-    private val _pickSeatState = MutableStateFlow<PickSeatState>(PickSeatState.Idle)
-    val pickSeatState: StateFlow<PickSeatState> = _pickSeatState
+    private val _pickSeatState = MutableStateFlow<SeatPickState>(SeatPickState.Idle)
+    val pickSeatState: StateFlow<SeatPickState> = _pickSeatState
     
     // Events
     fun loadSeatsForSection(sectionId: Long) {
@@ -68,21 +68,21 @@ class SeatViewModel : ViewModel() {
     }
     
     fun pickSeat(sectionId: Long, row: Int, column: Int) {
-        _pickSeatState.value = PickSeatState.Loading
+        _pickSeatState.value = SeatPickState.Loading
         
         viewModelScope.launch {
             val userId = TokenManager.getUserId().first()
             if (userId == null) {
-                _pickSeatState.value = PickSeatState.Error("User ID not found. Please log in again.")
+                _pickSeatState.value = SeatPickState.Error("User ID not found. Please log in again.")
                 return@launch
             }
             
             when (val result = seatRepository.pickSeat(userId, sectionId, row, column)) {
                 is NetworkResult.Success -> {
-                    _pickSeatState.value = PickSeatState.Success(result.data)
+                    _pickSeatState.value = SeatPickState.Success(result.data)
                 }
                 is NetworkResult.Error -> {
-                    _pickSeatState.value = PickSeatState.Error(result.message)
+                    _pickSeatState.value = SeatPickState.Error(result.message)
                 }
                 else -> {}
             }
@@ -92,7 +92,7 @@ class SeatViewModel : ViewModel() {
     fun resetStates() {
         _seatsState.value = SeatsState.Idle
         _studentSeatState.value = StudentSeatState.Idle
-        _pickSeatState.value = PickSeatState.Idle
+        _pickSeatState.value = SeatPickState.Idle
     }
 }
 
@@ -111,9 +111,9 @@ sealed class StudentSeatState {
     data class Error(val message: String) : StudentSeatState()
 }
 
-sealed class PickSeatState {
-    object Idle : PickSeatState()
-    object Loading : PickSeatState()
-    data class Success(val seat: Seat) : PickSeatState()
-    data class Error(val message: String) : PickSeatState()
+sealed class SeatPickState {
+    object Idle : SeatPickState()
+    object Loading : SeatPickState()
+    data class Success(val seat: Seat) : SeatPickState()
+    data class Error(val message: String) : SeatPickState()
 }

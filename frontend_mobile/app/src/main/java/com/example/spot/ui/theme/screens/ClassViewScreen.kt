@@ -7,7 +7,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -27,7 +27,7 @@ import com.example.spot.ui.theme.*
 import com.example.spot.viewmodel.SeatViewModel
 import com.example.spot.viewmodel.SeatsState
 import com.example.spot.viewmodel.StudentSeatState
-import com.example.spot.viewmodel.PickSeatState
+import com.example.spot.viewmodel.SeatPickState
 import com.example.spot.viewmodel.SectionViewModel
 import com.example.spot.viewmodel.SectionDetailsState
 import kotlinx.coroutines.launch
@@ -118,11 +118,9 @@ fun ClassViewScreen(
                             }
                         }
                         is SeatsState.Success -> {
-                            val seats = (seatsState as SeatsState.Success).seats
                             ClassViewContent(
                                 navController = navController,
                                 section = section,
-                                seats = seats,
                                 studentSeat = studentSeat
                             )
                         }
@@ -198,7 +196,7 @@ fun ChooseSeatScreen(
     navController: NavController,
     section: Section,
     seats: List<Seat>,
-    pickSeatState: PickSeatState,
+    pickSeatState: SeatPickState,
     onPickSeat: (Int, Int) -> Unit
 ) {
     var selectedSeatPosition by remember { mutableStateOf<Pair<Int, Int>?>(null) }
@@ -208,18 +206,17 @@ fun ChooseSeatScreen(
     // Handle pick seat state
     LaunchedEffect(pickSeatState) {
         when (pickSeatState) {
-            is PickSeatState.Success -> {
+            is SeatPickState.Success -> {
                 coroutineScope.launch {
                     snackbarHostState.showSnackbar("Seat selected successfully!")
                     // Refresh the student seat
                     // This could navigate back or refresh data
                 }
             }
-            is PickSeatState.Error -> {
+            is SeatPickState.Error -> {
                 coroutineScope.launch {
-                    val errorState = pickSeatState as PickSeatState.Error
                     snackbarHostState.showSnackbar(
-                        errorState.message,
+                        pickSeatState.message,
                         actionLabel = "Retry"
                     )
                 }
@@ -235,7 +232,7 @@ fun ChooseSeatScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            imageVector = Icons.Filled.ArrowBack,
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = Green700
                         )
@@ -369,7 +366,7 @@ fun ChooseSeatScreen(
                         onPickSeat(row, column)
                     }
                 },
-                enabled = selectedSeatPosition != null && pickSeatState !is PickSeatState.Loading,
+                enabled = selectedSeatPosition != null && pickSeatState !is SeatPickState.Loading,
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(vertical = 16.dp),
@@ -378,7 +375,7 @@ fun ChooseSeatScreen(
                     disabledContainerColor = Color.Gray
                 )
             ) {
-                if (pickSeatState is PickSeatState.Loading) {
+                if (pickSeatState is SeatPickState.Loading) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(24.dp),
                         color = Color.White,
@@ -396,7 +393,6 @@ fun ChooseSeatScreen(
 fun ClassViewContent(
     navController: NavController,
     section: Section,
-    seats: List<Seat>,
     studentSeat: Seat
 ) {
     Scaffold(
@@ -406,9 +402,8 @@ fun ClassViewContent(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            imageVector = Icons.Filled.ArrowBack,
-                            contentDescription = "Back",
-                            tint = Green700
+                            imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                            contentDescription = "Back"
                         )
                     }
                 },

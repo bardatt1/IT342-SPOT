@@ -63,6 +63,9 @@ interface ApiService {
     @GET("api/enrollments/student/{studentId}")
     suspend fun getEnrollmentsByStudentId(@Path("studentId") studentId: Long): ApiResponse<List<Enrollment>>
     
+    @GET("api/enrollments/section/{sectionId}")
+    suspend fun getEnrollmentsBySectionId(@Path("sectionId") sectionId: Long): ApiResponse<List<Enrollment>>
+    
     @GET("api/enrollments/status")
     suspend fun isStudentEnrolled(
         @Query("studentId") studentId: Long,
@@ -75,6 +78,9 @@ interface ApiService {
     // Seats
     @GET("api/seats")
     suspend fun getSeatsBySectionId(@Query("sectionId") sectionId: Long): ApiResponse<List<Seat>>
+    
+    @GET("api/seats/section/{sectionId}")
+    suspend fun getAllSeatsForSection(@Path("sectionId") sectionId: Long): ApiResponse<List<Seat>>
     
     @GET("api/seats/student")
     suspend fun getSeatByStudentAndSectionId(

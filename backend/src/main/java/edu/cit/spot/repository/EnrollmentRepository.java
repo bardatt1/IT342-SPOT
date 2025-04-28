@@ -32,4 +32,11 @@ public interface EnrollmentRepository extends JpaRepository<Enrollment, Long> {
     
     @Query("SELECT COUNT(e) FROM Enrollment e WHERE e.section.id = :sectionId")
     Long countBySectionId(@Param("sectionId") Long sectionId);
+    
+    /**
+     * Check if a student is enrolled in a section by email
+     * Used for security authorization
+     */
+    @Query("SELECT COUNT(e) > 0 FROM Enrollment e WHERE e.section.id = :sectionId AND e.student.email = :email")
+    boolean existsByStudentEmailAndSectionId(@Param("email") String email, @Param("sectionId") Long sectionId);
 }

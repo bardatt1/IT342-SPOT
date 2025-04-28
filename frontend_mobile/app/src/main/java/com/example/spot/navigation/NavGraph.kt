@@ -5,6 +5,9 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import com.example.spot.model.Section
 import com.example.spot.model.Student
 import com.example.spot.ui.theme.screens.*
 import com.example.spot.viewmodel.StudentState
@@ -22,6 +25,7 @@ object Routes {
     const val ATTENDANCE_LOG = "attendance_log"
     const val QR_SCANNER = "qr_scanner"
     const val CLASS_VIEW = "class_view/{classCode}"
+    const val SEAT_PLAN = "seat_plan/{sectionId}"
     const val WELCOME = "welcome"
 }
 
@@ -67,6 +71,20 @@ fun AppNavGraph(
         composable(Routes.CLASS_VIEW) { backStackEntry ->
             val classCode = backStackEntry.arguments?.getString("classCode") ?: ""
             ClassViewScreen(navController, classCode)
+        }
+        composable(
+            route = Routes.SEAT_PLAN,
+            arguments = listOf(
+                navArgument("sectionId") {
+                    type = NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+            val sectionId = backStackEntry.arguments?.getLong("sectionId") ?: 0L
+            SeatPlanScreen(
+                navController = navController,
+                sectionId = sectionId
+            )
         }
     }
 }

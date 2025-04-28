@@ -12,6 +12,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.QrCode
+import androidx.compose.material.icons.filled.Chair
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -29,8 +30,8 @@ import com.example.spot.navigation.Routes
 import com.example.spot.ui.theme.Green700
 import com.example.spot.ui.theme.TextDark
 import com.example.spot.util.TokenManager
-import com.example.spot.viewmodel.EnrollmentViewModel
 import com.example.spot.viewmodel.EnrollActionState
+import com.example.spot.viewmodel.EnrollmentViewModel
 import com.example.spot.viewmodel.EnrollmentsState
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -175,6 +176,10 @@ fun DashboardScreen(
                                     onScanQrClick = {
                                         // Navigate to QR scanner
                                         navController.navigate(Routes.QR_SCANNER)
+                                    },
+                                    onSeatPlanClick = {
+                                        // Navigate to seat plan
+                                        navController.navigate("${Routes.SEAT_PLAN.replace("{sectionId}", enrollment.section.id.toString())}")
                                     }
                                 )
                             }
@@ -306,7 +311,8 @@ fun DashboardScreen(
 fun EnrollmentCard(
     enrollment: Enrollment,
     onCardClick: () -> Unit,
-    onScanQrClick: () -> Unit
+    onScanQrClick: () -> Unit,
+    onSeatPlanClick: () -> Unit
 ) {
     val courseNamePrefix = enrollment.section.course.courseCode
     val courseName = enrollment.section.course.courseName
@@ -371,6 +377,18 @@ fun EnrollmentCard(
             }
             
             Spacer(modifier = Modifier.width(8.dp))
+            
+            // Seat plan button
+            IconButton(
+                onClick = onSeatPlanClick
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Chair,
+                    contentDescription = "View Seat Plan",
+                    tint = Green700,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
             
             // QR code scan button
             IconButton(

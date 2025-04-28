@@ -84,6 +84,26 @@ class EnrollmentRepository {
     }
     
     /**
+     * Get all enrollments for a section
+     */
+    suspend fun getEnrollmentsBySectionId(sectionId: Long): NetworkResult<List<Enrollment>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getEnrollmentsBySectionId(sectionId)
+                
+                if (response.result == "SUCCESS" && response.data != null) {
+                    return@withContext NetworkResult.Success(response.data)
+                } else {
+                    return@withContext NetworkResult.Error(response.message)
+                }
+            } catch (e: Exception) {
+                Log.e("EnrollmentRepository", "Get section enrollments error", e)
+                NetworkResult.Error("Network error: ${e.localizedMessage}")
+            }
+        }
+    }
+    
+    /**
      * Check if a student is enrolled in a section
      */
     suspend fun isStudentEnrolled(studentId: Long, sectionId: Long): NetworkResult<Boolean> {

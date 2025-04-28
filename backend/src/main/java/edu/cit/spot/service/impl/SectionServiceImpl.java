@@ -252,4 +252,22 @@ public class SectionServiceImpl implements SectionService {
         
         return SectionDto.fromEntity(section);
     }
+
+    /**
+     * Check if a student is enrolled in a section
+     * This method is referenced in security annotations
+     *
+     * @param username the student's username (email)
+     * @param sectionId the section ID
+     * @return true if the student is enrolled in the section
+     */
+    public boolean isStudentEnrolledInSection(String username, Long sectionId) {
+        // Check if the section exists first
+        if (!sectionRepository.existsById(sectionId)) {
+            throw new ResourceNotFoundException("Section", "id", sectionId);
+        }
+        
+        // Check if any enrollments exist for this student (by email) in this section
+        return enrollmentRepository.existsByStudentEmailAndSectionId(username, sectionId);
+    }
 }

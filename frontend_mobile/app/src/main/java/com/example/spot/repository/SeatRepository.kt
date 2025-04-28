@@ -7,6 +7,7 @@ import com.example.spot.network.RetrofitClient
 import com.example.spot.util.NetworkResult
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import retrofit2.HttpException
 
 /**
  * Repository for handling seat related API calls
@@ -28,7 +29,13 @@ class SeatRepository {
                     NetworkResult.Error(response.message)
                 }
             } catch (e: Exception) {
-                Log.e("SeatRepository", "Get seats error", e)
+                Log.e("SeatRepository", "Get seats error (Ask Gemini)", e)
+                
+                // Check if it's the specific authorization error we're handling
+                if (e is HttpException && e.code() == 400) {
+                    return@withContext NetworkResult.Error("You don't have permission to view seats in this section. Make sure you're enrolled and try again.")
+                }
+                
                 NetworkResult.Error("Network error: ${e.localizedMessage}")
             }
         }
@@ -49,6 +56,27 @@ class SeatRepository {
                 }
             } catch (e: Exception) {
                 Log.e("SeatRepository", "Get student seat error", e)
+                NetworkResult.Error("Network error: ${e.localizedMessage}")
+            }
+        }
+    }
+    
+    /**
+     * Get all seats for a section using the more permissive endpoint
+     * This endpoint allows students to see seats taken by other students in the section
+     */
+    suspend fun getAllSeatsForSection(sectionId: Long): NetworkResult<List<Seat>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getAllSeatsForSection(sectionId)
+                
+                if (response.result == "SUCCESS" && response.data != null) {
+                    NetworkResult.Success(response.data)
+                } else {
+                    NetworkResult.Error(response.message)
+                }
+            } catch (e: Exception) {
+                Log.e("SeatRepository", "Get all seats error", e)
                 NetworkResult.Error("Network error: ${e.localizedMessage}")
             }
         }

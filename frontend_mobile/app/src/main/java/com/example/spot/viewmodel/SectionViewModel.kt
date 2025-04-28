@@ -23,6 +23,9 @@ class SectionViewModel : ViewModel() {
     private val _sectionDetailsState = MutableStateFlow<SectionDetailsState>(SectionDetailsState.Idle)
     val sectionDetailsState: StateFlow<SectionDetailsState> = _sectionDetailsState
     
+    private val _sectionState = MutableStateFlow<SectionState>(SectionState.Idle)
+    val sectionState: StateFlow<SectionState> = _sectionState
+    
     // Events
     fun loadSectionsByCourse(courseId: Long) {
         _sectionsState.value = SectionsState.Loading
@@ -76,9 +79,29 @@ class SectionViewModel : ViewModel() {
         }
     }
     
+    /**
+     * Fetch a single section by ID for seat plan
+     */
+    fun fetchSectionById(sectionId: Long) {
+        _sectionState.value = SectionState.Loading
+        
+        viewModelScope.launch {
+            when (val result = sectionRepository.getSectionById(sectionId)) {
+                is NetworkResult.Success -> {
+                    _sectionState.value = SectionState.Success(result.data)
+                }
+                is NetworkResult.Error -> {
+                    _sectionState.value = SectionState.Error(result.message)
+                }
+                else -> {}
+            }
+        }
+    }
+    
     fun resetStates() {
         _sectionsState.value = SectionsState.Idle
         _sectionDetailsState.value = SectionDetailsState.Idle
+        _sectionState.value = SectionState.Idle
     }
 }
 
@@ -95,4 +118,14 @@ sealed class SectionDetailsState {
     object Loading : SectionDetailsState()
     data class Success(val section: Section) : SectionDetailsState()
     data class Error(val message: String) : SectionDetailsState()
+}
+
+/**
+ * State for individual section data
+ */
+sealed class SectionState {
+    object Idle : SectionState()
+    object Loading : SectionState()
+    data class Success(val section: Section) : SectionState()
+    data class Error(val message: String) : SectionState()
 }

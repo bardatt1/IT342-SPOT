@@ -22,9 +22,11 @@ const TeacherDashboard = () => {
       
       try {
         setIsLoading(true);
-        // Use the new getByTeacherId method that passes the teacherId as a parameter
-        // This fixes the 500 error where the backend required the teacherId parameter
+        console.log(`Fetching sections for teacher with ID: ${user.id}`);
+        
+        // Use the getByTeacherId method that fetches sections and filters by teacher ID
         const teacherSections = await sectionApi.getByTeacherId(user.id);
+        console.log(`Retrieved ${teacherSections.length} sections for teacher ${user.id}:`, teacherSections);
         setSections(teacherSections);
         
         // If teacher has sections, set the first one as active by default

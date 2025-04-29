@@ -30,8 +30,22 @@ const Analytics = () => {
     
     try {
       setIsLoading(true);
+      console.log(`Fetching sections for teacher with ID: ${user.id}`);
       const allSections = await sectionApi.getAllSections();
-      const teacherSections = allSections.filter(section => section.teacherId === user.id);
+      
+      // Extract teacher ID properly from the nested teacher object
+      const teacherSections = allSections.filter(section => {
+        // In the backend DTO, teacher is a nested object with id
+        const sectionTeacherId = section.teacher?.id || 
+                               (section.teacher ? section.teacher.id : null);
+                               
+        console.log(`Section ${section.id} has teacher:`, section.teacher, 
+                  `- Extracted teacherId:`, sectionTeacherId);
+                  
+        return sectionTeacherId === user.id;
+      });
+      
+      console.log(`Found ${teacherSections.length} sections for teacher ${user.id}`);
       setSections(teacherSections);
       
       // Select first section by default if available
@@ -49,9 +63,40 @@ const Analytics = () => {
   const fetchAnalyticsData = async (sectionId: number) => {
     try {
       setIsLoading(true);
+      console.log(`Fetching analytics data for section ID: ${sectionId}`);
+      
+      // First run enhanced diagnostics to check all analytics prerequisites
+      console.log('Running comprehensive analytics diagnostics...');
+      const diagnostics = await attendanceApi.checkSectionAnalyticsData(sectionId);
+      console.log('Comprehensive diagnostic results:', diagnostics);
+      
+      if (diagnostics.error) {
+        setError(`Error checking section data: ${diagnostics.message}`);
+      } else if (!diagnostics.analyticsCanBeCalculated) {
+        // Show specific error messages based on what prerequisites are missing
+        const missingItems = diagnostics.missingPrerequisites.join(', ');
+        console.warn(`Analytics prerequisites missing: ${missingItems}`);
+        
+        if (!diagnostics.hasSchedules) {
+          setError(
+            `No class schedules defined for this section. Analytics requires schedules to calculate class days. ` +
+            `Please contact the administrator to set up schedules for this section.`
+          );
+        } else if (!diagnostics.hasEnrollments) {
+          setError(
+            `No students enrolled in this section (${sectionId}). ` +
+            `Analytics cannot be calculated until students are enrolled.`
+          );
+        } else {
+          setError(`Analytics cannot be calculated: ${missingItems}`); 
+        }
+      }
+      
+      // Fetch analytics data even if prerequisites are missing
+      // This will help us see what the backend is returning
       const data = await attendanceApi.getSectionAnalytics(sectionId);
+      console.log('Received analytics data:', data);
       setAnalytics(data);
-      setError(null);
     } catch (error) {
       console.error('Error fetching analytics data:', error);
       setError('Failed to load analytics data. Please try again later.');
@@ -182,7 +227,7 @@ const Analytics = () => {
                   </div>
                   <div className="ml-4">
                     <h3 className="text-sm font-medium text-gray-500">Total Sessions</h3>
-                    <p className="text-2xl font-semibold text-gray-900">{analytics.totalSessions}</p>
+                    <p className="text-2xl font-semibold text-gray-900">{analytics?.totalSessions || 0}</p>
                   </div>
                 </div>
               </div>
@@ -194,7 +239,7 @@ const Analytics = () => {
                   </div>
                   <div className="ml-4">
                     <h3 className="text-sm font-medium text-gray-500">Total Students</h3>
-                    <p className="text-2xl font-semibold text-gray-900">{analytics.totalStudents}</p>
+                    <p className="text-2xl font-semibold text-gray-900">{analytics?.totalStudents || 0}</p>
                   </div>
                 </div>
               </div>
@@ -207,7 +252,7 @@ const Analytics = () => {
                   <div className="ml-4">
                     <h3 className="text-sm font-medium text-gray-500">Average Attendance</h3>
                     <p className="text-2xl font-semibold text-gray-900">
-                      {analytics.averageAttendance.toFixed(2)}%
+                      {(analytics?.averageAttendance || 0).toFixed(2)}%
                     </p>
                   </div>
                 </div>
@@ -221,7 +266,7 @@ const Analytics = () => {
               <div className="h-64">
                 {/* This would ideally be a real chart component */}
                 <div className="flex h-full items-end space-x-2">
-                  {analytics.attendanceByDate.map((item, index) => (
+                  {(analytics?.attendanceByDate || []).map((item, index) => (
                     <div key={index} className="flex flex-1 flex-col items-center">
                       <div 
                         className="w-full bg-blue-500" 
@@ -265,7 +310,7 @@ const Analytics = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200 bg-white">
-                    {analytics.studentAttendance.map((student, index) => (
+                    {(analytics?.studentAttendance || []).map((student, index) => (
                       <tr key={index}>
                         <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
                           {student.studentId}

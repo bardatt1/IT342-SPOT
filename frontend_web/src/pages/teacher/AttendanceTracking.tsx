@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import DashboardLayout from '../../components/ui/layout/DashboardLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { sectionApi, type Section } from '../../lib/api/section';
@@ -52,8 +52,32 @@ const AttendanceTracking = () => {
   const fetchAttendanceData = async (sectionId: number) => {
     try {
       setIsLoading(true);
-      const data = await attendanceApi.getSectionAttendance(sectionId);
-      setAttendanceRecords(data);
+      const response = await attendanceApi.getSectionAttendance(sectionId);
+      
+      // Log the response to debug
+      console.log('Attendance API response:', response);
+      
+      // Ensure we're working with an array
+      let records: Attendance[] = [];
+      
+      if (Array.isArray(response)) {
+        records = response;
+      } else if (response && typeof response === 'object') {
+        // If it's a response object with a data property
+        const responseObj = response as Record<string, any>;
+        if (Array.isArray(responseObj.data)) {
+          records = responseObj.data;
+        } else if (responseObj.data && typeof responseObj.data === 'object') {
+          // Sometimes the data might be nested further
+          const dataObj = responseObj.data as Record<string, any>;
+          if (Array.isArray(dataObj.data)) {
+            records = dataObj.data;
+          }
+        }
+      }
+      
+      console.log('Processed attendance records:', records);
+      setAttendanceRecords(Array.isArray(records) ? records : []);
       setError(null);
     } catch (error) {
       console.error('Error fetching attendance data:', error);
@@ -81,14 +105,14 @@ const AttendanceTracking = () => {
     setIsExporting(true);
     
     try {
-      // Filter records based on current filters
-      const filteredRecords = filterAttendanceRecords();
+      // Use the same filtered records that are displayed in the UI
+      // (this uses the memoized value from useMemo)
       
       // Convert to CSV
       const headers = ['Student ID', 'Section ID', 'Date', 'Start Time', 'End Time'];
       const csvContent = [
         headers.join(','),
-        ...filteredRecords.map(record => [
+        ...filteredRecords.map((record: Attendance) => [
           record.studentId,
           record.sectionId,
           record.date,
@@ -115,13 +139,7 @@ const AttendanceTracking = () => {
     }
   };
 
-  const filterAttendanceRecords = () => {
-    if (!dateFilter) return attendanceRecords;
-    
-    return attendanceRecords.filter(record => 
-      record.date === dateFilter
-    );
-  };
+  // The filterAttendanceRecords function is no longer needed as we use useMemo instead
 
   const formatDate = (dateString: string) => {
     const options: Intl.DateTimeFormatOptions = { 
@@ -140,6 +158,15 @@ const AttendanceTracking = () => {
     return new Date(`2000-01-01T${timeString}`).toLocaleTimeString(undefined, options);
   };
 
+  // Use useMemo to calculate filtered records only when dependencies change
+  const filteredRecords = useMemo(() => {
+    if (!dateFilter) return attendanceRecords;
+    
+    return attendanceRecords.filter(record => 
+      record.date === dateFilter
+    );
+  }, [attendanceRecords, dateFilter]);
+  
   if (isLoading && sections.length === 0) {
     return (
       <DashboardLayout>
@@ -149,8 +176,6 @@ const AttendanceTracking = () => {
       </DashboardLayout>
     );
   }
-
-  const filteredRecords = filterAttendanceRecords();
 
   return (
     <DashboardLayout>

@@ -49,11 +49,38 @@ axiosInstance.interceptors.response.use(
       );
       
       if (error.response.status === 401) {
-        // Unauthorized (e.g., token expired)
-        console.log('Unauthorized access, redirecting to login');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        window.location.href = '/login';
+        // Only handle 401 errors from certain endpoints
+        const url = error.response.config.url;
+        
+        // Don't immediately logout for all 401 errors
+        // We can be more selective about which 401s should force logout
+        console.log('Unauthorized access on:', url);
+        
+        // Check if this is a critical endpoint that requires session validity
+        const isCriticalEndpoint = 
+          url?.includes('/auth/') || // Auth endpoints
+          url === '/user/me' ||     // User profile endpoint
+          url === '/user/profile';  // Another user endpoint
+        
+        if (isCriticalEndpoint) {
+          console.log('Critical endpoint unauthorized, logging out');
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          
+          // Use a more user-friendly approach - set flag and let UI handle redirect
+          // This prevents abrupt redirects in the middle of user actions
+          if (!window.location.pathname.includes('/login')) {
+            console.log('Redirecting to login page');
+            // Add a small delay to allow current code to complete
+            setTimeout(() => {
+              window.location.href = '/login';
+            }, 100);
+          }
+        } else {
+          console.log('Non-critical endpoint unauthorized, continuing session');
+          // For non-critical endpoints, we can just let the error propagate
+          // The individual components can handle these errors appropriately
+        }
       }
     } else if (error.request) {
       // The request was made but no response was received

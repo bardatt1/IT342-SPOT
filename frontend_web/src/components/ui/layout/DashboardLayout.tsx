@@ -26,6 +26,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { name: 'Users', href: '/admin/users', icon: <Users className="w-5 h-5" /> },
     { name: 'Courses', href: '/admin/courses', icon: <BookOpen className="w-5 h-5" /> },
     { name: 'Sections', href: '/admin/sections', icon: <Calendar className="w-5 h-5" /> },
+    { name: 'Schedules', href: '/admin/schedules', icon: <Calendar className="w-5 h-5" /> },
   ];
 
   const teacherNavItems = [

@@ -11,9 +11,11 @@ import AdminDashboard from './pages/admin/Dashboard';
 import UserManagement from './pages/admin/UserManagement';
 import CourseManagement from './pages/admin/CourseManagement';
 import SectionManagement from './pages/admin/SectionManagement';
+import ScheduleManagement from './pages/admin/ScheduleManagement';
 
 // Teacher Pages
 import TeacherDashboard from './pages/teacher/Dashboard';
+import TeacherSections from './pages/teacher/Sections';
 import AttendanceTracking from './pages/teacher/AttendanceTracking';
 import Analytics from './pages/teacher/Analytics';
 import SeatManagement from './pages/teacher/SeatManagement';
@@ -78,6 +80,14 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
+              <Route 
+                path="/admin/schedules" 
+                element={
+                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                    <ScheduleManagement />
+                  </ProtectedRoute>
+                } 
+              />
               
               {/* Teacher Routes */}
               <Route 
@@ -85,6 +95,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['TEACHER']}>
                     <TeacherDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/teacher/sections" 
+                element={
+                  <ProtectedRoute allowedRoles={['TEACHER']}>
+                    <TeacherSections />
                   </ProtectedRoute>
                 } 
               />

@@ -31,6 +31,8 @@ export interface Section {
   id: number;
   courseId: number;
   teacherId?: number;
+  teacher?: TeacherDto | null;
+  course?: CourseDto;
   sectionName: string;
   enrollmentKey: string;
   enrollmentOpen: boolean;
@@ -50,26 +52,32 @@ export interface SectionUpdateDto {
 }
 
 export const sectionApi = {
-  // Get sections for a specific course
-  getAll: async (courseId: number): Promise<Section[]> => {
+  // Get sections for a specific course or all sections if no courseId provided
+  getAll: async (courseId?: number): Promise<Section[]> => {
     try {
-      // Backend requires courseId as a query parameter
-      const response = await axiosInstance.get(`/sections?courseId=${courseId}`);
-      const sectionsData = response.data.data || response.data || [];
-      
-      // Convert backend DTOs to frontend model
-      return sectionsData.map((sectionDto: SectionDto) => ({
-        id: sectionDto.id,
-        courseId: sectionDto.course?.id,
-        teacherId: sectionDto.teacher?.id,
-        sectionName: sectionDto.sectionName,
-        enrollmentKey: sectionDto.enrollmentKey,
-        enrollmentOpen: sectionDto.enrollmentOpen,
-        enrollmentCount: sectionDto.enrollmentCount,
-        room: sectionDto.sectionName // Using sectionName as room since backend doesn't have room
-      }));
+      if (courseId) {
+        // If courseId is provided, fetch sections for that course
+        const response = await axiosInstance.get(`/sections?courseId=${courseId}`);
+        const sectionsData = response.data.data || response.data || [];
+        
+        // Convert backend DTOs to frontend model
+        return sectionsData.map((sectionDto: SectionDto) => ({
+          id: sectionDto.id,
+          courseId: sectionDto.course?.id,
+          teacherId: sectionDto.teacher?.id,
+          teacher: sectionDto.teacher, // Keep the full teacher object
+          course: sectionDto.course, // Include full course object for display
+          sectionName: sectionDto.sectionName,
+          enrollmentKey: sectionDto.enrollmentKey,
+          enrollmentOpen: sectionDto.enrollmentOpen,
+          enrollmentCount: sectionDto.enrollmentCount
+        }));
+      } else {
+        // If no courseId provided, use getAllSections to get all sections
+        return await sectionApi.getAllSections();
+      }
     } catch (error) {
-      console.error(`Error fetching sections for courseId ${courseId}:`, error);
+      console.error(`Error fetching sections${courseId ? ` for courseId ${courseId}` : ''}:`, error);
       return []; // Return empty array on error to avoid breaking the UI
     }
   },
@@ -93,11 +101,12 @@ export const sectionApi = {
             id: sectionDto.id,
             courseId: sectionDto.course?.id,
             teacherId: sectionDto.teacher?.id,
+            teacher: sectionDto.teacher, // Keep the full teacher object
+            course: sectionDto.course, // Include full course object for display
             sectionName: sectionDto.sectionName,
             enrollmentKey: sectionDto.enrollmentKey,
             enrollmentOpen: sectionDto.enrollmentOpen,
-            enrollmentCount: sectionDto.enrollmentCount,
-            room: sectionDto.sectionName // Using sectionName as room for now
+            enrollmentCount: sectionDto.enrollmentCount
           }));
           
           allSections = [...allSections, ...convertedSections];
@@ -117,12 +126,52 @@ export const sectionApi = {
   getByTeacherId: async (teacherId: number): Promise<Section[]> => {
     try {
       console.log(`Fetching sections for teacher ID: ${teacherId}`);
-      // Add teacherId as query parameter
-      const response = await axiosInstance.get(`/sections`, {
-        params: { teacherId }
-      });
-      console.log('Teacher sections response:', response.data);
-      return response.data.data || response.data || [];
+      
+      // The backend doesn't have a direct API for getting sections by teacherId
+      // We need to get all courses, then get sections for each course, and filter by teacher
+      
+      // Step 1: Get all courses
+      const coursesResponse = await axiosInstance.get('/courses');
+      const courses = coursesResponse.data.data || coursesResponse.data || [];
+      
+      let teacherSections: Section[] = [];
+      
+      // Step 2: Process each course to get its sections
+      for (const course of courses) {
+        try {
+          const sectionsResponse = await axiosInstance.get('/sections', {
+            params: { courseId: course.id }
+          });
+          
+          const sections = sectionsResponse.data.data || sectionsResponse.data || [];
+          
+          // Step 3: Filter for sections assigned to this teacher
+          const teacherSectionsForCourse = sections.filter((section: any) => {
+            // In the backend DTO, teacher is a nested object - not just a teacherId
+            // So we need to check section.teacher?.id or section.teacher.id
+            const sectionTeacherId = section.teacher?.id || 
+                                     (section.teacher ? section.teacher.id : null);
+                                     
+            console.log(`Section ${section.id} has teacher:`, section.teacher, 
+                      `- Extracted teacherId:`, sectionTeacherId);
+                      
+            // Check if the section has this teacher assigned
+            return sectionTeacherId === teacherId;
+          });
+          
+          if (teacherSectionsForCourse.length > 0) {
+            console.log(`Found ${teacherSectionsForCourse.length} sections for teacher in course ${course.id}`);
+          }
+          
+          teacherSections = [...teacherSections, ...teacherSectionsForCourse];
+        } catch (courseError) {
+          console.warn(`Skipping course ${course.id} due to error:`, courseError);
+          // Continue with next course
+        }
+      }
+      
+      console.log(`Total teacher sections found: ${teacherSections.length}`);
+      return teacherSections;
     } catch (error) {
       console.error(`Error fetching sections for teacher ${teacherId}:`, error);
       return []; // Return empty array on error to avoid breaking the UI

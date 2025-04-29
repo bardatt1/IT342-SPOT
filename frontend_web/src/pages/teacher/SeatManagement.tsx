@@ -37,7 +37,20 @@ const SeatManagement = () => {
     try {
       setIsLoading(true);
       const allSections = await sectionApi.getAllSections();
-      const teacherSections = allSections.filter(section => section.teacherId === user.id);
+      
+      // Extract teacher ID properly from the nested teacher object
+      const teacherSections = allSections.filter(section => {
+        // In the backend DTO, teacher is a nested object with id
+        const sectionTeacherId = section.teacher?.id || 
+                               (section.teacher ? section.teacher.id : null);
+                               
+        console.log(`Section ${section.id} has teacher:`, section.teacher, 
+                  `- Extracted teacherId:`, sectionTeacherId);
+                  
+        return sectionTeacherId === user.id;
+      });
+      
+      console.log(`Found ${teacherSections.length} sections for teacher ${user.id}`);
       setSections(teacherSections);
       
       // Select first section by default if available

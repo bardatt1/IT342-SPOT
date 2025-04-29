@@ -20,7 +20,7 @@ class GoogleAuthHelper(private val context: Context) {
     companion object {
         private const val TAG = "GoogleAuthHelper"
         const val RC_SIGN_IN = 9001
-        private const val WEB_CLIENT_ID = "503985630476-48eoddohffjqobh2r1tpm7ldhclfc4ak.apps.googleusercontent.com" // Web Client ID
+        private const val WEB_CLIENT_ID = "717702285338-tn14846cq9li6i0n5qp2r8npl784a1h9.apps.googleusercontent.com" // Web Client ID
     }
 
     private val googleSignInClient: GoogleSignInClient

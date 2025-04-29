@@ -51,7 +51,8 @@ fun LoginScreen(
     var currentUserId by remember { mutableStateOf<Long?>(null) }
     var currentUserType by remember { mutableStateOf<String?>(null) }
     var showPasswordChangeDialog by remember { mutableStateOf(false) }
-    
+    var googleLinked by remember { mutableStateOf(false) }
+
     // Email and password state
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -76,7 +77,7 @@ fun LoginScreen(
             when (currentUserType) {
                 "STUDENT" -> {
                     Log.d("LoginScreen", "Binding Google account to student ID: $userId")
-                    authViewModel.bindStudentGoogleAccount(userId, googleId)
+                    authViewModel.bindGoogleAccountByUserType(currentUserType ?: "", userId, googleId)
                 }
                 else -> {
                     Log.e("LoginScreen", "Unsupported user type for mobile: $currentUserType")
@@ -191,33 +192,21 @@ fun LoginScreen(
             }
             is AuthState.Success -> {
                 isLoading = false
-                isGoogleSignInLoading = false
-                
-                // Navigate based on user type
                 val data = (loginState as AuthState.Success).data
                 if (data != null) {
-                    Log.d("LoginScreen", "Login successful for ${data.email}, user type: ${data.userType}")
-                    
-                    // Store current user info for binding Google account later if needed
+                    // Store googleLinked value
+                    googleLinked = data.googleLinked // Set googleLinked from the login response
+
+                    // Rest of your login success logic...
                     currentUserId = data.id
                     currentUserType = data.userType
-                    
-                    // Check if using temporary password
-                    if (password == "temporary") {
-                        // Set temporary password flag and show password change dialog
-                        authViewModel.checkTemporaryPassword(password)
-                        showPasswordChangeDialog = true
-                        errorMessage = null
-                        Log.d("LoginScreen", "Detected temporary password, showing change dialog")
-                    } else if (!data.googleLinked) {
-                        // If account doesn't have Google bound, show binding prompt
-                        showBindGooglePrompt = true
-                        Log.d("LoginScreen", "User doesn't have Google account bound, showing binding prompt")
-                    } else {
-                        // Navigate to dashboard
+                    // Navigate to the dashboard if already linked
+                    if (data.googleLinked) {
                         navController.navigate(Routes.DASHBOARD) {
                             popUpTo(Routes.LOGIN) { inclusive = true }
                         }
+                    } else {
+                        showBindGooglePrompt = true
                     }
                 } else {
                     errorMessage = "Login successful but no user data received"
@@ -517,7 +506,6 @@ fun LoginScreen(
                 onDismissRequest = {
                     showBindGooglePrompt = false
                     authViewModel.resetBindGooglePrompt()
-                    // If user dismisses the prompt, navigate directly to dashboard
                     navController.navigate(Routes.DASHBOARD) {
                         popUpTo(Routes.LOGIN) { inclusive = true }
                     }
@@ -540,72 +528,61 @@ fun LoginScreen(
                             style = MaterialTheme.typography.titleLarge,
                             fontWeight = FontWeight.Bold
                         )
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         Text(
                             text = "Do you want to link your Google account for easier sign-in next time?",
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center
                         )
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
-                        
+
                         Row(
                             modifier = Modifier.fillMaxWidth(),
                             horizontalArrangement = Arrangement.SpaceEvenly
                         ) {
-                            // Skip button
-                            Button(
-                                onClick = {
-                                    showBindGooglePrompt = false
-                                    authViewModel.resetBindGooglePrompt()
-                                    navController.navigate(Routes.DASHBOARD) {
-                                        popUpTo(Routes.LOGIN) { inclusive = true }
+                            if (!googleLinked) {
+                                // Show Link Google button if not already linked
+                                Button(
+                                    onClick = {
+                                        isGoogleSignInLoading = true
+                                        errorMessage = null
+                                        Log.d("LoginScreen", "Launching Google Sign-In intent for binding")
+                                        try {
+                                            val signInIntent = googleAuthHelper.getSignInIntent()
+                                            googleSignInLauncher.launch(signInIntent)
+                                        } catch (e: Exception) {
+                                            Log.e("LoginScreen", "Error launching Google Sign-In", e)
+                                            errorMessage = "Error launching Google Sign-In: ${e.message}"
+                                            isGoogleSignInLoading = false
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(containerColor = Green700),
+                                    enabled = !isGoogleSignInLoading
+                                ) {
+                                    if (isGoogleSignInLoading) {
+                                        CircularProgressIndicator(
+                                            modifier = Modifier.size(20.dp),
+                                            color = Color.White,
+                                            strokeWidth = 2.dp
+                                        )
+                                    } else {
+                                        Text("Link Google")
                                     }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
-                            ) {
-                                Text("Skip")
-                            }
-                            
-                            // Link Google button
-                            Button(
-                                onClick = {
-                                    isGoogleSignInLoading = true
-                                    errorMessage = null
-                                    Log.d("LoginScreen", "Launching Google Sign-In intent for binding")
-                                    try {
-                                        // Ensure we're in binding mode
-                                        Log.d("LoginScreen", "Current user ID for binding: $currentUserId")
-                                        val signInIntent = googleAuthHelper.getSignInIntent()
-                                        googleSignInLauncher.launch(signInIntent)
-                                    } catch (e: Exception) {
-                                        Log.e("LoginScreen", "Error launching Google Sign-In", e)
-                                        errorMessage = "Error launching Google Sign-In: ${e.message}"
-                                        isGoogleSignInLoading = false
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Green700),
-                                enabled = !isGoogleSignInLoading
-                            ) {
-                                if (isGoogleSignInLoading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-                                } else {
-                                    Text("Link Google")
                                 }
+                            } else {
+                                // If Google is already linked, show the Skip option
+                                Text("Your Google account is already linked!", color = Color.Green)
                             }
                         }
                     }
                 }
             }
         }
-        
-        // Password change dialog
+
+            // Password change dialog
         if (showPasswordChangeDialog) {
             var newPassword by remember { mutableStateOf("") }
             var confirmPassword by remember { mutableStateOf("") }

@@ -56,26 +56,22 @@ class AuthViewModel : ViewModel() {
     // Events
     fun loginUser(email: String, password: String) {
         _loginState.value = AuthState.Loading
-        
+
         viewModelScope.launch {
             Log.d(TAG, "Attempting login for: $email")
-            
+
             when (val result = authRepository.login(email, password)) {
                 is NetworkResult.Success -> {
                     Log.d(TAG, "Login successful for: $email")
-                    
-                    // Check if using temporary password
-                    checkTemporaryPassword(password)
-                    
+
                     val userData = result.data
                     // Show Google binding prompt if account isn't linked yet and not using temp password
                     if (!userData.googleLinked && !_isTemporaryPassword.value) {
-                        Log.d(TAG, "User doesn't have Google account linked, showing binding prompt")
                         _showBindGooglePrompt.value = true
                     } else {
                         _showBindGooglePrompt.value = false
                     }
-                    
+
                     _loginState.value = AuthState.Success(result.data)
                 }
                 is NetworkResult.Error -> {
@@ -89,7 +85,7 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
-    
+
     /**
      * Handle Google Sign-In Authentication
      */
@@ -201,7 +197,28 @@ class AuthViewModel : ViewModel() {
             }
         }
     }
-    
+
+    fun bindGoogleAccountByUserType(userType: String, userId: Long, googleId: String) {
+        _bindStudentGoogleState.value = BindOAuthState.Loading
+
+        viewModelScope.launch {
+            when (val result = authRepository.bindGoogleAccountByUserType(userType, userId, googleId)) {
+                is NetworkResult.Success -> {
+                    Log.d("AuthViewModel", "Google account bound successfully for $userType")
+                    _bindStudentGoogleState.value = BindOAuthState.Success
+                }
+                is NetworkResult.Error -> {
+                    Log.e("AuthViewModel", "Failed to bind Google account: ${result.message}")
+                    _bindStudentGoogleState.value = BindOAuthState.Error(result.message)
+                }
+                else -> {
+                    _bindStudentGoogleState.value = BindOAuthState.Error("Unknown error occurred")
+                }
+            }
+        }
+    }
+
+
     fun checkEmailInUse(email: String) {
         _emailCheckState.value = EmailCheckState.Loading
         

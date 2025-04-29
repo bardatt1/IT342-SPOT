@@ -252,7 +252,17 @@ class AuthRepository {
             }
         }
     }
-    
+
+    suspend fun bindGoogleAccountByUserType(userType: String, userId: Long, googleId: String): NetworkResult<Boolean> {
+        return when (userType) {
+            "STUDENT" -> bindStudentGoogleAccount(userId, googleId)
+                .let { result -> if (result is NetworkResult.Success) NetworkResult.Success(true) else NetworkResult.Error((result as NetworkResult.Error).message) }
+            "TEACHER" -> bindTeacherGoogleAccount(userId, googleId)
+                .let { result -> if (result is NetworkResult.Success) NetworkResult.Success(true) else NetworkResult.Error((result as NetworkResult.Error).message) }
+            else -> NetworkResult.Error("Unsupported user type for Google binding")
+        }
+    }
+
     /**
      * Register a new student
      */

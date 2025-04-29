@@ -60,4 +60,15 @@ export const teacherApi = {
   assignToSection: async (teacherId: number, sectionId: number): Promise<void> => {
     await axiosInstance.post(`/teachers/${teacherId}/assign/${sectionId}`);
   },
+
+  // Delete a teacher
+  delete: async (id: number): Promise<boolean> => {
+    try {
+      const response = await axiosInstance.delete(`/admin/teachers/${id}`);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('Error deleting teacher:', error);
+      throw error;
+    }
+  },
 };

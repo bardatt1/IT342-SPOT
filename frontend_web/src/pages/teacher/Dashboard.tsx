@@ -90,7 +90,7 @@ const TeacherDashboard = () => {
               >
                 {sections.map((section) => (
                   <option key={section.id} value={section.id}>
-                    Section ID: {section.id} (Room: {section.room})
+                    Section ID: {section.id} ({section.sectionName})
                   </option>
                 ))}
               </select>
@@ -134,8 +134,10 @@ const TeacherDashboard = () => {
                   <div className="rounded-md bg-gray-50 p-4">
                     <div className="flex items-center">
                       <Users className="h-5 w-5 text-gray-400" />
-                      <span className="ml-2 text-sm font-medium text-gray-700">Room:</span>
-                      <span className="ml-2 text-sm text-gray-500">{activeSection.room}</span>
+                      <span className="ml-2 text-sm font-medium text-gray-700">Section Name:</span>
+                      <span className="ml-2 text-sm text-gray-500">
+                        {activeSection.sectionName}
+                      </span>
                     </div>
                   </div>
                   

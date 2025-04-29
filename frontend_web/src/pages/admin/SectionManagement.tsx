@@ -20,7 +20,7 @@ const SectionManagement = () => {
   
   const [formData, setFormData] = useState({
     courseId: '',
-    room: '',
+    sectionName: '',
     teacherId: '',
     enrollmentKey: ''
   });
@@ -37,7 +37,7 @@ const SectionManagement = () => {
     try {
       setIsLoading(true);
       const [sectionsData, coursesData, teachersData] = await Promise.all([
-        sectionApi.getAll(),
+        sectionApi.getAllSections(), // Using the new getAllSections method that doesn't require courseId
         courseApi.getAll(),
         teacherApi.getAll()
       ]);
@@ -59,7 +59,7 @@ const SectionManagement = () => {
     setSelectedSectionId(null);
     setFormData({
       courseId: '',
-      room: '',
+      sectionName: '',
       teacherId: '',
       enrollmentKey: ''
     });
@@ -86,7 +86,7 @@ const SectionManagement = () => {
     if (section) {
       setFormData({
         courseId: section.courseId.toString(),
-        room: section.room,
+        sectionName: section.sectionName || '',
         teacherId: section.teacherId ? section.teacherId.toString() : '',
         enrollmentKey: section.enrollmentKey
       });
@@ -170,7 +170,7 @@ const SectionManagement = () => {
       if (formType === 'edit' && selectedSectionId) {
         const sectionData = {
           id: selectedSectionId,
-          room: formData.room
+          sectionName: formData.sectionName
         };
         
         const updatedSection = await sectionApi.update(sectionData);
@@ -178,7 +178,7 @@ const SectionManagement = () => {
       } else {
         const sectionData: SectionCreateDto = {
           courseId: parseInt(formData.courseId),
-          room: formData.room
+          sectionName: formData.sectionName || `New Section ${new Date().toISOString().slice(0, 10)}` // Fallback to date if no name provided
         };
         
         const newSection = await sectionApi.create(sectionData);
@@ -276,20 +276,22 @@ const SectionManagement = () => {
               )}
               
               <div>
-                <label htmlFor="room" className="block text-sm font-medium text-gray-700">
-                  Room
+                <label htmlFor="sectionName" className="block text-sm font-medium text-gray-700">
+                  Section Name
                 </label>
                 <input
                   type="text"
-                  id="room"
-                  name="room"
-                  value={formData.room}
+                  id="sectionName"
+                  name="sectionName"
+                  value={formData.sectionName}
                   onChange={handleInputChange}
                   required
                   className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  placeholder="e.g., A101"
+                  placeholder="e.g., Morning Section" 
                 />
               </div>
+              
+              {/* Room field removed - it's not in the backend model */}
               
               <div className="flex justify-end space-x-3 pt-4">
                 <Button variant="outline" type="button" onClick={resetForm}>
@@ -384,7 +386,7 @@ const SectionManagement = () => {
                       Course
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Room
+                      Section Name
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
                       Teacher
@@ -407,7 +409,7 @@ const SectionManagement = () => {
                         {getCourseName(section.courseId)}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        {section.room}
+                        {section.sectionName}
                       </td>
                       <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
                         {getTeacherName(section.teacherId)}

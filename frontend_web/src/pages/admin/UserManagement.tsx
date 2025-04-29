@@ -30,14 +30,14 @@ const UserManagement = () => {
 
   // Function to generate a bcrypt-hashed password based on physical ID
   const generateHashedPassword = (physicalId: string): string => {
-    // Create temporary password using first 5 digits of physical ID + "TEMP"
+    //Create temporary password using first 5 digits of physical ID + "TEMP"
     const plainPassword = physicalId.substring(0, 5).toUpperCase() + 'TEMP';
     console.log(`Creating temporary password pattern for ID: ${physicalId} -> ${plainPassword}`);
     
     // In a real implementation, we would hash this plainPassword with bcrypt
     // For now, we'll use the known bcrypt hash that corresponds to 'test'
     // In production, this would call a backend API to generate the proper hash
-    return '$2a$12$kz4Q7bmPvHv4MCqjXYNPPu9eEqnKJ81/c4LPbl82BGe4TbWhcje3u';
+    return plainPassword;
   };
 
   useEffect(() => {
@@ -135,9 +135,7 @@ const UserManagement = () => {
         await studentApi.delete(id);
         setStudents(students.filter(s => s.id !== id));
       } else {
-        // Note: Teacher deletion endpoint not implemented in API
-        // This would be the code if it was:
-        // await teacherApi.delete(id);
+        await teacherApi.delete(id);
         setTeachers(teachers.filter(t => t.id !== id));
       }
     } catch (error) {
@@ -420,14 +418,12 @@ const UserManagement = () => {
                     name="password"
                     value={formData.password}
                     onChange={handleInputChange}
-                    placeholder={formType === 'add' ? 'Leave blank to use Physical ID as password' : ''}
+                    placeholder={formType === 'add' ? 'If left blank, a temporary password will be generated (First 5 letters of the Physical ID + "TEMP")' : ''}
                     className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
                   />
                   {formType === 'add' && (
                     <p className="mt-1 text-sm text-gray-500">
-                      If left blank, a temporary password will be generated using the pattern:<br/> 
-                      <span className="font-mono">[First 5 digits of Physical ID]TEMP</span> (e.g., "12345TEMP")<br/>
-                      User will be prompted to update their information on first login.
+                     <code className="text-gray-600">Example: 12345 + TEMP = 12345TEMP</code> <br/><br/>
                     </p>
                   )}
                 </div>

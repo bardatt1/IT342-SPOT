@@ -30,7 +30,7 @@ const AdminDashboard = () => {
         }
         
         try {
-          const sectionsData = await sectionApi.getAll();
+          const sectionsData = await sectionApi.getAllSections();
           setSections(sectionsData || []);
         } catch (sectionError) {
           console.error('Error fetching sections:', sectionError);

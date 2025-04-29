@@ -30,7 +30,7 @@ const Analytics = () => {
     
     try {
       setIsLoading(true);
-      const allSections = await sectionApi.getAll();
+      const allSections = await sectionApi.getAllSections();
       const teacherSections = allSections.filter(section => section.teacherId === user.id);
       setSections(teacherSections);
       
@@ -127,7 +127,7 @@ const Analytics = () => {
               >
                 {sections.map(section => (
                   <option key={section.id} value={section.id}>
-                    Section ID: {section.id} (Room: {section.room})
+                    Section ID: {section.id} ({section.sectionName})
                   </option>
                 ))}
               </select>

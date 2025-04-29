@@ -23,22 +23,62 @@ export interface StudentCreateDto {
 }
 
 export const studentApi = {
-  // Get all students
+  // Get all students - admin only endpoint
   getAll: async (): Promise<Student[]> => {
     try {
       // Using admin endpoint for getting all students
+      // This endpoint requires admin permissions
       const response = await axiosInstance.get('/admin/students');
-      return response.data.data || response.data || [];
-    } catch (error) {
+      console.log('Student data response:', response.data);
+      return response.data?.data || [];
+    } catch (error: any) {
       console.error('Error fetching students:', error);
+      // Check if it's an authorization error and provide more context
+      if (error.response?.status === 403 || error.response?.status === 401) {
+        console.warn('Authorization error: User likely doesn\'t have admin permissions');
+      }
+      return []; // Return empty array on error
+    }
+  },
+  
+  // Get students by section ID - teacher friendly endpoint
+  getBySection: async (sectionId: number): Promise<Student[]> => {
+    try {
+      // Use the enrollments endpoint which is accessible to teachers
+      const response = await axiosInstance.get(`/enrollments/section/${sectionId}`);
+      console.log('Section enrollments response:', response.data);
+      
+      // Extract student information from enrollments
+      const enrollments = response.data?.data || [];
+      
+      // Map enrollment data to student data
+      const students = enrollments.map((enrollment: any) => ({
+        id: enrollment.student?.id,
+        firstName: enrollment.student?.firstName || '',
+        lastName: enrollment.student?.lastName || '',
+        middleName: enrollment.student?.middleName,
+        year: enrollment.student?.year || '',
+        program: enrollment.student?.program || '',
+        email: enrollment.student?.email || '',
+        studentPhysicalId: enrollment.student?.studentPhysicalId || ''
+      }));
+      
+      return students.filter((s: any) => s.id); // Filter out any invalid entries
+    } catch (error: any) {
+      console.error(`Error fetching students for section ${sectionId}:`, error);
       return []; // Return empty array on error
     }
   },
 
   // Get student by ID
-  getById: async (id: number): Promise<Student> => {
-    const response = await axiosInstance.get(`/admin/students/${id}`);
-    return response.data.data || response.data;
+  getById: async (id: number): Promise<Student | null> => {
+    try {
+      const response = await axiosInstance.get(`/admin/students/${id}`);
+      return response.data?.data || null;
+    } catch (error: any) {
+      console.error(`Error fetching student ${id}:`, error);
+      return null;
+    }
   },
 
   // Update student details

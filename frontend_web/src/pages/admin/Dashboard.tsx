@@ -4,15 +4,18 @@ import { courseApi, type Course } from '../../lib/api/course';
 import { sectionApi, type Section } from '../../lib/api/section';
 import { teacherApi, type Teacher } from '../../lib/api/teacher';
 import { studentApi, type Student } from '../../lib/api/student';
-import { Users, BookOpen, Calendar } from 'lucide-react';
+import { Users, BookOpen, Calendar, ShieldAlert } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
 
 const AdminDashboard = () => {
+  const { user, isAuthenticated } = useAuth();
   const [courses, setCourses] = useState<Course[]>([]);
   const [sections, setSections] = useState<Section[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [students, setStudents] = useState<Student[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [showAuthDebug, setShowAuthDebug] = useState(true);
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -96,6 +99,33 @@ const AdminDashboard = () => {
     <DashboardLayout>
       <div className="space-y-6">
         <h2 className="text-xl font-semibold">Admin Dashboard</h2>
+        
+        {/* Auth Debugging Section */}
+        {showAuthDebug && (
+          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-6">
+            <div className="flex items-center mb-2">
+              <ShieldAlert className="text-yellow-600 mr-2" />
+              <h2 className="text-lg font-semibold text-yellow-700">Authentication Debug Info</h2>
+              <button 
+                onClick={() => setShowAuthDebug(false)}
+                className="ml-auto text-yellow-500 hover:text-yellow-700"
+              >
+                Hide
+              </button>
+            </div>
+            <div className="bg-white p-3 rounded border border-yellow-100 mb-2">
+              <p><strong>Authenticated:</strong> {isAuthenticated ? 'Yes' : 'No'}</p>
+              <p><strong>User Role:</strong> {user?.role || 'None'}</p>
+              <p><strong>User ID:</strong> {user?.id || 'None'}</p>
+              <p><strong>User Email:</strong> {user?.email || 'None'}</p>
+            </div>
+            <div className="text-sm text-yellow-600">
+              <p>✓ To access admin endpoints, you must have the <strong>ADMIN</strong> role.</p>
+              <p>✓ If you're seeing <strong>Access Denied</strong> errors, verify the role above is 'ADMIN'.</p>
+              <p>✓ Try logging out and logging back in if your role is incorrect.</p>
+            </div>
+          </div>
+        )}
         
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* Summary Cards */}

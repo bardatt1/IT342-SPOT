@@ -83,13 +83,11 @@ const SeatManagement = () => {
   const fetchSectionStudents = async (sectionId: number) => {
     try {
       setIsLoading(true);
-      // Get all students and filter by section
-      const allStudents = await studentApi.getAll();
-      // In a real application, we would have a proper API endpoint for this
-      // For now, we're simulating it by filtering client-side
-      // The sectionId parameter would be used here in a real implementation
       console.log(`Fetching students for section ${sectionId}`);
-      const students = allStudents;
+      
+      // Use our teacher-friendly API endpoint that doesn't require admin permissions
+      const students = await studentApi.getBySection(sectionId);
+      
       setSectionStudents(students);
       setError(null);
     } catch (error) {
@@ -148,6 +146,11 @@ const SeatManagement = () => {
       return;
     }
     
+    if (!user?.id) {
+      setError('Teacher ID not available. Please log in again.');
+      return;
+    }
+    
     try {
       setIsSaving(true);
       setError(null);
@@ -157,7 +160,8 @@ const SeatManagement = () => {
         selectedSectionId,
         selectedStudentId,
         selectedSeat.row,
-        selectedSeat.column
+        selectedSeat.column,
+        user.id // Pass the current user's ID as the teacher ID
       );
       
       // Refresh seat map

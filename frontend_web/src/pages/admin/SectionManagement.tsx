@@ -144,23 +144,43 @@ const SectionManagement = () => {
   };
 
   const handleEndSection = async (sectionId: number) => {
-    if (!window.confirm('Are you sure you want to end this section? This will clear all enrollments, seats, and teacher assignments.')) {
+    // Display a more detailed informative message to the user
+    if (!window.confirm(
+      'There is a temporary issue with the "End Section" functionality.\n\n' +
+      'As a workaround, please:\n' +
+      '1. Unassign the teacher using the "Unassign" button\n' +
+      '2. Update the section to clear the enrollment key\n\n' +
+      'Do you want to proceed with manually editing this section?'
+    )) {
       return;
     }
     
-    try {
-      await sectionApi.endSection(sectionId);
-      
-      // Update the section in our state
-      setSections(sections.map(section => 
-        section.id === sectionId 
-          ? { ...section, teacherId: undefined } 
-          : section
-      ));
-    } catch (error) {
-      console.error('Error ending section:', error);
-      setError('Failed to end section. Please try again later.');
+    // Get the current section
+    const section = sections.find(s => s.id === sectionId);
+    if (!section) {
+      setError('Section not found');
+      return;
     }
+    
+    // Find the course
+    const course = courses.find(c => c.id === section.courseId);
+    if (!course) {
+      setError('Course not found for this section');
+      return;
+    }
+    
+    // Update form data with cleared enrollment key
+    setFormData({
+      courseId: section.courseId.toString(),
+      sectionName: section.sectionName,
+      teacherId: '',  // Clear teacher assignment
+      enrollmentKey: ''  // Clear the enrollment key
+    });
+    
+    setFormType('edit');
+    setShowForm(true);
+    setSelectedSectionId(sectionId);
+    setError('To complete ending the section, click "Update Section" after reviewing the changes.');
   };
 
   const handleSubmit = async (e: React.FormEvent) => {

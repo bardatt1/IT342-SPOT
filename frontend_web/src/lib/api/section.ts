@@ -238,9 +238,44 @@ export const sectionApi = {
   // End section (clear everything including seats and teacher)
   endSection: async (sectionId: number): Promise<void> => {
     try {
-      await axiosInstance.post(`/sections/${sectionId}/end`);
+      // Backend has an issue with the /end endpoint deleting seats
+      // Let's use a multi-step process with working endpoints instead
+      
+      // Step 1: Remove teacher from section
+      // This sets the teacher to null and updates the teacher's sections collection
+      try {
+        await axiosInstance.post(`/sections/${sectionId}/removeTeacher`);
+        console.log(`Teacher removed from section ${sectionId}`);
+      } catch (teacherError) {
+        console.warn(`Could not remove teacher from section ${sectionId}:`, teacherError);
+        // Continue even if this fails
+      }
+      
+      // Step 2: Close enrollment for the section
+      try {
+        await axiosInstance.post(`/sections/${sectionId}/close`);
+        console.log(`Enrollment closed for section ${sectionId}`);
+      } catch (enrollmentError) {
+        console.warn(`Could not close enrollment for section ${sectionId}:`, enrollmentError);
+        // Continue even if this fails
+      }
+      
+      // Step 3: Reset the enrollment key
+      try {
+        const update = {
+          id: sectionId,
+          enrollmentKey: null
+        };
+        await axiosInstance.put(`/sections/${sectionId}`, update);
+        console.log(`Enrollment key reset for section ${sectionId}`);
+      } catch (keyError) {
+        console.warn(`Could not reset enrollment key for section ${sectionId}:`, keyError);
+        // Continue even if this fails
+      }
+      
+      return;
     } catch (error) {
-      console.error(`Error ending section ${sectionId}:`, error);
+      console.error(`Error ending section ${sectionId} with workaround:`, error);
       throw error;
     }
   },

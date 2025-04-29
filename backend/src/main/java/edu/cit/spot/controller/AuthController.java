@@ -3,6 +3,7 @@ package edu.cit.spot.controller;
 import edu.cit.spot.dto.ApiResponse;
 import edu.cit.spot.dto.auth.JwtResponse;
 import edu.cit.spot.dto.auth.LoginRequest;
+import edu.cit.spot.dto.auth.StudentIdLoginRequest;
 import edu.cit.spot.exception.GlobalExceptionHandler;
 import edu.cit.spot.service.AuthService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -28,6 +29,17 @@ public class AuthController {
     public ResponseEntity<ApiResponse<JwtResponse>> login(@Valid @RequestBody LoginRequest loginRequest) {
         try {
             JwtResponse jwtResponse = authService.authenticateUser(loginRequest);
+            return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Login successful", jwtResponse));
+        } catch (Exception e) {
+            return GlobalExceptionHandler.errorResponseEntity(e.getMessage(), HttpStatus.UNAUTHORIZED);
+        }
+    }
+
+    @PostMapping("/login/student-id")
+    @Operation(summary = "Student ID login", description = "Login with physical student ID and password")
+    public ResponseEntity<ApiResponse<JwtResponse>> loginWithStudentId(@Valid @RequestBody StudentIdLoginRequest loginRequest) {
+        try {
+            JwtResponse jwtResponse = authService.authenticateByStudentId(loginRequest);
             return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Login successful", jwtResponse));
         } catch (Exception e) {
             return GlobalExceptionHandler.errorResponseEntity(e.getMessage(), HttpStatus.UNAUTHORIZED);

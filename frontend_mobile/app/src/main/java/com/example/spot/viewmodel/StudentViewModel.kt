@@ -3,6 +3,7 @@ package com.example.spot.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spot.model.Student
+import com.example.spot.model.StudentUpdateRequest
 import com.example.spot.repository.StudentRepository
 import com.example.spot.util.NetworkResult
 import com.example.spot.util.TokenManager
@@ -66,11 +67,19 @@ class StudentViewModel : ViewModel() {
         password: String?
     ) {
         _profileUpdateState.value = ProfileUpdateState.Loading
-        
         viewModelScope.launch {
-            when (val result = studentRepository.updateStudent(
-                id, firstName, middleName, lastName, year, program, email, studentPhysicalId, password
-            )) {
+            val studentUpdateRequest = StudentUpdateRequest(
+                firstName = firstName,
+                middleName = middleName,
+                lastName = lastName,
+                year = year,
+                program = program,
+                email = email,
+                studentPhysicalId = studentPhysicalId,
+                password = password
+            )
+            
+            when (val result = studentRepository.updateStudent(id, studentUpdateRequest)) {
                 is NetworkResult.Success -> {
                     _profileUpdateState.value = ProfileUpdateState.Success(result.data)
                     // Refresh the student state with updated data
@@ -79,7 +88,10 @@ class StudentViewModel : ViewModel() {
                 is NetworkResult.Error -> {
                     _profileUpdateState.value = ProfileUpdateState.Error(result.message)
                 }
-                else -> {}
+                is NetworkResult.Loading -> {
+                    // This branch should not be reached as we're setting the loading state before the API call
+                    _profileUpdateState.value = ProfileUpdateState.Loading
+                }
             }
         }
     }

@@ -54,15 +54,15 @@ class AuthViewModel : ViewModel() {
     val showBindGooglePrompt: StateFlow<Boolean> = _showBindGooglePrompt
     
     // Events
-    fun loginUser(email: String, password: String) {
+    fun loginUser(studentPhysicalId: String, password: String) {
         _loginState.value = AuthState.Loading
         
         viewModelScope.launch {
-            Log.d(TAG, "Attempting login for: $email")
+            Log.d(TAG, "Attempting login for student ID: $studentPhysicalId")
             
-            when (val result = authRepository.login(email, password)) {
+            when (val result = authRepository.login(studentPhysicalId, password)) {
                 is NetworkResult.Success -> {
-                    Log.d(TAG, "Login successful for: $email")
+                    Log.d(TAG, "Login successful for student ID: $studentPhysicalId")
                     
                     // Check if using temporary password
                     checkTemporaryPassword(password)

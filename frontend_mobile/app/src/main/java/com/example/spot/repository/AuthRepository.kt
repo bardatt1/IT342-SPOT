@@ -6,9 +6,11 @@ import com.example.spot.model.CreateStudentRequest
 import com.example.spot.model.JwtResponse
 import com.example.spot.model.LoginRequest
 import com.example.spot.model.Student
+import com.example.spot.model.StudentIdLoginRequest
 import com.example.spot.model.StudentUpdateRequest
 import com.example.spot.model.Teacher
 import com.example.spot.network.RetrofitClient
+import com.example.spot.repository.StudentRepository
 import com.example.spot.util.NetworkResult
 import com.example.spot.util.TokenManager
 import kotlinx.coroutines.Dispatchers
@@ -20,51 +22,25 @@ import retrofit2.HttpException
  */
 class AuthRepository {
     private val apiService = RetrofitClient.apiService
+    private val studentRepository = StudentRepository()
     
     /**
-     * Login user with email and password
+     * Login user with student physical ID and password
      */
-    suspend fun login(email: String, password: String): NetworkResult<JwtResponse> {
+    suspend fun login(studentPhysicalId: String, password: String): NetworkResult<JwtResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d("AuthRepository", "Attempting login for: $email")
+                Log.d("AuthRepository", "Attempting login with student ID: $studentPhysicalId")
                 
-                // Create the login request
-                val loginRequest = LoginRequest(email, password)
-                Log.d("AuthRepository", "Login request created: $loginRequest")
+                // Determine if input is an email or a student ID
+                val isEmail = studentPhysicalId.contains("@")
                 
-                // Make the API call
-                val response = try {
-                    apiService.login(loginRequest)
-                } catch (e: HttpException) {
-                    // Handle HTTP error responses
-                    if (e.code() == 401) {
-                        Log.e("AuthRepository", "Authentication failed (401): Bad credentials")
-                        return@withContext NetworkResult.Error("Invalid email or password")
-                    } else {
-                        Log.e("AuthRepository", "HTTP error during login: ${e.code()}")
-                        return@withContext NetworkResult.Error("Server error: ${e.message()}")
-                    }
-                } catch (e: Exception) {
-                    Log.e("AuthRepository", "Login error", e)
-                    return@withContext NetworkResult.Error("Network error: ${e.localizedMessage}")
-                }
-                
-                // Handle successful response
-                if (response.result == "SUCCESS" && response.data != null) {
-                    Log.d("AuthRepository", "Login successful for: $email")
-                    // Save authentication data
-                    TokenManager.saveAuthData(
-                        token = response.data.accessToken,
-                        userId = response.data.id,
-                        userType = response.data.userType,
-                        email = response.data.email,
-                        name = response.data.name
-                    )
-                    return@withContext NetworkResult.Success(response.data)
+                if (isEmail) {
+                    // If it's already an email, use it directly
+                    return@withContext loginWithEmail(studentPhysicalId, password)
                 } else {
-                    Log.e("AuthRepository", "Login failed: ${response.message}")
-                    return@withContext NetworkResult.Error(response.message)
+                    // For student IDs, use the dedicated endpoint
+                    return@withContext loginWithStudentId(studentPhysicalId, password)
                 }
             } catch (e: Exception) {
                 Log.e("AuthRepository", "Unexpected login error", e)
@@ -74,7 +50,108 @@ class AuthRepository {
     }
     
     /**
+     * Login with student physical ID and password using the dedicated endpoint
+     */
+    private suspend fun loginWithStudentId(studentId: String, password: String): NetworkResult<JwtResponse> {
+        try {
+            Log.d("AuthRepository", "Attempting login with student ID endpoint: $studentId")
+            
+            // Create the student ID login request
+            val loginRequest = StudentIdLoginRequest(studentId, password)
+            Log.d("AuthRepository", "StudentID login request created: $loginRequest")
+            
+            // Make the API call to the special student ID endpoint
+            val response = try {
+                apiService.loginWithStudentId(loginRequest)
+            } catch (e: HttpException) {
+                // Handle HTTP error responses
+                if (e.code() == 401) {
+                    Log.e("AuthRepository", "Authentication failed (401): Bad credentials for student ID")
+                    return NetworkResult.Error("Invalid student ID or password")
+                } else {
+                    Log.e("AuthRepository", "HTTP error during student ID login: ${e.code()}")
+                    return NetworkResult.Error("Server error: ${e.message()}")
+                }
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "Student ID login error", e)
+                return NetworkResult.Error("Network error: ${e.localizedMessage}")
+            }
+            
+            // Handle successful response
+            if (response.result == "SUCCESS" && response.data != null) {
+                Log.d("AuthRepository", "Login successful for student ID: $studentId")
+                // Save authentication data
+                TokenManager.saveAuthData(
+                    token = response.data.accessToken,
+                    userId = response.data.id,
+                    userType = response.data.userType,
+                    email = response.data.email,
+                    name = response.data.name
+                )
+                return NetworkResult.Success(response.data)
+            } else {
+                Log.e("AuthRepository", "Login failed: ${response.message}")
+                return NetworkResult.Error(response.message)
+            }
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Unexpected login error", e)
+            return NetworkResult.Error("Network error: ${e.localizedMessage}")
+        }
+    }
+    
+    /**
+     * Login with email and password
+     */
+    private suspend fun loginWithEmail(email: String, password: String): NetworkResult<JwtResponse> {
+        try {
+            Log.d("AuthRepository", "Attempting login with email: $email")
+            
+            // Create the login request
+            val loginRequest = LoginRequest(email, password)
+            Log.d("AuthRepository", "Login request created: $loginRequest")
+            
+            // Make the API call
+            val response = try {
+                apiService.login(loginRequest)
+            } catch (e: HttpException) {
+                // Handle HTTP error responses
+                if (e.code() == 401) {
+                    Log.e("AuthRepository", "Authentication failed (401): Bad credentials")
+                    return NetworkResult.Error("Invalid student ID or password")
+                } else {
+                    Log.e("AuthRepository", "HTTP error during login: ${e.code()}")
+                    return NetworkResult.Error("Server error: ${e.message()}")
+                }
+            } catch (e: Exception) {
+                Log.e("AuthRepository", "Login error", e)
+                return NetworkResult.Error("Network error: ${e.localizedMessage}")
+            }
+            
+            // Handle successful response
+            if (response.result == "SUCCESS" && response.data != null) {
+                Log.d("AuthRepository", "Login successful for email: $email")
+                // Save authentication data
+                TokenManager.saveAuthData(
+                    token = response.data.accessToken,
+                    userId = response.data.id,
+                    userType = response.data.userType,
+                    email = response.data.email,
+                    name = response.data.name
+                )
+                return NetworkResult.Success(response.data)
+            } else {
+                Log.e("AuthRepository", "Login failed: ${response.message}")
+                return NetworkResult.Error(response.message)
+            }
+        } catch (e: Exception) {
+            Log.e("AuthRepository", "Unexpected login error", e)
+            return NetworkResult.Error("Network error: ${e.localizedMessage}")
+        }
+    }
+    
+    /**
      * Login with Google OAuth
+     * Note: Google login still uses email format for compatibility with backend API
      */
     suspend fun loginWithGoogle(email: String, googleId: String): NetworkResult<JwtResponse> {
         return withContext(Dispatchers.IO) {
@@ -93,8 +170,10 @@ class AuthRepository {
                     val emailExists = emailCheckResponse.data ?: false
                     
                     if (emailExists) {
-                        Log.d("AuthRepository", "Email exists, attempting regular login with Google credentials")
-                        // Email exists, try regular login with placeholder password
+                        Log.d("AuthRepository", "Email exists, attempting login with Google credentials")
+                        
+                        // Use the email directly with Google placeholder password
+                        // Backend will recognize this as a Google login attempt
                         val loginResponse = try {
                             apiService.login(LoginRequest(email, "google-oauth-placeholder"))
                         } catch (e: HttpException) {

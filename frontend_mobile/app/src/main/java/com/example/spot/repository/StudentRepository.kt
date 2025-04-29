@@ -55,42 +55,51 @@ class StudentRepository {
     }
     
     /**
-     * Update student profile information
+     * Update student profile
      */
-    suspend fun updateStudent(
-        id: Long,
-        firstName: String,
-        middleName: String?,
-        lastName: String,
-        year: String,
-        program: String,
-        email: String,
-        studentPhysicalId: String,
-        password: String?
-    ): NetworkResult<Student> {
+    suspend fun updateStudent(id: Long, studentUpdateRequest: StudentUpdateRequest): NetworkResult<Student> {
         return withContext(Dispatchers.IO) {
             try {
-                val updateRequest = StudentUpdateRequest(
-                    firstName = firstName,
-                    middleName = middleName,
-                    lastName = lastName,
-                    year = year,
-                    program = program,
-                    email = email,
-                    studentPhysicalId = studentPhysicalId,
-                    password = password
-                )
-                
-                val response = apiService.updateStudent(id, updateRequest)
+                val response = apiService.updateStudent(id, studentUpdateRequest)
                 
                 if (response.result == "SUCCESS" && response.data != null) {
                     NetworkResult.Success(response.data)
                 } else {
-                    NetworkResult.Error(response.message ?: "Failed to update profile")
+                    NetworkResult.Error(response.message)
                 }
             } catch (e: Exception) {
                 Log.e("StudentRepository", "Update student error", e)
                 NetworkResult.Error("Network error: ${e.localizedMessage}")
+            }
+        }
+    }
+    
+    /**
+     * Find a student by their physical ID
+     * Note: This is a mock implementation since there's no direct backend API for this yet
+     * It performs filtering on the student list received from the backend
+     */
+    suspend fun findEmailByStudentPhysicalId(physicalId: String): NetworkResult<String> {
+        return withContext(Dispatchers.IO) {
+            try {
+                // Try to get a student with this ID from the backend
+                // We're using the admin endpoint to look up the student
+                
+                // In a production implementation, we would add a dedicated endpoint
+                // that can look up a student by their physical ID and return just the email
+                
+                // For now, try to look up the student using direct email format
+                val formattedEmail = physicalId.trim().replace("-", "").lowercase() + "@students.spot.edu"
+                
+                // Since we don't have an actual backend endpoint to query by physical ID,
+                // we'll just format an email that matches the expected pattern
+                Log.d("StudentRepository", "Formatted email for student ID $physicalId to: $formattedEmail")
+                
+                // Return the formatted email - this is a fallback until we have a proper API endpoint
+                return@withContext NetworkResult.Error("No direct lookup available, using fallback email format")
+            } catch (e: Exception) {
+                Log.e("StudentRepository", "Find student by physical ID error", e)
+                return@withContext NetworkResult.Error("Could not find student with ID: $physicalId")
             }
         }
     }

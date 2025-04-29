@@ -2,6 +2,7 @@ package edu.cit.spot.service.impl;
 
 import edu.cit.spot.dto.auth.JwtResponse;
 import edu.cit.spot.dto.auth.LoginRequest;
+import edu.cit.spot.dto.auth.StudentIdLoginRequest;
 import edu.cit.spot.entity.Admin;
 import edu.cit.spot.entity.Student;
 import edu.cit.spot.entity.Teacher;
@@ -93,6 +94,34 @@ public class AuthServiceImpl implements AuthService {
         );
     }
 
+    @Override
+    public JwtResponse authenticateByStudentId(StudentIdLoginRequest loginRequest) {
+        // Find student by physical ID
+        Student student = studentRepository.findByStudentPhysicalId(loginRequest.getStudentPhysicalId())
+                .orElseThrow(() -> new IllegalArgumentException("Student not found with ID: " + loginRequest.getStudentPhysicalId()));
+        
+        // Use the found student's email for authentication
+        Authentication authentication = authenticationManager.authenticate(
+            new UsernamePasswordAuthenticationToken(
+                student.getEmail(),
+                loginRequest.getPassword()
+            )
+        );
+    
+        SecurityContextHolder.getContext().setAuthentication(authentication);
+        String jwt = tokenProvider.generateToken(authentication);
+        
+        return new JwtResponse(
+            jwt,
+            "Bearer",
+            "STUDENT",
+            student.getId(),
+            student.getEmail(),
+            student.getFirstName() + " " + student.getLastName(),
+            student.isGoogleLinked()
+        );
+    }
+    
     @Override
     @Transactional
     public JwtResponse handleOAuth2Authentication(OAuth2User oAuth2User, String registrationType) {

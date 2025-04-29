@@ -13,6 +13,9 @@ interface ApiService {
     @POST("api/auth/login")
     suspend fun login(@Body loginRequest: LoginRequest): ApiResponse<JwtResponse>
     
+    @POST("api/auth/login/student-id")
+    suspend fun loginWithStudentId(@Body loginRequest: StudentIdLoginRequest): ApiResponse<JwtResponse>
+    
     @POST("api/auth/bind-oauth")
     suspend fun bindGoogleAccount(
         @Query("email") email: String,
@@ -40,6 +43,9 @@ interface ApiService {
     
     @GET("api/auth/check-email")
     suspend fun checkEmailInUse(@Query("email") email: String): ApiResponse<Boolean>
+    
+    @GET("api/students/physical-id/{physicalId}")
+    suspend fun getStudentByPhysicalId(@Path("physicalId") physicalId: String): ApiResponse<Student>
     
     // Student registration
     @POST("api/admin/create-student")

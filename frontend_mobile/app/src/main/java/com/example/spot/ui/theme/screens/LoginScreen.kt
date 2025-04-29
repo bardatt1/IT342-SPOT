@@ -52,11 +52,10 @@ fun LoginScreen(
     var currentUserType by remember { mutableStateOf<String?>(null) }
     var showPasswordChangeDialog by remember { mutableStateOf(false) }
     
-    // Email and password state
-    var email by remember { mutableStateOf("") }
+    // Student ID and password state
+    var studentPhysicalId by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
-    var showSignUpTypeModal by remember { mutableStateOf(false) }
     
     // Initialize TokenManager with context
     val context = LocalContext.current
@@ -194,9 +193,9 @@ fun LoginScreen(
                 isGoogleSignInLoading = false
                 
                 // Navigate based on user type
-                val data = (loginState as AuthState.Success).data
+                val data = (loginState as? AuthState.Success)?.data
                 if (data != null) {
-                    Log.d("LoginScreen", "Login successful for ${data.email}, user type: ${data.userType}")
+                    Log.d("LoginScreen", "Login successful for ID: ${data.id}, user type: ${data.userType}")
                     
                     // Store current user info for binding Google account later if needed
                     currentUserId = data.id
@@ -328,7 +327,16 @@ fun LoginScreen(
                 color = TextDark,
                 fontSize = 28.sp
             ),
-            modifier = Modifier.padding(bottom = 32.dp)
+            modifier = Modifier.padding(bottom = 16.dp)
+        )
+        
+        // Login instruction
+        Text(
+            text = "Please enter your student ID and password",
+            style = MaterialTheme.typography.bodyMedium,
+            color = TextDark,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(bottom = 16.dp)
         )
 
         // Error message if any
@@ -341,13 +349,14 @@ fun LoginScreen(
             )
         }
 
-        // Email field
+        // Student ID field
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email address") },
+            value = studentPhysicalId,
+            onValueChange = { studentPhysicalId = it },
+            label = { Text("Student ID") },
+            placeholder = { Text("Enter your student physical ID") },
             modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
+            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
             singleLine = true,
             isError = errorMessage != null
         )
@@ -393,8 +402,8 @@ fun LoginScreen(
         Button(
             onClick = {
                 // Validate input fields
-                if (email.isBlank()) {
-                    errorMessage = "Email cannot be empty"
+                if (studentPhysicalId.isBlank()) {
+                    errorMessage = "Student ID cannot be empty"
                     return@Button
                 }
                 if (password.isBlank()) {
@@ -404,7 +413,7 @@ fun LoginScreen(
                 
                 // Clear error message and trigger login
                 errorMessage = null
-                authViewModel.loginUser(email, password)
+                authViewModel.loginUser(studentPhysicalId, password)
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -486,29 +495,6 @@ fun LoginScreen(
         }
 
         Spacer(modifier = Modifier.height(24.dp))
-
-        // Sign up link
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = "You don't have an account? ",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = TextDark,
-                    fontSize = 14.sp
-                )
-            )
-            Text(
-                text = "Sign up",
-                style = MaterialTheme.typography.bodyMedium.copy(
-                    color = Green700,
-                    fontSize = 14.sp,
-                    fontWeight = FontWeight.Bold
-                ),
-                modifier = Modifier.clickable { showSignUpTypeModal = true }
-            )
-        }
 
         // Google account binding prompt dialog
         if (showBindGooglePrompt) {

@@ -146,9 +146,29 @@ export const attendanceApi = {
   },
   
   // Generate QR code for attendance
-  generateQrCode: async (sectionId: number): Promise<string> => {
-    const response = await axiosInstance.post('/attendance/generate-qr', { sectionId });
-    return response.data.qrCodeData;
+  generateQrCode: async (sectionId: number): Promise<{ imageBase64: string, url: string, expiresInSeconds: number }> => {
+    try {
+      // Backend expects sectionId as a request parameter, not in request body
+      const response = await axiosInstance.post(`/attendance/generate-qr?sectionId=${sectionId}`);
+      
+      console.log('QR code response:', response.data);
+      
+      // Properly handle the nested response structure
+      if (response.data && response.data.data) {
+        const qrData = response.data.data;
+        return {
+          imageBase64: qrData.qrCodeImageBase64,
+          url: qrData.qrCodeUrl,
+          expiresInSeconds: qrData.expiresInSeconds || 300 // Default 5 minutes if not provided
+        };
+      } else {
+        console.error('Unexpected response format:', response.data);
+        throw new Error('Invalid response format from server');
+      }
+    } catch (error) {
+      console.error('QR code generation error:', error);
+      throw error;
+    }
   },
   
   // Get analytics for a section

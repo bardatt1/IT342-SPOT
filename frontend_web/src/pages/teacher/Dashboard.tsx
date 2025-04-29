@@ -10,7 +10,11 @@ const TeacherDashboard = () => {
   const { user } = useAuth();
   const [sections, setSections] = useState<Section[]>([]);
   const [activeSection, setActiveSection] = useState<Section | null>(null);
-  const [qrCodeData, setQrCodeData] = useState<string | null>(null);
+  const [qrCodeData, setQrCodeData] = useState<{
+    imageBase64: string;
+    url: string;
+    expiresInSeconds: number;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -175,14 +179,22 @@ const TeacherDashboard = () => {
                   <>
                     <div className="rounded-lg bg-white p-4 shadow">
                       <img 
-                        src={`data:image/png;base64,${qrCodeData}`} 
+                        src={`data:image/png;base64,${qrCodeData.imageBase64}`} 
                         alt="Attendance QR Code" 
                         className="h-64 w-64"
                       />
                     </div>
-                    <p className="mt-4 text-sm text-gray-500">
-                      Show this QR code to students to scan for attendance
-                    </p>
+                    <div className="mt-4 space-y-2 text-center">
+                      <p className="text-sm text-gray-500">
+                        Show this QR code to students to scan for attendance
+                      </p>
+                      <p className="text-xs text-blue-600">
+                        Link: <a href={qrCodeData.url} target="_blank" rel="noopener noreferrer">{qrCodeData.url}</a>
+                      </p>
+                      <p className="text-xs text-gray-400">
+                        Expires in {Math.floor(qrCodeData.expiresInSeconds / 60)} minutes and {qrCodeData.expiresInSeconds % 60} seconds
+                      </p>
+                    </div>
                   </>
                 ) : (
                   <div className="flex h-64 w-full items-center justify-center rounded-lg bg-gray-50">

@@ -1,7 +1,8 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
 import { LogOut, Menu, X, User, BookOpen, Users, Calendar, BarChart } from 'lucide-react';
+import { teacherApi } from '../../../lib/api/teacher';
 import { Button } from '../button';
 
 interface DashboardLayoutProps {
@@ -13,8 +14,38 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const navigate = useNavigate();
   const location = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  // Initialize teacherName from localStorage if available
+  const [teacherName, setTeacherName] = useState<{firstName: string, lastName: string} | null>(() => {
+    const cachedData = localStorage.getItem('teacherName');
+    return cachedData ? JSON.parse(cachedData) : null;
+  });
 
   const isAdmin = user?.role === 'ADMIN';
+  
+  // Fetch teacher details if user is not admin - only once when component mounts or user changes
+  useEffect(() => {
+    const fetchTeacherDetails = async () => {
+      // Only fetch if we don't already have the teacher name and user is a teacher
+      if (!isAdmin && user?.id && !teacherName) {
+        try {
+          const teacherData = await teacherApi.getCurrentTeacher();
+          const nameData = {
+            firstName: teacherData.firstName || '',
+            lastName: teacherData.lastName || ''
+          };
+          
+          // Save to state and localStorage
+          setTeacherName(nameData);
+          localStorage.setItem('teacherName', JSON.stringify(nameData));
+        } catch (error) {
+          console.error('Error fetching teacher details for sidebar:', error);
+        }
+      }
+    };
+    
+    fetchTeacherDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAdmin, user?.id]);
 
   const handleLogout = () => {
     logout();
@@ -95,11 +126,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
                 className="flex items-center mb-3 p-2 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
               >
                 <div className="flex-shrink-0">
-                  <User className="h-8 w-8 rounded-full" />
+                  <User className="h-8 w-8 rounded-full bg-blue-50 p-1 text-blue-600" />
                 </div>
                 <div className="ml-3">
-                  <p className="text-sm font-medium text-gray-700">{user?.name}</p>
-                  <p className="text-xs font-medium text-gray-500">{user?.role}</p>
+                  <p className="text-sm font-medium text-gray-700">
+                    {teacherName ? `${teacherName.firstName} ${teacherName.lastName}` : user?.name || user?.email?.split('@')[0] || 'Teacher'}
+                  </p>
+                  <p className="text-xs font-medium text-gray-500">{user?.email}</p>
                 </div>
               </Link>
             )}

@@ -299,4 +299,33 @@ export const sectionApi = {
       throw error;
     }
   },
+  
+  // Generate class code (enrollment key) for a section
+  generateClassCode: async (sectionId: number): Promise<Section> => {
+    try {
+      // Generate a random 6-character alphanumeric code
+      const generateRandomCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < 6; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return code;
+      };
+      
+      const enrollmentKey = generateRandomCode();
+      
+      // Update the section with the new enrollment key
+      const updateData: SectionUpdateDto = {
+        id: sectionId,
+        enrollmentKey: enrollmentKey
+      };
+      
+      const response = await axiosInstance.put(`/sections/${sectionId}`, updateData);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error(`Error generating class code for section ${sectionId}:`, error);
+      throw error;
+    }
+  },
 };

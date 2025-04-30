@@ -1,9 +1,12 @@
 import axiosInstance from './axiosInstance';
 
+import { Student } from './student';
+
 export interface Seat {
   id: number;
   sectionId: number;
-  studentId: number;
+  studentId?: number; // Mark as optional since the API might use student object instead
+  student?: Student; // Add the student object that's actually returned by the API
   column: number;
   row: number;
 }

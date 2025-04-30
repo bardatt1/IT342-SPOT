@@ -2,6 +2,20 @@
 
 ## Technical Decisions
 
+[2025-04-30 19:52:00] - **Class Code Generation Implementation**
+- **Decision**: Implement client-side class code generation for teacher sections
+- **Rationale**: Teachers need to easily generate enrollment keys for their sections
+- **Implementation**: Added generateClassCode method to sectionApi that generates a random 6-character alphanumeric code and updates the section via API
+- **Alternatives**: Server-side code generation, fixed code patterns, manual code entry
+- **Implications**: Improved teacher workflow, better security with random codes, potential for collisions mitigated by uniqueness checks
+
+[2025-04-30 19:52:00] - **Student Information Display in Seat Management**
+- **Decision**: Use IIFE pattern to resolve issues with multiple function calls in JSX
+- **Rationale**: Multiple calls to findStudentBySeat were causing inconsistent displays and empty student names
+- **Implementation**: Added immediately-invoked function expression to store student data in local variable before rendering
+- **Alternatives**: Create separate component, use React effect hooks, move logic to parent component
+- **Implications**: More reliable display of student information, better performance by reducing redundant function calls
+
 [2025-04-27 16:59:43] - **Frontend Framework Selection**
 - Decision: Use Vite with React and TypeScript for the web frontend
 - Rationale: Vite provides fast development experience, React is industry standard, and TypeScript ensures type safety

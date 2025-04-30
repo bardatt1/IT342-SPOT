@@ -26,8 +26,12 @@ const SeatManagement = () => {
 
   useEffect(() => {
     if (selectedSectionId) {
-      fetchSeatMap(selectedSectionId);
-      fetchSectionStudents(selectedSectionId);
+      // First load students, then load seat map to ensure student data is available
+      const loadData = async () => {
+        await fetchSectionStudents(selectedSectionId);
+        await fetchSeatMap(selectedSectionId);
+      };
+      loadData();
     }
   }, [selectedSectionId]);
 
@@ -87,9 +91,24 @@ const SeatManagement = () => {
       
       // Use our teacher-friendly API endpoint that doesn't require admin permissions
       const students = await studentApi.getBySection(sectionId);
+      console.log('Fetched students for section:', students);
       
-      setSectionStudents(students);
-      setError(null);
+      if (students && students.length > 0) {
+        setSectionStudents(students);
+        setError(null);
+      } else {
+        console.warn('No students found for this section or data format is unexpected');
+        
+        // Attempt to get student data from admin API as fallback (if available)
+        try {
+          const allStudents = await studentApi.getAll();
+          console.log('Fetched all students as fallback:', allStudents);
+          setSectionStudents(allStudents);
+        } catch (adminError) {
+          console.warn('Failed to fetch students using admin API:', adminError);
+          setSectionStudents([]);
+        }
+      }
     } catch (error) {
       console.error('Error fetching students:', error);
       setError('Failed to load students. Please try again later.');
@@ -126,7 +145,16 @@ const SeatManagement = () => {
     const seat = seatMap.seats.find(s => s.row === row && s.column === column);
     if (!seat) return undefined;
     
-    return findStudentById(seat.studentId);
+    // The seat object contains the complete student object rather than just the ID
+    if (seat.student) {
+      // Return the complete student object directly from the seat
+      return seat.student as Student;
+    } else if (seat.studentId) {
+      // Fallback: Try to find by ID in the sectionStudents array if available
+      return findStudentById(seat.studentId);
+    }
+    
+    return undefined;
   };
 
   const isSeatOccupied = (row: number, column: number): boolean => {
@@ -352,12 +380,17 @@ const SeatManagement = () => {
                         <p className="text-sm font-medium text-gray-500">Selected Seat:</p>
                         <p className="text-sm text-gray-900">Row {selectedSeat.row + 1}, Column {selectedSeat.column + 1}</p>
                         
-                        {isSeatOccupied(selectedSeat.row, selectedSeat.column) && (
-                          <div className="mt-1 text-xs text-orange-500">
-                            <AlertTriangle className="mr-1 inline-block h-3 w-3" />
-                            This seat is already occupied. Assigning will override the current assignment.
-                          </div>
-                        )}
+                        {isSeatOccupied(selectedSeat.row, selectedSeat.column) && (() => {
+                          const occupyingStudent = findStudentBySeat(selectedSeat.row, selectedSeat.column);
+                          return (
+                            <div className="mt-1 text-xs text-orange-500">
+                              <AlertTriangle className="mr-1 inline-block h-3 w-3" />
+                              This seat is already occupied by <span className="font-semibold">
+                                {occupyingStudent ? `${occupyingStudent.lastName}, ${occupyingStudent.firstName}` : 'Unknown Student'}
+                              </span>. Assigning will override the current assignment.
+                            </div>
+                          );
+                        })()}
                       </div>
                     )}
                     

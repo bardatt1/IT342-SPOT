@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { teacherApi, type Teacher } from '../../lib/api/teacher';
 import DashboardLayout from '../../components/ui/layout/DashboardLayout';
 import { Button, Input, Label } from '../../components/ui';
-import { AlertTriangle, Save, User, Mail, Check } from 'lucide-react';
+import { AlertTriangle, Save, User, Mail, Check, X } from 'lucide-react';
 
 const TeacherProfile = () => {
   const { user, refreshUserData } = useAuth();
@@ -51,6 +51,31 @@ const TeacherProfile = () => {
       setError(`Failed to load your profile information (${errorStatus}): ${errorMessage}`);
     } finally {
       setIsLoading(false);
+    }
+  };
+  
+  const handleCancel = () => {
+    // Reset form fields to original values
+    if (teacher) {
+      setFirstName(teacher.firstName || '');
+      setMiddleName(teacher.middleName || '');
+      setLastName(teacher.lastName || '');
+      setEmail(teacher.email || '');
+      
+      // Reset password fields
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordError(null);
+      
+      // Clear any error or success messages
+      setError(null);
+      setSuccess('Changes cancelled, form reset to original values.');
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => {
+        setSuccess(null);
+      }, 3000);
     }
   };
   
@@ -298,7 +323,7 @@ const TeacherProfile = () => {
               </div>
             </div>
             
-            <div className="mt-6">
+            <div className="mt-6 flex flex-col md:flex-row gap-3">
               <Button
                 type="submit"
                 className="w-full md:w-auto"
@@ -315,6 +340,17 @@ const TeacherProfile = () => {
                     Save Changes
                   </>
                 )}
+              </Button>
+              
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full md:w-auto"
+                onClick={handleCancel}
+                disabled={isSaving}
+              >
+                <X className="mr-2 h-4 w-4" />
+                Cancel Changes
               </Button>
             </div>
           </form>

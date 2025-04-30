@@ -89,15 +89,31 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           </div>
 
           <div className="border-t border-gray-200 p-4">
-            <div className="flex items-center">
-              <div className="flex-shrink-0">
-                <User className="h-8 w-8 rounded-full" />
+            {!isAdmin && (
+              <Link 
+                to="/teacher/profile"
+                className="flex items-center mb-3 p-2 rounded-md hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                <div className="flex-shrink-0">
+                  <User className="h-8 w-8 rounded-full" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-700">{user?.name}</p>
+                  <p className="text-xs font-medium text-gray-500">{user?.role}</p>
+                </div>
+              </Link>
+            )}
+            {isAdmin && (
+              <div className="flex items-center mb-3">
+                <div className="flex-shrink-0">
+                  <User className="h-8 w-8 rounded-full" />
+                </div>
+                <div className="ml-3">
+                  <p className="text-sm font-medium text-gray-700">{user?.name}</p>
+                  <p className="text-xs font-medium text-gray-500">{user?.role}</p>
+                </div>
               </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-700">{user?.name}</p>
-                <p className="text-xs font-medium text-gray-500">{user?.role}</p>
-              </div>
-            </div>
+            )}
             <div className="mt-3">
               <Button
                 variant="outline"

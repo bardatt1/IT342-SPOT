@@ -31,16 +31,40 @@ export const teacherApi = {
     }
   },
 
-  // Get teacher by ID
+  // Get teacher by ID (admin only)
   getById: async (id: number): Promise<Teacher> => {
     const response = await axiosInstance.get(`/admin/teachers/${id}`);
     return response.data.data || response.data;
   },
+  
+  // Get current teacher details (for teacher self-service)
+  getCurrentTeacher: async (): Promise<Teacher> => {
+    try {
+      // Use the dedicated teacher profile endpoint
+      const response = await axiosInstance.get('/teacher-profile/me');
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('Error fetching current teacher details:', error);
+      throw error;
+    }
+  },
 
-  // Update teacher details
+  // Update teacher details (admin only or specific ID)
   update: async (teacher: Partial<Teacher>): Promise<Teacher> => {
     const response = await axiosInstance.put(`/teachers/${teacher.id}`, teacher);
     return response.data.data || response.data;
+  },
+  
+  // Update current teacher details (for teacher self-service)
+  updateCurrentTeacher: async (teacherData: Partial<Omit<Teacher, 'id'>>): Promise<Teacher> => {
+    try {
+      // Use the dedicated teacher profile endpoint
+      const response = await axiosInstance.put('/teacher-profile/me', teacherData);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error('Error updating current teacher profile:', error);
+      throw error;
+    }
   },
 
   // Create a new teacher

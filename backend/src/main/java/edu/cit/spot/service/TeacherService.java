@@ -25,4 +25,10 @@ public interface TeacherService {
     TeacherDto assignToSection(Long teacherId, Long sectionId);
     
     TeacherDto removeFromSection(Long teacherId);
+    
+    /**
+     * Get the current authenticated teacher
+     * @return the current teacher or throws exception if not found
+     */
+    TeacherDto getCurrentTeacher();
 }

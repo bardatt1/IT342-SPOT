@@ -21,7 +21,10 @@ public record TeacherUpdateRequest(
     String teacherPhysicalId,
     
     @Size(min = 8, max = 100, message = "Password must be between 8 and 100 characters")
-    String password
+    String password,
+    
+    // Current password is required when changing the password
+    String currentPassword
 ) {
     public TeacherUpdateRequest {
         if (firstName != null) {

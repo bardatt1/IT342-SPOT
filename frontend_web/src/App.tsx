@@ -19,6 +19,7 @@ import TeacherSections from './pages/teacher/Sections';
 import AttendanceTracking from './pages/teacher/AttendanceTracking';
 import Analytics from './pages/teacher/Analytics';
 import SeatManagement from './pages/teacher/SeatManagement';
+import TeacherProfile from './pages/teacher/TeacherProfile';
 
 // Import our error handling components
 import ErrorBoundary from './components/error/ErrorBoundary';
@@ -127,6 +128,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['TEACHER']}>
                     <SeatManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/teacher/profile" 
+                element={
+                  <ProtectedRoute allowedRoles={['TEACHER']}>
+                    <TeacherProfile />
                   </ProtectedRoute>
                 } 
               />

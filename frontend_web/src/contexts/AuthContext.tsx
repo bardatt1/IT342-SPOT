@@ -227,11 +227,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('teacherName'); // Also clear cached teacher name
     setUser(null);
     setIsAuthenticated(false);
     // Clear auth header
     delete axios.defaults.headers.common['Authorization'];
-    console.log('User logged out');
+    console.log('User logged out, all session data cleared');
   };
 
   const bindGoogleAccount = async (email: string, googleToken: string): Promise<boolean> => {

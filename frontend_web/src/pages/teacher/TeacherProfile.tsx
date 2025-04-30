@@ -3,7 +3,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { teacherApi, type Teacher } from '../../lib/api/teacher';
 import DashboardLayout from '../../components/ui/layout/DashboardLayout';
 import { Button, Input, Label } from '../../components/ui';
-import { AlertTriangle, Save, User, Mail, Check, X } from 'lucide-react';
+import { AlertTriangle, Save, User, Mail, Check, X, Eye, EyeOff } from 'lucide-react';
 
 const TeacherProfile = () => {
   const { user, refreshUserData } = useAuth();
@@ -22,6 +22,9 @@ const TeacherProfile = () => {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
+  const [showNewPassword, setShowNewPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   
   useEffect(() => {
     fetchTeacherDetails();
@@ -92,37 +95,65 @@ const TeacherProfile = () => {
       setError(null);
       setSuccess(null);
       
-      // Check if passwords match when attempting to change password
-      if (newPassword && newPassword !== confirmPassword) {
-        setPasswordError("New passwords don't match");
-        return;
-      }
-      
-      // Check if current password is provided when changing password
-      if (newPassword && !currentPassword) {
-        setPasswordError("Please enter your current password");
-        return;
+      // Validate passwords when attempting to change password
+      if (newPassword) {
+        // Check if passwords match
+        if (newPassword !== confirmPassword) {
+          setPasswordError("New passwords don't match");
+          setIsSaving(false);
+          return;
+        }
+        
+        // Check if new password meets minimum length requirement
+        if (newPassword.length < 8) {
+          setPasswordError("New password must be at least 8 characters long");
+          setIsSaving(false);
+          return;
+        }
+        
+        // Check if current password is provided
+        if (!currentPassword || currentPassword.trim() === '') {
+          setPasswordError("Please enter your current password");
+          setIsSaving(false);
+          return;
+        }
       }
       
       setPasswordError(null);
       
       // No need to include ID as we're using the /me endpoint
-      const updatedTeacher = {
+      const updatedTeacher: Record<string, any> = {
         firstName,
         middleName: middleName || null,
         lastName,
         email,
-        // Only include passwords if changing password
-        ...(newPassword ? { 
-          currentPassword,
-          password: newPassword 
-        } : {})
-        // We don't need to include teacherPhysicalId as we're not updating it
       };
+      
+      // Only include passwords if changing password and they meet requirements
+      if (newPassword && newPassword.length >= 8 && currentPassword) {
+        updatedTeacher.currentPassword = currentPassword;
+        updatedTeacher.password = newPassword;
+      }
+      // We don't need to include teacherPhysicalId as we're not updating it
       
       const result = await teacherApi.updateCurrentTeacher(updatedTeacher);
       
+      // Update the local teacher state with the updated data
       setTeacher(result);
+      
+      // Update all form fields with the new data
+      setFirstName(result.firstName || '');
+      setMiddleName(result.middleName || '');
+      setLastName(result.lastName || '');
+      setEmail(result.email || '');
+      
+      // Clear all password fields after successful update
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setPasswordError(null);
+      
+      // Show success message
       setSuccess('Profile updated successfully!');
       
       // Update auth context if email changed
@@ -277,42 +308,84 @@ const TeacherProfile = () => {
                     <Label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
                       Current Password
                     </Label>
-                    <Input
-                      id="currentPassword"
-                      type="password"
-                      value={currentPassword}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
-                      placeholder="Enter current password"
-                      className="w-full"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="currentPassword"
+                        type={showCurrentPassword ? "text" : "password"}
+                        value={currentPassword}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
+                        placeholder="Enter current password"
+                        className="w-full"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                        tabIndex={-1}
+                      >
+                        {showCurrentPassword ? (
+                          <EyeOff className="h-4 w-4" aria-hidden="true" />
+                        ) : (
+                          <Eye className="h-4 w-4" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   
                   <div>
                     <Label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
                       New Password
                     </Label>
-                    <Input
-                      id="newPassword"
-                      type="password"
-                      value={newPassword}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
-                      placeholder="Enter new password"
-                      className="w-full"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="newPassword"
+                        type={showNewPassword ? "text" : "password"}
+                        value={newPassword}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+                        placeholder="Enter new password"
+                        className="w-full"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowNewPassword(!showNewPassword)}
+                        tabIndex={-1}
+                      >
+                        {showNewPassword ? (
+                          <EyeOff className="h-4 w-4" aria-hidden="true" />
+                        ) : (
+                          <Eye className="h-4 w-4" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   
                   <div>
                     <Label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
                       Confirm New Password
                     </Label>
-                    <Input
-                      id="confirmPassword"
-                      type="password"
-                      value={confirmPassword}
-                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-                      placeholder="Re-enter new password"
-                      className="w-full"
-                    />
+                    <div className="relative">
+                      <Input
+                        id="confirmPassword"
+                        type={showConfirmPassword ? "text" : "password"}
+                        value={confirmPassword}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                        placeholder="Re-enter new password"
+                        className="w-full"
+                      />
+                      <button
+                        type="button"
+                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                        tabIndex={-1}
+                      >
+                        {showConfirmPassword ? (
+                          <EyeOff className="h-4 w-4" aria-hidden="true" />
+                        ) : (
+                          <Eye className="h-4 w-4" aria-hidden="true" />
+                        )}
+                      </button>
+                    </div>
                   </div>
                   
                   <p className="text-xs text-gray-500 mt-1">

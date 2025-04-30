@@ -75,8 +75,8 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   const teacherNavItems = [
     { name: 'Dashboard', href: '/teacher/dashboard', icon: <BarChart className="w-5 h-5" /> },
     { name: 'My Sections', href: '/teacher/sections', icon: <Calendar className="w-5 h-5" /> },
-    { name: 'Attendance', href: '/teacher/attendance', icon: <Users className="w-5 h-5" /> },
-    { name: 'Analytics', href: '/teacher/analytics', icon: <BarChart className="w-5 h-5" /> },
+    { name: 'Attendance & Analytics', href: '/teacher/attendance', icon: <Users className="w-5 h-5" /> },
+    // { name: 'Analytics', href: '/teacher/analytics', icon: <BarChart className="w-5 h-5" /> },
     { name: 'Seat Management', href: '/teacher/seats', icon: <User className="w-5 h-5" /> },
   ];
 

@@ -22,6 +22,7 @@ import java.util.List;
 @RequestMapping("/api/schedules")
 @Tag(name = "Schedules", description = "APIs for schedule management")
 @SecurityRequirement(name = "bearerAuth")
+@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
 public class ScheduleController {
 
     @Autowired

@@ -6,7 +6,7 @@ import { Button, Input, Label } from '../../components/ui';
 import { AlertTriangle, Save, User, Mail, Check, X, Eye, EyeOff } from 'lucide-react';
 
 const TeacherProfile = () => {
-  const { user, refreshUserData } = useAuth();
+  const { user, refreshUserData, logout } = useAuth();
   const [teacher, setTeacher] = useState<Teacher | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -146,6 +146,28 @@ const TeacherProfile = () => {
       setMiddleName(result.middleName || '');
       setLastName(result.lastName || '');
       setEmail(result.email || '');
+      
+      // Check if email was changed - if so, we need to refresh auth data
+      // or the next request will fail with 401 Unauthorized
+      if (email !== user?.email) {
+        console.log('Email was changed, refreshing authentication data...');
+        try {
+          // Refresh the user data in the auth context
+          await refreshUserData();
+          
+          // Set success message specifically for email change
+          setSuccess('Profile updated successfully. Please note that your email was changed, which may require you to log in again if you encounter any issues.');
+        } catch (refreshError) {
+          console.error('Error refreshing auth data after email change:', refreshError);
+          // Advise user to log in again if refresh fails
+          setSuccess('Profile updated successfully. Please log in again with your new email address.');
+          // Log the user out after a brief delay to show the message
+          setTimeout(() => {
+            logout();
+          }, 3000);
+          return;
+        }
+      }
       
       // Clear all password fields after successful update
       setCurrentPassword('');

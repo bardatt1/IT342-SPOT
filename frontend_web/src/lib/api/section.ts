@@ -151,17 +151,12 @@ export const sectionApi = {
             // So we need to check section.teacher?.id or section.teacher.id
             const sectionTeacherId = section.teacher?.id || 
                                      (section.teacher ? section.teacher.id : null);
-                                     
-            console.log(`Section ${section.id} has teacher:`, section.teacher, 
-                      `- Extracted teacherId:`, sectionTeacherId);
-                      
+            
             // Check if the section has this teacher assigned
             return sectionTeacherId === teacherId;
           });
           
-          if (teacherSectionsForCourse.length > 0) {
-            console.log(`Found ${teacherSectionsForCourse.length} sections for teacher in course ${course.id}`);
-          }
+          // Only add if we found sections for this teacher
           
           teacherSections = [...teacherSections, ...teacherSectionsForCourse];
         } catch (courseError) {
@@ -170,7 +165,12 @@ export const sectionApi = {
         }
       }
       
-      console.log(`Total teacher sections found: ${teacherSections.length}`);
+      if (teacherSections.length > 0) {
+        console.log(`Found ${teacherSections.length} sections for teacher ID: ${teacherId}`);
+      } else {
+        console.log(`No sections found for teacher ID: ${teacherId}`);
+      }
+      
       return teacherSections;
     } catch (error) {
       console.error(`Error fetching sections for teacher ${teacherId}:`, error);

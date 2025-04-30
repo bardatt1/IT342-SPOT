@@ -6,6 +6,7 @@ import { studentApi, type Student } from '../../lib/api/student';
 import { seatApi, type SeatMap } from '../../lib/api/seat';
 import { Button } from '../../components/ui/button';
 import { Save, AlertTriangle, User, UserCheck } from 'lucide-react';
+import FirstLoginModal from '../../components/ui/FirstLoginModal';
 
 const SeatManagement = () => {
   const { user } = useAuth();
@@ -19,6 +20,25 @@ const SeatManagement = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
+
+  // Check for temporary password when user data is loaded
+  useEffect(() => {
+    // Check if this is a temporary account based on email pattern
+    const isTemporaryAccount = 
+      // Check if email ends with @temporary.com
+      user?.email?.endsWith('@temporary.com') ||
+      // Or if the backend explicitly flags it
+      user?.hasTemporaryPassword;
+    
+    if (isTemporaryAccount) {
+      setShowFirstLoginModal(true);
+      
+      // Store that we've shown the modal so it won't show again after closing
+      // This is just for local testing until the backend sets the proper flag
+      localStorage.setItem('firstTimeLogin', 'false');
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchTeacherSections();
@@ -218,6 +238,9 @@ const SeatManagement = () => {
 
   return (
     <DashboardLayout>
+      {showFirstLoginModal && (
+        <FirstLoginModal onClose={() => setShowFirstLoginModal(false)} />
+      )}
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-bold">Seat Management</h2>

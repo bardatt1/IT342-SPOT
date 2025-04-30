@@ -7,6 +7,7 @@ import { studentApi, type Student } from '../../lib/api/student';
 import { scheduleApi, type Schedule } from '../../lib/api/schedule';
 import { Button } from '../../components/ui/button';
 import { Calendar, Clock, User, Download, Users, BarChart } from 'lucide-react';
+import FirstLoginModal from '../../components/ui/FirstLoginModal';
 
 const AttendanceTracking = () => {
   const { user } = useAuth();
@@ -19,12 +20,30 @@ const AttendanceTracking = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
-  // Filters
   const [dateFilter, setDateFilter] = useState<string>('');
-  
+  const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
+
   // Analytics view state
   const [showAnalytics, setShowAnalytics] = useState<boolean>(false);
+
+  useEffect(() => {
+    fetchTeacherSections();
+    
+    // Check if this is a temporary account based on email pattern
+    const isTemporaryAccount = 
+      // Check if email ends with @temporary.com
+      user?.email?.endsWith('@temporary.com') ||
+      // Or if the backend explicitly flags it
+      user?.hasTemporaryPassword;
+    
+    if (isTemporaryAccount) {
+      setShowFirstLoginModal(true);
+      
+      // Store that we've shown the modal so it won't show again after closing
+      // This is just for local testing until the backend sets the proper flag
+      localStorage.setItem('firstTimeLogin', 'false');
+    }
+  }, [user]);
 
   useEffect(() => {
     fetchTeacherSections();
@@ -36,16 +55,16 @@ const AttendanceTracking = () => {
         try {
           setIsLoading(true);
           setError(null);
-          
+
           // Fetch data in parallel for better performance
           const dataPromises = [
             fetchAttendanceData(selectedSectionId),
             fetchStudentData(selectedSectionId),
             fetchScheduleData(selectedSectionId)
           ];
-          
+
           await Promise.all(dataPromises);
-          
+
           setIsLoading(false);
         } catch (error) {
           console.error(`Error fetching data for section ${selectedSectionId}:`, error);
@@ -53,7 +72,7 @@ const AttendanceTracking = () => {
           setIsLoading(false);
         }
       };
-      
+
       fetchSectionData();
     }
   }, [selectedSectionId]);
@@ -62,7 +81,7 @@ const AttendanceTracking = () => {
     console.log('Attendance records updated:', attendanceRecords.length, 'for section:', selectedSectionId);
     console.log('Students updated:', students.length, 'for section:', selectedSectionId);
     console.log('Schedules updated:', schedules.length, 'for section:', selectedSectionId);
-    
+
     if (selectedSectionId) {
       calculateAnalyticsFromAttendance(selectedSectionId);
     }
@@ -70,13 +89,13 @@ const AttendanceTracking = () => {
 
   const fetchTeacherSections = async () => {
     if (!user?.id) return;
-    
+
     try {
       setIsLoading(true);
       const allSections = await sectionApi.getAllSections();
       const teacherSections = allSections.filter(section => section.teacherId === user.id);
       setSections(teacherSections);
-      
+
       // Select first section by default if available
       if (teacherSections.length > 0 && !selectedSectionId) {
         setSelectedSectionId(teacherSections[0].id);
@@ -93,13 +112,13 @@ const AttendanceTracking = () => {
   const fetchAttendanceData = async (sectionId: number) => {
     try {
       const response = await attendanceApi.getSectionAttendance(sectionId);
-      
+
       // Log the response to debug
       console.log(`Attendance API response for section ${sectionId}:`, response);
-      
+
       // Ensure we're working with an array
       let records: Attendance[] = [];
-      
+
       if (Array.isArray(response)) {
         records = response;
       } else if (response && typeof response === 'object') {
@@ -115,7 +134,7 @@ const AttendanceTracking = () => {
           }
         }
       }
-      
+
       // Log each record to inspect studentId - for debugging
       records.forEach((record, index) => {
         console.log(`Attendance record ${index}:`, {
@@ -125,7 +144,7 @@ const AttendanceTracking = () => {
           student: record.student ? `${record.student.firstName} ${record.student.lastName} (ID: ${record.student.id})` : 'No student data'
         });
       });
-      
+
       console.log('Processed attendance records:', records);
       setAttendanceRecords(Array.isArray(records) ? records : []);
       setError(null);
@@ -142,13 +161,13 @@ const AttendanceTracking = () => {
   const fetchStudentData = async (sectionId: number) => {
     try {
       const response = await studentApi.getBySection(sectionId);
-      
+
       // Log the response to debug
       console.log(`Student API response for section ${sectionId}:`, response);
-      
+
       // Ensure we're working with an array
       let students: Student[] = [];
-      
+
       if (Array.isArray(response)) {
         students = response;
       } else if (response && typeof response === 'object') {
@@ -164,7 +183,7 @@ const AttendanceTracking = () => {
           }
         }
       }
-      
+
       console.log('Processed student data:', students);
       setStudents(Array.isArray(students) ? students : []);
       setError(null);
@@ -181,13 +200,13 @@ const AttendanceTracking = () => {
   const fetchScheduleData = async (sectionId: number) => {
     try {
       const response = await scheduleApi.getBySectionId(sectionId);
-      
+
       // Log the response to debug
       console.log(`Schedule API response for section ${sectionId}:`, response);
-      
+
       // Ensure we're working with an array
       let schedules: Schedule[] = [];
-      
+
       if (Array.isArray(response)) {
         schedules = response;
       } else if (response && typeof response === 'object') {
@@ -203,7 +222,7 @@ const AttendanceTracking = () => {
           }
         }
       }
-      
+
       console.log('Processed schedule data:', schedules);
       setSchedules(Array.isArray(schedules) ? schedules : []);
       setError(null);
@@ -218,7 +237,7 @@ const AttendanceTracking = () => {
 
   const handleSectionChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const sectionId = parseInt(e.target.value);
-    
+
     // Reset state when changing sections
     setSelectedSectionId(sectionId);
     setAttendanceRecords([]); // Clear old attendance records
@@ -237,24 +256,24 @@ const AttendanceTracking = () => {
   const clearFilters = () => {
     setDateFilter('');
   };
-  
+
   const toggleView = () => {
     setShowAnalytics(!showAnalytics);
   };
-  
+
   // Calculate analytics directly from attendance records
   const calculateAnalyticsFromAttendance = async (sectionId: number) => {
     try {
       console.log('Calculating analytics for section:', sectionId);
       console.log('Using attendance records:', attendanceRecords);
-      
+
       // First, ensure we have all the necessary data
       const diagnostics = await attendanceApi.checkSectionAnalyticsData(sectionId);
       console.log('Analytics prerequisites check:', diagnostics);
-      
+
       // Even if prerequisites check fails, still attempt to calculate analytics
       // with the data we have, to avoid showing an empty analytics dashboard
-      
+
       // If we have attendance records, calculate attendance metrics
       if (attendanceRecords.length === 0) {
         console.log('No attendance records to calculate analytics from');
@@ -269,42 +288,42 @@ const AttendanceTracking = () => {
         setAnalytics(emptyAnalytics);
         return;
       }
-      
+
       // Group attendance by date
       const attendanceByDate: Record<string, any> = {};
       const studentAttendance: Record<number, any> = {};
-      
+
       // Get unique dates from attendance records, normalizing format
       const uniqueDates = [...new Set(attendanceRecords.map(record => {
         // Normalize date format to YYYY-MM-DD
         return new Date(record.date).toISOString().split('T')[0];
       }))];
       console.log('Unique attendance dates:', uniqueDates);
-      
+
       // Get unique student IDs both from student records and attendance records
       const enrolledStudentIds = students.map(student => student.id);
       const attendanceStudentIds = attendanceRecords.map(record => {
         // Try to extract student ID either from studentId property or from nested student object
         if (record.studentId) return record.studentId;
         if (record.student && record.student.id) return record.student.id;
-        
+
         // Check if there's a nested student object with ID
         const recordAsAny = record as any;
         if (recordAsAny.student && recordAsAny.student.id) {
           return recordAsAny.student.id;
         }
-        
+
         return undefined;
       }).filter(id => id !== undefined);
-      
+
       console.log('Enrolled student IDs:', enrolledStudentIds);
       console.log('Attendance student IDs:', attendanceStudentIds);
-      
+
       // Combine the two sets to ensure we have all students
       const allStudentIds = [...new Set([...enrolledStudentIds, ...attendanceStudentIds])];
       const totalStudents = diagnostics.enrollmentCount || students.length || allStudentIds.length;
       console.log('All student IDs:', allStudentIds, 'Total students:', totalStudents);
-      
+
       // Calculate attendance for each date
       uniqueDates.forEach(date => {
         // Use normalized dates for filtering
@@ -312,50 +331,50 @@ const AttendanceTracking = () => {
           const normalizedRecordDate = new Date(r.date).toISOString().split('T')[0];
           return normalizedRecordDate === date;
         });
-        
+
         const attendanceCount = recordsOnDate.length;
         const percentage = totalStudents > 0 ? (attendanceCount / totalStudents) * 100 : 0;
         console.log(`Date: ${date}, Count: ${attendanceCount}, Percentage: ${percentage}%`);
-        
+
         attendanceByDate[date] = {
           date, // Keep the normalized date
           count: attendanceCount,
           percentage
         };
       });
-      
+
       // Calculate student attendance stats - using directly fetched student data
       students.forEach(student => {
         const studentId = student.id;
-        
+
         // Try multiple ways to match student to attendance records
         const studentRecords = attendanceRecords.filter(r => {
           // Check direct studentId property match
           if (r.studentId === studentId) return true;
-          
+
           // Check nested student object match
           if (r.student && r.student.id === studentId) return true;
-          
+
           // Try to access potentially nested properties (fallback)
           const record = r as any;
           if (record.student && record.student.id === studentId) return true;
-          
+
           return false;
         });
-        
+
         // Log what we found for debugging
         console.log(`Student ${student.firstName} ${student.lastName} (Physical ID: ${student.studentPhysicalId}, DB ID: ${studentId}):`, {
           foundRecords: studentRecords.length,
           records: studentRecords.map(r => ({ id: r.id, date: r.date }))
         });
-        
+
         const attendanceCount = studentRecords.length;
-        const attendancePercentage = uniqueDates.length > 0 
-          ? (attendanceCount / uniqueDates.length) * 100 
+        const attendancePercentage = uniqueDates.length > 0
+          ? (attendanceCount / uniqueDates.length) * 100
           : 0;
-        
+
         console.log(`Student ${student.firstName} ${student.lastName} (Physical ID: ${student.studentPhysicalId}), Attendance: ${attendanceCount}/${uniqueDates.length} (${attendancePercentage.toFixed(1)}%)`);
-        
+
         studentAttendance[studentId] = {
           studentId: student.studentPhysicalId || studentId.toString(),
           studentName: `${student.firstName} ${student.lastName}`,
@@ -363,12 +382,12 @@ const AttendanceTracking = () => {
           attendancePercentage
         };
       });
-      
+
       // Also check if there are any attendance records without matching students
       // and add them to the student attendance data (just in case)
       attendanceRecords.forEach(record => {
         let recordStudentId: number | undefined;
-        
+
         // Try to extract student ID from the record
         if (record.studentId) {
           recordStudentId = record.studentId;
@@ -381,10 +400,10 @@ const AttendanceTracking = () => {
             recordStudentId = recordAny.student.id;
           }
         }
-        
+
         // Skip if no student ID found or if we already have this student
         if (!recordStudentId || studentAttendance[recordStudentId]) return;
-        
+
         // Get student name from the record if possible
         let studentName = `Student ${recordStudentId}`;
         if (record.student) {
@@ -393,7 +412,7 @@ const AttendanceTracking = () => {
             studentName = `${student.firstName || ''} ${student.lastName || ''}`.trim();
           }
         }
-        
+
         // Count how many records this student has
         const studentRecords = attendanceRecords.filter(r => {
           // Try multiple ways to match
@@ -403,20 +422,20 @@ const AttendanceTracking = () => {
           if (rAny.student && rAny.student.id === recordStudentId) return true;
           return false;
         });
-        
+
         const attendanceCount = studentRecords.length;
-        const attendancePercentage = uniqueDates.length > 0 
-          ? (attendanceCount / uniqueDates.length) * 100 
+        const attendancePercentage = uniqueDates.length > 0
+          ? (attendanceCount / uniqueDates.length) * 100
           : 0;
-        
+
         console.log(`Student from attendance record (ID: ${recordStudentId}), Attendance: ${attendanceCount}/${uniqueDates.length} (${attendancePercentage.toFixed(1)}%)`);
-        
+
         // Try to get physical ID if possible
         let physicalId = '';
         if (record.student && record.student.studentPhysicalId) {
           physicalId = record.student.studentPhysicalId;
         }
-        
+
         studentAttendance[recordStudentId] = {
           studentId: physicalId || recordStudentId.toString(),
           studentName,
@@ -424,13 +443,13 @@ const AttendanceTracking = () => {
           attendancePercentage
         };
       });
-      
+
       // Calculate average attendance percentage
       const totalAttendanceCount = attendanceRecords.length;
       const averageAttendance = totalStudents > 0 && uniqueDates.length > 0
         ? (totalAttendanceCount / (totalStudents * uniqueDates.length)) * 100
         : 0;
-      
+
       // Create analytics object
       const calculatedAnalytics: AttendanceAnalytics = {
         totalSessions: uniqueDates.length,
@@ -439,10 +458,10 @@ const AttendanceTracking = () => {
         attendanceByDate: Object.values(attendanceByDate),
         studentAttendance: Object.values(studentAttendance)
       };
-      
+
       console.log('Calculated analytics from attendance records:', calculatedAnalytics);
       setAnalytics(calculatedAnalytics);
-      
+
     } catch (error) {
       console.error('Error calculating analytics:', error);
       setError('Failed to calculate analytics data.');
@@ -451,11 +470,11 @@ const AttendanceTracking = () => {
 
   const exportAttendance = () => {
     setIsExporting(true);
-    
+
     try {
       // Use the same filtered records that are displayed in the UI
       // (this uses the memoized value from useMemo)
-      
+
       // Convert to CSV
       const headers = ['Student ID', 'Student Name', 'Section ID', 'Date', 'Start Time', 'End Time'];
       const csvContent = [
@@ -469,7 +488,7 @@ const AttendanceTracking = () => {
           record.endTime || ''
         ].join(','))
       ].join('\n');
-      
+
       // Create and download file
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -487,12 +506,12 @@ const AttendanceTracking = () => {
       setIsExporting(false);
     }
   };
-  
+
   const exportAnalytics = () => {
     if (!analytics) return;
-    
+
     setIsExporting(true);
-    
+
     try {
       // Prepare data for export
       const headers = ['Date', 'Attendance Count', 'Attendance Percentage'];
@@ -501,7 +520,7 @@ const AttendanceTracking = () => {
         item.count,
         item.percentage.toFixed(2) + '%'
       ]);
-      
+
       // Add student attendance data
       const studentHeaders = ['\n\nStudent ID', 'Student Name', 'Attendance Count', 'Attendance Percentage'];
       const studentData = analytics.studentAttendance.map(student => [
@@ -510,7 +529,7 @@ const AttendanceTracking = () => {
         student.attendanceCount,
         student.attendancePercentage.toFixed(2) + '%'
       ]);
-      
+
       // Create CSV content
       const csvContent = [
         `Attendance Analytics for Section ${selectedSectionId}`,
@@ -525,7 +544,7 @@ const AttendanceTracking = () => {
         studentHeaders.join(','),
         ...studentData.map(row => row.join(','))
       ].join('\n');
-      
+
       // Create and download the file
       const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
@@ -564,28 +583,28 @@ const AttendanceTracking = () => {
   // Use useMemo to calculate filtered records only when dependencies change
   const filteredRecords = useMemo(() => {
     if (!dateFilter) return attendanceRecords;
-    
+
     console.log('Filtering by date:', dateFilter);
     console.log('Attendance records:', attendanceRecords);
-    
+
     // Convert dateFilter to YYYY-MM-DD format for comparison
     const formattedDateFilter = new Date(dateFilter).toISOString().split('T')[0];
     console.log('Formatted date filter:', formattedDateFilter);
-    
+
     // Try different date formats for matching
     return attendanceRecords.filter(record => {
       // Try exact match first
       if (record.date === dateFilter) return true;
-      
+
       // Try formatted match
       if (record.date === formattedDateFilter) return true;
-      
+
       // Try comparing as dates
       const recordDate = new Date(record.date).toISOString().split('T')[0];
       return recordDate === formattedDateFilter;
     });
   }, [attendanceRecords, dateFilter]);
-  
+
   if (isLoading && sections.length === 0) {
     return (
       <DashboardLayout>
@@ -598,16 +617,19 @@ const AttendanceTracking = () => {
 
   return (
     <DashboardLayout>
+      {showFirstLoginModal && (
+        <FirstLoginModal onClose={() => setShowFirstLoginModal(false)} />
+      )}
       <div className="space-y-6">
         <div className="flex flex-col justify-between sm:flex-row sm:items-center">
           <h2 className="text-xl font-semibold">Attendance Tracking</h2>
-          
+
           {sections.length > 0 && (
             <div className="mt-4 sm:mt-0">
               <select
                 value={selectedSectionId || ''}
                 onChange={handleSectionChange}
-                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
               >
                 {sections.map(section => (
                   <option key={section.id} value={section.id}>

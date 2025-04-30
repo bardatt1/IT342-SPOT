@@ -5,6 +5,7 @@ import { sectionApi, type Section } from '../../lib/api/section';
 import { attendanceApi } from '../../lib/api/attendance';
 import { Calendar, Users, QrCode } from 'lucide-react';
 import { Button } from '../../components/ui/button';
+import FirstLoginModal from '../../components/ui/FirstLoginModal';
 
 const TeacherDashboard = () => {
   const { user } = useAuth();
@@ -18,6 +19,25 @@ const TeacherDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
+
+  // Check for temporary password when user data is loaded
+  useEffect(() => {
+    // Check if this is a temporary account based on email pattern
+    const isTemporaryAccount = 
+      // Check if email ends with @temporary.com
+      user?.email?.endsWith('@temporary.com') ||
+      // Or if the backend explicitly flags it
+      user?.hasTemporaryPassword;
+    
+    if (isTemporaryAccount) {
+      setShowFirstLoginModal(true);
+      
+      // Store that we've shown the modal so it won't show again after closing
+      // This is just for local testing until the backend sets the proper flag
+      localStorage.setItem('firstTimeLogin', 'false');
+    }
+  }, [user]);
 
   // Fetch teacher's sections
   useEffect(() => {
@@ -83,9 +103,12 @@ const TeacherDashboard = () => {
 
   return (
     <DashboardLayout>
+      {showFirstLoginModal && (
+        <FirstLoginModal onClose={() => setShowFirstLoginModal(false)} />
+      )}
       <div className="space-y-6">
         <div className="flex flex-col justify-between sm:flex-row sm:items-center">
-          <h2 className="text-xl font-semibold">Teacher Dashboard</h2>
+          <h2 className="text-2xl font-bold">Teacher Dashboard</h2>
           
           {sections.length > 0 && (
             <div className="mt-2 sm:mt-0">

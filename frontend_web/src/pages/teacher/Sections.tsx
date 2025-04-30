@@ -5,6 +5,7 @@ import { Section } from '../../lib/api/section';
 import DashboardLayout from '../../components/ui/layout/DashboardLayout';
 import { Button } from '../../components/ui/button';
 import { Calendar, Users, QrCode, AlertTriangle, RefreshCw, Copy, Check } from 'lucide-react';
+import FirstLoginModal from '../../components/ui/FirstLoginModal';
 
 const TeacherSections = () => {
   const { user } = useAuth();
@@ -13,7 +14,26 @@ const TeacherSections = () => {
   const [error, setError] = useState<string | null>(null);
   const [generatingCode, setGeneratingCode] = useState<Record<number, boolean>>({});
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
-  const [copiedCodes, setCopiedCodes] = useState<Record<number, boolean>>({}); 
+  const [copiedCodes, setCopiedCodes] = useState<Record<number, boolean>>({});
+  const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
+
+  // Check for temporary password when user data is loaded
+  useEffect(() => {
+    // Check if this is a temporary account based on email pattern
+    const isTemporaryAccount = 
+      // Check if email ends with @temporary.com
+      user?.email?.endsWith('@temporary.com') ||
+      // Or if the backend explicitly flags it
+      user?.hasTemporaryPassword;
+    
+    if (isTemporaryAccount) {
+      setShowFirstLoginModal(true);
+      
+      // Store that we've shown the modal so it won't show again after closing
+      // This is just for local testing until the backend sets the proper flag
+      localStorage.setItem('firstTimeLogin', 'false');
+    }
+  }, [user]);
 
   // Fetch teacher's sections
   useEffect(() => {
@@ -81,6 +101,9 @@ const TeacherSections = () => {
 
   return (
     <DashboardLayout>
+      {showFirstLoginModal && (
+        <FirstLoginModal onClose={() => setShowFirstLoginModal(false)} />
+      )}
       <div className="container mx-auto px-4 py-8">
         <h1 className="text-2xl font-bold mb-6">My Sections</h1>
         

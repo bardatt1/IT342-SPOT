@@ -244,7 +244,7 @@ const ScheduleManagement = () => {
             <option value="">Select a section</option>
             {sections.map(section => (
               <option key={section.id} value={section.id}>
-                {section.sectionName} - {section.courseId}
+                {section.sectionName} - {section.course?.courseCode || 'Unknown'}
               </option>
             ))}
           </select>
@@ -275,7 +275,7 @@ const ScheduleManagement = () => {
                   <option value="">Select a section</option>
                   {sections.map(section => (
                     <option key={section.id} value={section.id}>
-                      {section.sectionName} - {section.courseId}
+                      {section.sectionName} - {section.course?.courseCode || 'Unknown'}
                     </option>
                   ))}
                 </select>

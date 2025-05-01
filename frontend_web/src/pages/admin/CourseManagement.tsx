@@ -2,7 +2,14 @@ import { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/ui/layout/DashboardLayout';
 import { courseApi, type Course, type CourseCreateDto, type CourseUpdateDto } from '../../lib/api/course';
 import { Button } from '../../components/ui/button';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Textarea } from '../../components/ui/textarea';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Badge } from '../../components/ui/badge';
+import { Plus, Pencil, Trash2, BookOpen, AlertTriangle, X, FileText, Code, Bookmark } from 'lucide-react';
 
 const CourseManagement = () => {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -125,8 +132,15 @@ const CourseManagement = () => {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex h-full items-center justify-center">
-          <p className="text-lg">Loading courses...</p>
+        <div className="flex h-64 items-center justify-center">
+          <div className="flex flex-col items-center space-y-4 text-center">
+            <div className="animate-spin text-[#215f47]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+            </div>
+            <p className="text-lg font-medium text-gray-700">Loading courses...</p>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -134,160 +148,215 @@ const CourseManagement = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col justify-between sm:flex-row sm:items-center">
-          <h2 className="text-xl font-semibold">Course Management</h2>
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col justify-between sm:flex-row sm:items-center border-b border-[#215f47]/10 pb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-[#215f47] flex items-center gap-2">
+              <BookOpen className="h-6 w-6" />
+              Course Management
+            </h2>
+            <p className="text-gray-500 mt-1">Create and manage course offerings</p>
+          </div>
           
           <div className="mt-4 sm:mt-0">
-            <Button onClick={handleAddNew} className="flex items-center">
-              <Plus className="mr-1 h-4 w-4" />
+            <Button onClick={handleAddNew} className="bg-[#215f47] hover:bg-[#215f47]/90 flex items-center">
+              <Plus className="mr-2 h-4 w-4" />
               Add New Course
             </Button>
           </div>
         </div>
         
         {error && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Alert variant="destructive" className="border-red-500/20 mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
         
         {showForm && (
-          <div className="rounded-lg bg-white p-6 shadow">
-            <h3 className="mb-4 text-lg font-medium">
-              {formType === 'add' ? 'Add New' : 'Edit'} Course
-            </h3>
+          <Card className="border-[#215f47]/20 shadow-sm mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-[#215f47] flex items-center gap-2">
+                {formType === 'add' ? <Plus className="h-5 w-5" /> : <Pencil className="h-5 w-5" />}
+                {formType === 'add' ? 'Add New Course' : 'Edit Course'}
+              </CardTitle>
+              <CardDescription>
+                {formType === 'add' ? 'Create a new course in the system' : 'Modify existing course details'}
+              </CardDescription>
+            </CardHeader>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label htmlFor="courseCode" className="block text-sm font-medium text-gray-700">
-                  Course Code
-                </label>
-                <input
-                  type="text"
-                  id="courseCode"
-                  name="courseCode"
-                  value={formData.courseCode}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  placeholder="e.g., CS101"
-                />
-              </div>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-5">
+                <div className="space-y-1.5">
+                  <Label htmlFor="courseCode" className="text-[#215f47]">
+                    <div className="flex items-center gap-1.5">
+                      <Code className="h-3.5 w-3.5" />
+                      Course Code
+                    </div>
+                  </Label>
+                  <Input
+                    id="courseCode"
+                    name="courseCode"
+                    value={formData.courseCode}
+                    onChange={handleInputChange}
+                    required
+                    className="border-[#215f47]/20 focus-visible:ring-[#215f47]/20 focus-visible:ring-offset-1 focus-visible:ring-offset-[#215f47]/90"
+                    placeholder="e.g., CS101"
+                  />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <Label htmlFor="courseName" className="text-[#215f47]">
+                    <div className="flex items-center gap-1.5">
+                      <Bookmark className="h-3.5 w-3.5" />
+                      Course Name
+                    </div>
+                  </Label>
+                  <Input
+                    id="courseName"
+                    name="courseName"
+                    value={formData.courseName}
+                    onChange={handleInputChange}
+                    required
+                    className="border-[#215f47]/20 focus-visible:ring-[#215f47]/20 focus-visible:ring-offset-1 focus-visible:ring-offset-[#215f47]/90"
+                    placeholder="e.g., Introduction to Computer Science"
+                  />
+                </div>
+                
+                <div className="space-y-1.5">
+                  <Label htmlFor="courseDescription" className="text-[#215f47]">
+                    <div className="flex items-center gap-1.5">
+                      <FileText className="h-3.5 w-3.5" />
+                      Course Description
+                    </div>
+                  </Label>
+                  <Textarea
+                    id="courseDescription"
+                    name="courseDescription"
+                    value={formData.courseDescription}
+                    onChange={handleInputChange}
+                    rows={4}
+                    className="border-[#215f47]/20 focus-visible:ring-[#215f47]/20 focus-visible:ring-offset-1 focus-visible:ring-offset-[#215f47]/90 resize-none"
+                    placeholder="Provide a description of the course"
+                  />
+                </div>
               
-              <div>
-                <label htmlFor="courseName" className="block text-sm font-medium text-gray-700">
-                  Course Name
-                </label>
-                <input
-                  type="text"
-                  id="courseName"
-                  name="courseName"
-                  value={formData.courseName}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  placeholder="e.g., Introduction to Computer Science"
-                />
-              </div>
-              
-              <div>
-                <label htmlFor="courseDescription" className="block text-sm font-medium text-gray-700">
-                  Course Description
-                </label>
-                <textarea
-                  id="courseDescription"
-                  name="courseDescription"
-                  value={formData.courseDescription}
-                  onChange={handleInputChange}
-                  rows={4}
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  placeholder="Provide a description of the course"
-                />
-              </div>
-              
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button variant="outline" type="button" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {formType === 'add' ? 'Create' : 'Update'}
-                </Button>
-              </div>
-            </form>
-          </div>
+                <div className="flex justify-end space-x-3 pt-2">
+                  <Button 
+                    variant="outline" 
+                    type="button" 
+                    onClick={resetForm}
+                    className="border-[#215f47]/20 text-[#215f47] hover:bg-[#215f47]/5 hover:text-[#215f47] flex items-center"
+                  >
+                    <X className="mr-2 h-4 w-4" />
+                    Cancel
+                  </Button>
+                  <Button 
+                    type="submit"
+                    className="bg-[#215f47] hover:bg-[#215f47]/90 flex items-center"
+                  >
+                    {formType === 'add' ? (
+                      <>
+                        <Plus className="mr-2 h-4 w-4" />
+                        Create Course
+                      </>
+                    ) : (
+                      <>
+                        <Pencil className="mr-2 h-4 w-4" />
+                        Update Course
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         )}
         
-        <div className="overflow-hidden rounded-lg bg-white shadow">
-          {courses.length === 0 ? (
-            <div className="p-6 text-center text-gray-500">
-              No courses found. Click "Add New Course" to create one.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Course Code
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Description
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {courses.map((course) => (
-                    <tr key={course.id}>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                        {course.courseCode}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        {course.courseName}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-500">
-                        {course.courseDescription.length > 100
-                          ? `${course.courseDescription.substring(0, 100)}...`
-                          : course.courseDescription}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(course.id)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(course.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
+        <Card className="border-[#215f47]/20 shadow-sm">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base text-[#215f47]">Course List</CardTitle>
+            <CardDescription>All available courses in the system</CardDescription>
+          </CardHeader>
+
+          <CardContent>
+            {courses.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-12 text-center">
+                <AlertTriangle className="h-12 w-12 text-amber-500/70 mb-4" />
+                <h3 className="text-lg font-medium text-gray-700 mb-1">No Courses Found</h3>
+                <p className="text-gray-500 max-w-sm mb-6">
+                  There are no courses in the system yet. Click the "Add New Course" button to create one.
+                </p>
+                <Button 
+                  onClick={handleAddNew} 
+                  className="bg-[#215f47] hover:bg-[#215f47]/90 flex items-center"
+                >
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add New Course
+                </Button>
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader className="bg-[#215f47]/5">
+                    <TableRow>
+                      <TableHead className="text-[#215f47] font-medium w-[15%]">
+                        Course Code
+                      </TableHead>
+                      <TableHead className="text-[#215f47] font-medium w-[25%]">
+                        Name
+                      </TableHead>
+                      <TableHead className="text-[#215f47] font-medium">
+                        Description
+                      </TableHead>
+                      <TableHead className="text-[#215f47] font-medium text-right w-[15%]">
+                        Actions
+                      </TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {courses.map((course) => (
+                      <TableRow key={course.id} className="hover:bg-[#215f47]/5">
+                        <TableCell className="font-medium">
+                          <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47] border-[#215f47]/20 font-mono">
+                            {course.courseCode}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          {course.courseName}
+                        </TableCell>
+                        <TableCell className="text-gray-600">
+                          {course.courseDescription.length > 100
+                            ? `${course.courseDescription.substring(0, 100)}...`
+                            : course.courseDescription || 'No description provided'}
+                        </TableCell>
+                        <TableCell className="text-right space-x-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleEdit(course.id)}
+                            className="h-8 w-8 text-[#215f47] hover:bg-[#215f47]/10 hover:text-[#215f47]"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => handleDelete(course.id)}
+                            className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

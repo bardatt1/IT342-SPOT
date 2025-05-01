@@ -17,8 +17,9 @@ import ScheduleManagement from './pages/admin/ScheduleManagement';
 import TeacherDashboard from './pages/teacher/Dashboard';
 import TeacherSections from './pages/teacher/Sections';
 import AttendanceTracking from './pages/teacher/AttendanceTracking';
-import Analytics from './pages/teacher/Analytics';
+// import Analytics from './pages/teacher/Analytics';
 import SeatManagement from './pages/teacher/SeatManagement';
+import TeacherProfile from './pages/teacher/TeacherProfile';
 
 // Import our error handling components
 import ErrorBoundary from './components/error/ErrorBoundary';
@@ -114,19 +115,27 @@ function App() {
                   </ProtectedRoute>
                 } 
               />
-              <Route 
+              {/* <Route 
                 path="/teacher/analytics" 
                 element={
                   <ProtectedRoute allowedRoles={['TEACHER']}>
                     <Analytics />
                   </ProtectedRoute>
                 } 
-              />
+              /> */}
               <Route 
                 path="/teacher/seats" 
                 element={
                   <ProtectedRoute allowedRoles={['TEACHER']}>
                     <SeatManagement />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/teacher/profile" 
+                element={
+                  <ProtectedRoute allowedRoles={['TEACHER']}>
+                    <TeacherProfile />
                   </ProtectedRoute>
                 } 
               />

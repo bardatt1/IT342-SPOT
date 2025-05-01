@@ -1,215 +1,157 @@
-import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../../contexts/AuthContext';
-import { Button } from '../../components/ui/button';
-// Google OAuth temporarily disabled
-// import { GoogleLogin } from '@react-oauth/google';
-import axios from 'axios';
+"use client"
+
+import type React from "react"
+
+import { useState } from "react"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "../../contexts/AuthContext"
+import { Button } from "../../components/ui/button"
+import { Input } from "../../components/ui/input"
+import { Label } from "../../components/ui/label"
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "../../components/ui/card"
+import { AlertCircle, Eye, EyeOff, LogIn } from "lucide-react"
+import { Alert, AlertDescription, AlertTitle } from "../../components/ui/alert"
+import { Badge } from "../../components/ui/badge"
+import axios from "axios"
 
 const Login = () => {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const { login } = useAuth()
+  const navigate = useNavigate()
 
-  // No need for currentUser here as we use the API response directly
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsLoading(true);
-    
+    e.preventDefault()
+    setError(null)
+    setIsLoading(true)
+
     try {
-      console.log('Attempting login with:', email);
-      
+      console.log("Attempting login with:", email)
+
       // Make direct API call to login
-      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-      const response = await axios.post(`${apiUrl}/auth/login`, { email, password });
-      console.log('Login API response:', response.data);
-      
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8080/api"
+      const response = await axios.post(`${apiUrl}/auth/login`, { email, password })
+      console.log("Login API response:", response.data)
+
       // Extract data directly from response
-      const responseData = response.data.data || response.data;
-      const userType = responseData.userType;
-      
+      const responseData = response.data.data || response.data
+      const userType = responseData.userType
+
       // Update auth context - this will parse the response correctly
-      await login(email, password);
-      console.log('Login successful through AuthContext');
-      
+      await login(email, password)
+      console.log("Login successful through AuthContext")
+
       // Determine redirect based on user type from API response
-      let targetRoute = '/';
-      
-      if (userType === 'ADMIN') {
-        console.log('User is ADMIN, redirecting to admin dashboard');
-        targetRoute = '/admin/dashboard';
-      } else if (userType === 'TEACHER') {
-        console.log('User is TEACHER, redirecting to teacher dashboard');
-        targetRoute = '/teacher/dashboard';
+      let targetRoute = "/"
+
+      if (userType === "ADMIN") {
+        console.log("User is ADMIN, redirecting to admin dashboard")
+        targetRoute = "/admin/dashboard"
+      } else if (userType === "TEACHER") {
+        console.log("User is TEACHER, redirecting to teacher dashboard")
+        targetRoute = "/teacher/dashboard"
       }
-      
+
       // Use navigate for spa navigation
-      console.log(`Redirecting to ${targetRoute}`);
-      navigate(targetRoute);
-      // You can also use this alternative approach for a full page reload if needed
-      // window.location.href = targetRoute;
+      console.log(`Redirecting to ${targetRoute}`)
+      navigate(targetRoute)
     } catch (error) {
-      console.error('Login error:', error);
-      setError('Invalid email or password. Please try again.');
+      console.error("Login error:", error)
+      setError("Invalid email or password. Please try again.")
     } finally {
-      setIsLoading(false);
+      setIsLoading(false)
     }
-  };
-
-  // Google OAuth temporarily disabled
-  /*
-  const handleGoogleSuccess = async (credentialResponse: any) => {
-    if (credentialResponse.credential) {
-      try {
-        // Process Google OAuth token and get user data
-        const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
-        
-        // Make API call to process the Google credential
-        const response = await axios.post(`${apiUrl}/auth/google/callback`, {
-          credential: credentialResponse.credential
-        });
-        
-        // Extract data from response
-        const responseData = response.data.data;
-        const token = responseData.accessToken; 
-        const userType = responseData.userType;
-        
-        // Save token to localStorage
-        localStorage.setItem('token', token);
-        
-        // Set default auth header for future requests
-        axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
-        
-        // Update auth context
-        await login('', ''); // This is just a placeholder; we already have the token
-        
-        // Navigate based on userType
-        if (userType === 'ADMIN') {
-          navigate('/admin/dashboard');
-        } else if (userType === 'TEACHER') {
-          navigate('/teacher/dashboard');
-        } else {
-          navigate('/');
-        }
-      } catch (error) {
-        console.error('Google login error:', error);
-        setError('Google login failed. Please try again.');
-      }
-    }
-  };
-  */
-
-  // Google OAuth temporarily disabled
-  /*
-  const handleGoogleError = () => {
-    setError('Google login failed. Please try again or use email/password.');
-  };
-  */
+  }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="w-full max-w-md space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to SPOT
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Student Presence and Oversight Tracker
-          </p>
-        </div>
-        
-        {error && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
+    <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-[#215f47]/5 via-white to-[#215f47]/10 p-4">
+      <div className="w-full max-w-md">
+        <Card className="border-[#215f47]/20 shadow-xl overflow-hidden">
+          <div className="h-2 bg-[#215f47]"></div>
+          <CardHeader className="space-y-2 pt-8">
+            <div className="flex justify-center mb-2">
+              <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47] px-3 py-1 text-sm">
+                Secure Login
+              </Badge>
+            </div>
+            <CardTitle className="text-2xl text-center font-bold text-[#215f47]">SPOT</CardTitle>
+            <CardDescription className="text-center text-gray-600">
+              Student Presence and Oversight Tracker
+            </CardDescription>
+          </CardHeader>
+
+          <CardContent className="space-y-4 pt-4">
+            {error && (
+              <Alert variant="destructive" className="border-red-300 bg-red-50">
+                <AlertCircle className="h-4 w-4 text-red-600" />
+                <AlertTitle className="text-red-700">Authentication Error</AlertTitle>
+                <AlertDescription className="text-red-600">{error}</AlertDescription>
+              </Alert>
+            )}
+
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-gray-700">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="name@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-gray-700">Password</Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    placeholder="••••••••"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                    className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
+                  />
+                  <button
+                    type="button"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#215f47]"
+                    onClick={() => setShowPassword(!showPassword)}
+                    tabIndex={-1}
+                  >
+                    {showPassword ? (
+                      <EyeOff className="h-4 w-4" aria-hidden="true" />
+                    ) : (
+                      <Eye className="h-4 w-4" aria-hidden="true" />
+                    )}
+                  </button>
                 </div>
               </div>
-            </div>
-          </div>
-        )}
-        
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
-          <div className="-space-y-px rounded-md shadow-sm">
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="relative block w-full rounded-t-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                placeholder="Email address"
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="relative block w-full rounded-b-md border-0 py-1.5 text-gray-900 ring-1 ring-inset ring-gray-300 placeholder:text-gray-400 focus:z-10 focus:ring-2 focus:ring-inset focus:ring-indigo-600 sm:text-sm sm:leading-6"
-                placeholder="Password"
-              />
-            </div>
-          </div>
 
-          <div>
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={isLoading}
-            >
-              {isLoading ? 'Signing in...' : 'Sign in'}
-            </Button>
-          </div>
-        </form>
-        
-        {/* Google OAuth login temporarily disabled to avoid origin errors */}
-        {/* Uncomment this section once Google OAuth is properly configured
-        <div className="mt-6">
-          <div className="relative">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-300" />
-            </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="bg-gray-50 px-2 text-gray-500">Or continue with</span>
-            </div>
-          </div>
+              <Button 
+                type="submit" 
+                className="w-full mt-6 bg-[#215f47] hover:bg-[#215f47]/90 text-white gap-2 py-2"
+                disabled={isLoading}
+              >
+                {isLoading ? "Signing in..." : "Sign in"}
+                {!isLoading && <LogIn className="h-4 w-4" />}
+              </Button>
+            </form>
+          </CardContent>
 
-          <div className="mt-6 flex justify-center">
-            <GoogleLogin
-              onSuccess={handleGoogleSuccess}
-              onError={handleGoogleError}
-              text="signin_with"
-              shape="rectangular"
-              theme="filled_blue"
-            />
-          </div>
-        </div>
-        */}
+          <CardFooter className="flex justify-center text-sm text-gray-500 pb-6">
+            <p>Protected access for authorized personnel only</p>
+          </CardFooter>
+        </Card>
       </div>
     </div>
-  );
-};
+  )
+}
 
 export default Login;

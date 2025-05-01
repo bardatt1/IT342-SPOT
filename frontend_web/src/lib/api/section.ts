@@ -151,17 +151,12 @@ export const sectionApi = {
             // So we need to check section.teacher?.id or section.teacher.id
             const sectionTeacherId = section.teacher?.id || 
                                      (section.teacher ? section.teacher.id : null);
-                                     
-            console.log(`Section ${section.id} has teacher:`, section.teacher, 
-                      `- Extracted teacherId:`, sectionTeacherId);
-                      
+            
             // Check if the section has this teacher assigned
             return sectionTeacherId === teacherId;
           });
           
-          if (teacherSectionsForCourse.length > 0) {
-            console.log(`Found ${teacherSectionsForCourse.length} sections for teacher in course ${course.id}`);
-          }
+          // Only add if we found sections for this teacher
           
           teacherSections = [...teacherSections, ...teacherSectionsForCourse];
         } catch (courseError) {
@@ -170,7 +165,12 @@ export const sectionApi = {
         }
       }
       
-      console.log(`Total teacher sections found: ${teacherSections.length}`);
+      if (teacherSections.length > 0) {
+        console.log(`Found ${teacherSections.length} sections for teacher ID: ${teacherId}`);
+      } else {
+        console.log(`No sections found for teacher ID: ${teacherId}`);
+      }
+      
       return teacherSections;
     } catch (error) {
       console.error(`Error fetching sections for teacher ${teacherId}:`, error);
@@ -296,6 +296,35 @@ export const sectionApi = {
       await axiosInstance.post(`/sections/${sectionId}/close`);
     } catch (error) {
       console.error(`Error closing enrollment for section ${sectionId}:`, error);
+      throw error;
+    }
+  },
+  
+  // Generate class code (enrollment key) for a section
+  generateClassCode: async (sectionId: number): Promise<Section> => {
+    try {
+      // Generate a random 6-character alphanumeric code
+      const generateRandomCode = () => {
+        const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+        let code = '';
+        for (let i = 0; i < 6; i++) {
+          code += chars.charAt(Math.floor(Math.random() * chars.length));
+        }
+        return code;
+      };
+      
+      const enrollmentKey = generateRandomCode();
+      
+      // Update the section with the new enrollment key
+      const updateData: SectionUpdateDto = {
+        id: sectionId,
+        enrollmentKey: enrollmentKey
+      };
+      
+      const response = await axiosInstance.put(`/sections/${sectionId}`, updateData);
+      return response.data.data || response.data;
+    } catch (error) {
+      console.error(`Error generating class code for section ${sectionId}:`, error);
       throw error;
     }
   },

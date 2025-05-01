@@ -9,6 +9,8 @@ interface User {
   email: string;
   name: string;
   googleLinked: boolean;
+  hasTemporaryPassword?: boolean;
+  studentPhysicalId?: string;
 }
 
 interface AuthContextType {
@@ -192,6 +194,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const responseData = response.data.data || response.data;
       console.log('Extracted response data:', responseData);
       
+      // Check if the response contains usesTemporaryPassword flag
+      const usesTemporaryPassword = responseData.usesTemporaryPassword || false;
+      const studentPhysicalId = responseData.studentPhysicalId || '';
+      
       // Always save the token for authenticated sessions
       if (responseData.accessToken) {
         localStorage.setItem('token', responseData.accessToken);
@@ -209,7 +215,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         role: responseData.userType || 'ADMIN', // API uses userType for role
         email: responseData.email,
         name: `${responseData.firstName || ''} ${responseData.lastName || ''}`.trim(),
-        googleLinked: responseData.googleLinked || false
+        googleLinked: responseData.googleLinked || false,
+        hasTemporaryPassword: usesTemporaryPassword,
+        studentPhysicalId: studentPhysicalId
       };
       
       setUser(userData);
@@ -227,11 +235,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const logout = () => {
     localStorage.removeItem('token');
     localStorage.removeItem('user');
+    localStorage.removeItem('teacherName'); // Also clear cached teacher name
     setUser(null);
     setIsAuthenticated(false);
     // Clear auth header
     delete axios.defaults.headers.common['Authorization'];
-    console.log('User logged out');
+    console.log('User logged out, all session data cleared');
   };
 
   const bindGoogleAccount = async (email: string, googleToken: string): Promise<boolean> => {

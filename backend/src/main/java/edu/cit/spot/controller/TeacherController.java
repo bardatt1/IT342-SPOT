@@ -24,6 +24,18 @@ public class TeacherController {
     @Autowired
     private TeacherService teacherService;
     
+    @GetMapping("/me")
+    @Operation(summary = "Get current teacher profile", description = "Get the profile of the currently authenticated teacher")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<ApiResponse<TeacherDto>> getCurrentTeacher() {
+        try {
+            TeacherDto teacherDto = teacherService.getCurrentTeacher();
+            return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Current teacher profile retrieved successfully", teacherDto));
+        } catch (Exception e) {
+            return GlobalExceptionHandler.errorResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
+    }
+    
     @GetMapping("/{id}")
     @Operation(summary = "Get teacher by ID", description = "Get a teacher by their ID")
     @PreAuthorize("hasRole('ADMIN') or @securityService.isCurrentUser(#id)")
@@ -45,6 +57,19 @@ public class TeacherController {
             return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Teacher retrieved successfully", teacherDto));
         } catch (Exception e) {
             return GlobalExceptionHandler.errorResponseEntity(e.getMessage(), HttpStatus.NOT_FOUND);
+        }
+    }
+    
+    @PutMapping("/me")
+    @Operation(summary = "Update current teacher profile", description = "Update the profile of the currently authenticated teacher")
+    @PreAuthorize("hasRole('TEACHER')")
+    public ResponseEntity<ApiResponse<TeacherDto>> updateCurrentTeacher(@Valid @RequestBody TeacherUpdateRequest request) {
+        try {
+            TeacherDto currentTeacher = teacherService.getCurrentTeacher();
+            TeacherDto updatedTeacher = teacherService.updateTeacher(currentTeacher.id(), request);
+            return ResponseEntity.ok(new ApiResponse<>("SUCCESS", "Profile updated successfully", updatedTeacher));
+        } catch (Exception e) {
+            return GlobalExceptionHandler.errorResponseEntity(e.getMessage(), HttpStatus.BAD_REQUEST);
         }
     }
     

@@ -9,6 +9,7 @@ import edu.cit.spot.exception.ResourceNotFoundException;
 import edu.cit.spot.repository.SectionRepository;
 import edu.cit.spot.repository.TeacherRepository;
 import edu.cit.spot.service.TeacherService;
+import edu.cit.spot.security.SecurityService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -18,6 +19,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 @Service
+@Transactional(readOnly = true)
 public class TeacherServiceImpl implements TeacherService {
 
     @Autowired
@@ -28,6 +30,9 @@ public class TeacherServiceImpl implements TeacherService {
     
     @Autowired
     private PasswordEncoder passwordEncoder;
+    
+    @Autowired
+    private SecurityService securityService;
 
     @Override
     @Transactional
@@ -104,7 +109,20 @@ public class TeacherServiceImpl implements TeacherService {
         if (request.lastName() != null) {
             teacher.setLastName(request.lastName());
         }
+        
+        // Handle password change with validation
         if (request.password() != null) {
+            // If changing password, require current password verification
+            if (request.currentPassword() == null) {
+                throw new IllegalArgumentException("Current password is required to change password");
+            }
+            
+            // Verify the current password
+            if (!passwordEncoder.matches(request.currentPassword(), teacher.getPassword())) {
+                throw new IllegalArgumentException("Current password is incorrect");
+            }
+            
+            // If verification passes, update the password
             teacher.setPassword(passwordEncoder.encode(request.password()));
         }
         
@@ -196,6 +214,19 @@ public class TeacherServiceImpl implements TeacherService {
             
             return TeacherDto.fromEntity(updatedTeacher);
         }
+        
+        return TeacherDto.fromEntity(teacher);
+    }
+    
+    @Override
+    public TeacherDto getCurrentTeacher() {
+        String currentUserEmail = securityService.getCurrentUserEmail();
+        if (currentUserEmail == null) {
+            throw new ResourceNotFoundException("No authenticated user found");
+        }
+        
+        Teacher teacher = teacherRepository.findByEmail(currentUserEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Teacher not found with email: " + currentUserEmail));
         
         return TeacherDto.fromEntity(teacher);
     }

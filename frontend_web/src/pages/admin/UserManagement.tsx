@@ -3,7 +3,14 @@ import DashboardLayout from '../../components/ui/layout/DashboardLayout';
 import { studentApi, type Student } from '../../lib/api/student';
 import { teacherApi, type Teacher } from '../../lib/api/teacher';
 import { Button } from '../../components/ui/button';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Plus, Pencil, Trash2, UserCog, Users, AlertTriangle, X } from 'lucide-react';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 
 const UserManagement = () => {
   const [activeTab, setActiveTab] = useState<'students' | 'teachers'>('students');
@@ -233,7 +240,10 @@ const UserManagement = () => {
     return (
       <DashboardLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-lg">Loading user data...</p>
+          <div className="flex items-center space-x-2">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#215f47] border-t-transparent"></div>
+            <p className="text-lg font-medium text-[#215f47]">Loading user data...</p>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -241,321 +251,354 @@ const UserManagement = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col justify-between sm:flex-row sm:items-center">
-          <h2 className="text-xl font-semibold">User Management</h2>
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-[#215f47] flex items-center gap-2">
+              <UserCog className="h-6 w-6" />
+              User Management
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">Manage student and teacher accounts</p>
+          </div>
           
-          <div className="mt-4 flex space-x-4 sm:mt-0">
-            <div className="flex rounded-md shadow-sm">
-              <button
-                type="button"
-                className={`relative inline-flex items-center rounded-l-md px-3 py-2 text-sm font-medium focus:z-10 ${
-                  activeTab === 'students'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-                onClick={() => handleTabChange('students')}
-              >
-                Students
-              </button>
-              <button
-                type="button"
-                className={`relative -ml-px inline-flex items-center rounded-r-md px-3 py-2 text-sm font-medium focus:z-10 ${
-                  activeTab === 'teachers'
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-700 hover:bg-gray-50'
-                }`}
-                onClick={() => handleTabChange('teachers')}
-              >
-                Teachers
-              </button>
-            </div>
-            
-            <Button onClick={handleAddNew} className="flex items-center">
-              <Plus className="mr-1 h-4 w-4" />
-              Add New
+          <div className="mt-4 flex space-x-3 sm:mt-0">
+            <Button 
+              onClick={handleAddNew} 
+              className="bg-[#215f47] hover:bg-[#215f47]/90 text-white gap-2 py-2"
+            >
+              <Plus className="h-4 w-4" />
+              Add New {activeTab === 'students' ? 'Student' : 'Teacher'}
             </Button>
           </div>
         </div>
         
         {error && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Alert variant="destructive" className="border-red-300 bg-red-50 my-4">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            <AlertDescription className="text-red-700">{error}</AlertDescription>
+          </Alert>
         )}
         
         {showForm && (
-          <div className="rounded-lg bg-white p-6 shadow">
-            <h3 className="mb-4 text-lg font-medium">
-              {formType === 'add' ? 'Add New' : 'Edit'} {activeTab === 'students' ? 'Student' : 'Teacher'}
-            </h3>
-            
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <Card className="border-[#215f47]/20 shadow-sm mb-6">
+            <CardHeader className="pb-3">
+              <div className="flex justify-between items-center">
                 <div>
-                  <label htmlFor="firstName" className="block text-sm font-medium text-gray-700">
-                    First Name
-                  </label>
-                  <input
-                    type="text"
-                    id="firstName"
-                    name="firstName"
-                    value={formData.firstName}
-                    onChange={handleInputChange}
-                    placeholder="Can be updated later"
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  />
+                  <CardTitle className="text-[#215f47]">
+                    {formType === 'add' ? 'Add New' : 'Edit'} {activeTab === 'students' ? 'Student' : 'Teacher'}
+                  </CardTitle>
+                  <CardDescription>
+                    {formType === 'add' 
+                      ? `Create a new ${activeTab === 'students' ? 'student' : 'teacher'} account` 
+                      : `Update ${activeTab === 'students' ? 'student' : 'teacher'} information`}
+                  </CardDescription>
                 </div>
-                
-                <div>
-                  <label htmlFor="middleName" className="block text-sm font-medium text-gray-700">
-                    Middle Name
-                  </label>
-                  <input
-                    type="text"
-                    id="middleName"
-                    name="middleName"
-                    value={formData.middleName}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="lastName" className="block text-sm font-medium text-gray-700">
-                    Last Name
-                  </label>
-                  <input
-                    type="text"
-                    id="lastName"
-                    name="lastName"
-                    value={formData.lastName}
-                    onChange={handleInputChange}
-                    placeholder="Can be updated later"
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-gray-700">
-                    Email
-                  </label>
-                  <input
-                    type="email"
-                    id="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleInputChange}
-                    placeholder="Can be updated later"
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  />
-                </div>
-                
-                <div>
-                  <label htmlFor="physicalId" className="block text-sm font-medium text-gray-700">
-                    Physical ID <span className="text-red-500">*</span>
-                  </label>
-                  <input
-                    type="text"
-                    id="physicalId"
-                    name="physicalId"
-                    value={formData.physicalId}
-                    onChange={handleInputChange}
-                    required
-                    placeholder="Required - Will be used as login ID"
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  />
-                </div>
-                
-                {activeTab === 'students' && (
-                  <>
-                    <div>
-                      <label htmlFor="year" className="block text-sm font-medium text-gray-700">
-                        Year
-                      </label>
-                      <input
-                        type="text"
-                        id="year"
-                        name="year"
-                        value={formData.year}
-                        onChange={handleInputChange}
-                        placeholder="Can be updated later"
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label htmlFor="program" className="block text-sm font-medium text-gray-700">
-                        Program
-                      </label>
-                      <input
-                        type="text"
-                        id="program"
-                        name="program"
-                        value={formData.program}
-                        onChange={handleInputChange}
-                        placeholder="Can be updated later"
-                        className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                      />
-                    </div>
-                  </>
-                )}
-                
-                <div>
-                  <label htmlFor="password" className="block text-sm font-medium text-gray-700">
-                    {formType === 'add' ? 'Password' : 'New Password (leave blank to keep current)'}
-                  </label>
-                  <input
-                    type="password"
-                    id="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    placeholder={formType === 'add' ? 'If left blank, a temporary password will be generated (First 5 letters of the Physical ID + "TEMP")' : ''}
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  />
-                  {formType === 'add' && (
-                    <p className="mt-1 text-sm text-gray-500">
-                     <code className="text-gray-600">Example: 12345 + TEMP = 12345TEMP</code> <br/><br/>
-                    </p>
-                  )}
-                </div>
-              </div>
-              
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button variant="outline" type="button" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {formType === 'add' ? 'Create' : 'Update'}
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  className="h-8 w-8 p-0 text-gray-500" 
+                  onClick={resetForm}
+                >
+                  <X className="h-4 w-4" />
                 </Button>
               </div>
-            </form>
-          </div>
-        )}
-        
-        <div className="overflow-hidden rounded-lg bg-white shadow">
-          <div className="overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Email
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Physical ID
-                  </th>
+            </CardHeader>
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName" className="text-gray-700">First Name</Label>
+                    <Input
+                      id="firstName"
+                      type="text"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
+                      className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="middleName" className="text-gray-700">Middle Name</Label>
+                    <Input
+                      id="middleName"
+                      type="text"
+                      name="middleName"
+                      value={formData.middleName}
+                      onChange={handleInputChange}
+                      className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName" className="text-gray-700">Last Name</Label>
+                    <Input
+                      id="lastName"
+                      type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
+                      className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="email" className="text-gray-700">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleInputChange}
+                      placeholder="Leave empty for temporary email"
+                      className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label htmlFor="physicalId" className="text-gray-700">Physical ID</Label>
+                      <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47] text-xs">Required</Badge>
+                    </div>
+                    <Input
+                      id="physicalId"
+                      type="text"
+                      name="physicalId"
+                      value={formData.physicalId}
+                      onChange={handleInputChange}
+                      required
+                      className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="password" className="text-gray-700">Password</Label>
+                    <Input
+                      id="password"
+                      type="password"
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
+                      placeholder="Leave empty for auto-generated password"
+                      className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
+                    />
+                  </div>
+                  
                   {activeTab === 'students' && (
                     <>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                        Year
-                      </th>
-                      <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                        Program
-                      </th>
+                      <div className="space-y-2">
+                        <Label htmlFor="year" className="text-gray-700">Year</Label>
+                        <Input
+                          id="year"
+                          type="text"
+                          name="year"
+                          value={formData.year}
+                          onChange={handleInputChange}
+                          className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
+                        />
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="program" className="text-gray-700">Program</Label>
+                        <Input
+                          id="program"
+                          type="text"
+                          name="program"
+                          value={formData.program}
+                          onChange={handleInputChange}
+                          className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
+                        />
+                      </div>
                     </>
                   )}
-                  <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Actions
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {activeTab === 'students'
-                  ? students.map((student) => (
-                      <tr key={student.id}>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                          {student.firstName} {student.middleName ? `${student.middleName} ` : ''}{student.lastName}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                          {student.email}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                          {student.studentPhysicalId}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                          {student.year}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                          {student.program}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(student.id)}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(student.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))
-                  : teachers.map((teacher) => (
-                      <tr key={teacher.id}>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                          {teacher.firstName} {teacher.middleName ? `${teacher.middleName} ` : ''}{teacher.lastName}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                          {teacher.email}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                          {teacher.teacherPhysicalId}
-                        </td>
-                        <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(teacher.id)}
-                            className="text-blue-600 hover:text-blue-900"
-                          >
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(teacher.id)}
-                            className="text-red-600 hover:text-red-900"
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </td>
-                      </tr>
-                    ))}
-                
-                {((activeTab === 'students' && students.length === 0) ||
-                  (activeTab === 'teachers' && teachers.length === 0)) && (
-                  <tr>
-                    <td
-                      colSpan={activeTab === 'students' ? 6 : 4}
-                      className="px-6 py-4 text-center text-sm text-gray-500"
-                    >
-                      No {activeTab} found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+                </div>
+                <div className="flex justify-end space-x-3 pt-6">
+                  <Button
+                    type="button"
+                    onClick={resetForm}
+                    variant="outline"
+                    className="border-[#215f47]/20 text-gray-600 hover:text-[#215f47] hover:border-[#215f47]/30"
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    type="submit"
+                    className="bg-[#215f47] hover:bg-[#215f47]/90 text-white"
+                  >
+                    {formType === 'add' ? 'Add' : 'Update'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        )}
+        
+        <Tabs defaultValue="students" value={activeTab} onValueChange={(value: string) => handleTabChange(value as 'students' | 'teachers')} className="space-y-4">
+          <TabsList className="bg-[#215f47]/10 p-1">
+            <TabsTrigger 
+              value="students" 
+              className="data-[state=active]:bg-[#215f47] data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md"
+            >
+              <Users className="mr-2 h-4 w-4" />
+              Students
+            </TabsTrigger>
+            <TabsTrigger 
+              value="teachers" 
+              className="data-[state=active]:bg-[#215f47] data-[state=active]:text-white data-[state=active]:shadow-sm rounded-md"
+            >
+              <UserCog className="mr-2 h-4 w-4" />
+              Teachers
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="students" className="space-y-4">
+            {/* Students List */}
+            <Card className="border-[#215f47]/20 shadow-sm">
+              <CardHeader className="px-6 pb-2 pt-6">
+                <CardTitle className="text-lg font-medium text-[#215f47] flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Students List
+                </CardTitle>
+                <CardDescription className="text-gray-500">
+                  A list of all students in the system
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-6 pb-6">
+                <div className="rounded-md overflow-hidden border border-[#215f47]/20">
+                  <Table>
+                    <TableHeader className="bg-[#215f47]/5">
+                      <TableRow>
+                        <TableHead className="text-[#215f47] font-medium w-[60px]">ID</TableHead>
+                        <TableHead className="text-[#215f47] font-medium">Name</TableHead>
+                        <TableHead className="text-[#215f47] font-medium">Email</TableHead>
+                        <TableHead className="text-[#215f47] font-medium">Physical ID</TableHead>
+                        <TableHead className="text-[#215f47] font-medium">Year</TableHead>
+                        <TableHead className="text-[#215f47] font-medium">Program</TableHead>
+                        <TableHead className="text-[#215f47] font-medium text-right w-[100px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {students.length > 0 ? (
+                        students.map((student) => (
+                          <TableRow key={student.id} className="hover:bg-[#215f47]/5 transition-colors">
+                            <TableCell className="font-medium">{student.id}</TableCell>
+                            <TableCell>
+                              {`${student.firstName} ${student.middleName ? student.middleName + ' ' : ''}${student.lastName}`}
+                            </TableCell>
+                            <TableCell>{student.email}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47] font-mono">
+                                {student.studentPhysicalId}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>{student.year}</TableCell>
+                            <TableCell>{student.program}</TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(student.id)}
+                                className="h-8 w-8 p-0 text-[#215f47] mr-1"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(student.id)}
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={7} className="h-24 text-center text-muted-foreground">
+                            No students found
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="teachers" className="space-y-4">
+            {/* Teachers List */}
+            <Card className="border-[#215f47]/20 shadow-sm">
+              <CardHeader className="px-6 pb-2 pt-6">
+                <CardTitle className="text-lg font-medium text-[#215f47] flex items-center gap-2">
+                  <UserCog className="h-5 w-5" />
+                  Teachers List
+                </CardTitle>
+                <CardDescription className="text-gray-500">
+                  A list of all teachers in the system
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="px-6 pb-6">
+                <div className="rounded-md overflow-hidden border border-[#215f47]/20">
+                  <Table>
+                    <TableHeader className="bg-[#215f47]/5">
+                      <TableRow>
+                        <TableHead className="text-[#215f47] font-medium w-[60px]">ID</TableHead>
+                        <TableHead className="text-[#215f47] font-medium">Name</TableHead>
+                        <TableHead className="text-[#215f47] font-medium">Email</TableHead>
+                        <TableHead className="text-[#215f47] font-medium">Physical ID</TableHead>
+                        <TableHead className="text-[#215f47] font-medium text-right w-[100px]">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {teachers.length > 0 ? (
+                        teachers.map((teacher) => (
+                          <TableRow key={teacher.id} className="hover:bg-[#215f47]/5 transition-colors">
+                            <TableCell className="font-medium">{teacher.id}</TableCell>
+                            <TableCell>
+                              {`${teacher.firstName} ${teacher.middleName ? teacher.middleName + ' ' : ''}${teacher.lastName}`}
+                            </TableCell>
+                            <TableCell>{teacher.email}</TableCell>
+                            <TableCell>
+                              <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47] font-mono">
+                                {teacher.teacherPhysicalId}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleEdit(teacher.id)}
+                                className="h-8 w-8 p-0 text-[#215f47] mr-1"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => handleDelete(teacher.id)}
+                                className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={5} className="h-24 text-center text-muted-foreground">
+                            No teachers found
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </div>
     </DashboardLayout>
   );

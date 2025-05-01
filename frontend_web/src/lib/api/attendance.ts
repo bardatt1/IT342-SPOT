@@ -2,11 +2,30 @@ import axiosInstance from './axiosInstance';
 
 export interface Attendance {
   id: number;
-  studentId: number;
+  studentId?: number;
   sectionId: number;
   date: string;
   startTime: string;
   endTime?: string;
+  student?: {
+    id: number;
+    firstName: string;
+    lastName: string;
+    middleName?: string;
+    year?: string;
+    program?: string;
+    email?: string;
+    studentPhysicalId?: string;
+  };
+  section?: {
+    id: number;
+    sectionName: string;
+    course?: {
+      id: number;
+      name: string;
+      code: string;
+    }
+  };
 }
 
 export interface AttendanceAnalytics {
@@ -52,8 +71,8 @@ export const attendanceApi = {
       let hasSchedules = false;
       let scheduleCount = 0;
       try {
-        // Try to access the schedules endpoint - we've now added this endpoint
-        const scheduleResponse = await axiosInstance.get(`/schedules/section/${sectionId}`);
+        // Get schedules using the correct endpoint with query parameter
+        const scheduleResponse = await axiosInstance.get(`/schedules?sectionId=${sectionId}`);
         const schedules = scheduleResponse.data?.data || [];
         scheduleCount = schedules.length;
         hasSchedules = scheduleCount > 0;

@@ -40,6 +40,17 @@ export default {
           DEFAULT: "hsl(var(--card))",
           foreground: "hsl(var(--card-foreground))",
         },
+        // Add sidebar-specific colors
+        sidebar: {
+          DEFAULT: "hsl(var(--sidebar, var(--background)))",
+          foreground: "hsl(var(--sidebar-foreground, var(--foreground)))",
+          border: "hsl(var(--sidebar-border, var(--border)))",
+          primary: "hsl(var(--sidebar-primary, var(--primary)))",
+          "primary-foreground": "hsl(var(--sidebar-primary-foreground, var(--primary-foreground)))",
+          accent: "hsl(var(--sidebar-accent, var(--accent)))",
+          "accent-foreground": "hsl(var(--sidebar-accent-foreground, var(--accent-foreground)))",
+          ring: "hsl(var(--sidebar-ring, var(--ring)))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",

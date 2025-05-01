@@ -29,7 +29,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.spot.navigation.Routes
 import com.example.spot.ui.theme.*
-import com.example.spot.viewmodel.AttendanceLogState
+import com.example.spot.viewmodel.AttendanceState
 import com.example.spot.viewmodel.AttendanceViewModel
 import com.journeyapps.barcodescanner.BarcodeCallback
 import com.journeyapps.barcodescanner.BarcodeResult
@@ -70,22 +70,22 @@ fun QrScannerScreen(
     }
     
     // Observe attendance logging state
-    val attendanceLogState by attendanceViewModel.attendanceLogState.collectAsState()
+    val attendanceState by attendanceViewModel.attendanceState.collectAsState()
     
-    LaunchedEffect(attendanceLogState) {
-        when (attendanceLogState) {
-            is AttendanceLogState.Loading -> {
+    LaunchedEffect(attendanceState) {
+        when (attendanceState) {
+            is AttendanceState.Loading -> {
                 isLoading = true
                 errorMessage = null
             }
-            is AttendanceLogState.Success -> {
+            is AttendanceState.Success -> {
                 isLoading = false
                 errorMessage = null
                 // Continue showing success screen, we already show it when QR is scanned
             }
-            is AttendanceLogState.Error -> {
+            is AttendanceState.Error -> {
                 isLoading = false
-                errorMessage = (attendanceLogState as AttendanceLogState.Error).message
+                errorMessage = (attendanceState as AttendanceState.Error).message
                 // Reset scanResult to go back to scanner
                 scanResult = null
             }
@@ -99,7 +99,9 @@ fun QrScannerScreen(
         // Show success screen if scan is successful
         QrScanSuccessScreen(
             onBackToClass = { navController.popBackStack(Routes.DASHBOARD, inclusive = false) },
-            onViewAttendanceLog = { navController.navigate(Routes.ATTENDANCE_LOG) },
+            onViewAttendanceLog = { 
+                navController.navigate("attendance_calendar/$sectionId") 
+            },
             isLoading = isLoading,
             errorMessage = errorMessage
         )

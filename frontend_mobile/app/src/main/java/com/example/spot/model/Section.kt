@@ -15,5 +15,5 @@ data class Section(
     val courseName: String = course.courseName,
     val sectionNumber: String = sectionName,
     val instructorName: String = teacher?.name ?: "Not Assigned",
-    val schedule: String = course.schedule ?: "No Schedule"
+    val schedule: String? = null  // Make this null by default so we can update it properly
 )

@@ -2,6 +2,7 @@
 
 package com.example.spot.ui.theme.screens
 
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -61,6 +62,7 @@ fun SeatPlanScreen(
     val pickSeatState by viewModel.pickSeatState.collectAsState()
     val userId by viewModel.userId.collectAsState()
     val sectionState by sectionViewModel.sectionState.collectAsState()
+    val currentSection by viewModel.sectionState.collectAsState()
     
     // Load section when sectionId changes
     LaunchedEffect(sectionId) {
@@ -71,8 +73,14 @@ fun SeatPlanScreen(
     LaunchedEffect(sectionState) {
         if (sectionState is SectionState.Success) {
             val successState = sectionState as SectionState.Success
+            Log.d("SeatPlanScreen", "Section loaded from SectionViewModel: ${successState.section.id}, schedule: ${successState.section.schedule}")
             viewModel.setSection(successState.section)
         }
+    }
+    
+    // Log when currentSection changes
+    LaunchedEffect(currentSection) {
+        Log.d("SeatPlanScreen", "Current section from SeatPlanViewModel updated: ${currentSection?.id}, schedule: ${currentSection?.schedule}")
     }
     
     // Handle seat picking state
@@ -151,7 +159,7 @@ fun SeatPlanScreen(
                         is SeatPlanState.Success -> {
                             SeatPlanContent(
                                 seats = currentSeatsState.seats,
-                                section = successState.section,
+                                section = currentSection ?: successState.section,
                                 selectedSeatState = selectedSeatState,
                                 userId = userId,
                                 onSeatSelected = { row, col -> viewModel.selectSeat(SeatCoordinate(row, col)) },
@@ -482,6 +490,9 @@ fun SeatLegend() {
 
 @Composable
 fun TeacherInfoCard(section: Section) {
+    // Log the section details for debugging
+    val schedule = section.schedule
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -561,8 +572,9 @@ fun TeacherInfoCard(section: Section) {
                     
                     Spacer(modifier = Modifier.width(4.dp))
                     
+                    // Check if the schedule is available; display a default message if not
                     Text(
-                        text = section.schedule.orEmpty(),
+                        text = if (!schedule.isNullOrEmpty()) schedule else "No schedule available",
                         style = MaterialTheme.typography.bodySmall,
                         color = Color.Gray
                     )

@@ -22,7 +22,9 @@ object Routes {
     const val PROFILE = "profile"
     const val EDIT_PROFILE = "edit_profile"
     const val NOTIFICATIONS = "notifications"
-    const val ATTENDANCE_LOG = "attendance_log"
+    const val ATTENDANCE_HISTORY = "attendance_history"
+    const val ATTENDANCE_LOG = "attendance_log/{sectionId}"
+    const val ATTENDANCE_CALENDAR = "attendance_calendar/{sectionId}"
     const val QR_SCANNER = "qr_scanner"
     const val CLASS_VIEW = "class_view/{classCode}"
     const val SEAT_PLAN = "seat_plan/{sectionId}"
@@ -65,8 +67,36 @@ fun AppNavGraph(
         composable(Routes.QR_SCANNER) {
             QrScannerScreen(navController)
         }
-        composable(Routes.ATTENDANCE_LOG) {
-            AttendanceLogScreen(navController)
+        composable(Routes.ATTENDANCE_HISTORY) {
+            AttendanceHistoryScreen(navController)
+        }
+        composable(
+            route = Routes.ATTENDANCE_LOG,
+            arguments = listOf(
+                navArgument("sectionId") {
+                    type = NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+            val sectionId = backStackEntry.arguments?.getLong("sectionId") ?: 0L
+            AttendanceLogScreen(
+                navController = navController,
+                sectionId = sectionId
+            )
+        }
+        composable(
+            route = Routes.ATTENDANCE_CALENDAR,
+            arguments = listOf(
+                navArgument("sectionId") {
+                    type = NavType.LongType
+                }
+            )
+        ) { backStackEntry ->
+            val sectionId = backStackEntry.arguments?.getLong("sectionId") ?: 0L
+            AttendanceCalendarScreen(
+                navController = navController,
+                sectionId = sectionId
+            )
         }
         composable(Routes.CLASS_VIEW) { backStackEntry ->
             val classCode = backStackEntry.arguments?.getString("classCode") ?: ""

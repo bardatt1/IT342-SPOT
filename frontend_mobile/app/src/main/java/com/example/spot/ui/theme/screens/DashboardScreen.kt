@@ -113,18 +113,6 @@ fun DashboardScreen(
                 .fillMaxSize()
                 .padding(horizontal = 16.dp)
         ) {
-            // Floating Action Button for Enrollment
-            FloatingActionButton(
-                onClick = { showEnrollModal = true },
-                modifier = Modifier
-                    .align(Alignment.BottomEnd)
-                    .padding(bottom = 16.dp, end = 16.dp),
-                containerColor = Green700,
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Enroll in class")
-            }
-            
             // Content based on state
             when (enrollmentsState) {
                 is EnrollmentsState.Loading -> {
@@ -154,7 +142,7 @@ fun DashboardScreen(
                                 )
                                 Spacer(modifier = Modifier.height(8.dp))
                                 Text(
-                                    text = "Tap the + button to enroll in a class",
+                                    text = "Navigate to the Classes tab to enroll in a class",
                                     style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray)
                                 )
                             }
@@ -169,10 +157,6 @@ fun DashboardScreen(
                             items(enrollments) { enrollment ->
                                 EnrollmentCard(
                                     enrollment = enrollment,
-                                    onCardClick = {
-                                        // Navigate to class view with the section ID
-                                        navController.navigate("${Routes.CLASS_VIEW.substringBefore('{')}/${enrollment.section.id}")
-                                    },
                                     onScanQrClick = {
                                         // Navigate to QR scanner
                                         navController.navigate(Routes.QR_SCANNER)
@@ -310,7 +294,6 @@ fun DashboardScreen(
 @Composable
 fun EnrollmentCard(
     enrollment: Enrollment,
-    onCardClick: () -> Unit,
     onScanQrClick: () -> Unit,
     onSeatPlanClick: () -> Unit
 ) {
@@ -320,8 +303,7 @@ fun EnrollmentCard(
     
     Card(
         modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onCardClick),
+            .fillMaxWidth(),
         shape = RoundedCornerShape(8.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)

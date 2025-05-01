@@ -7,8 +7,8 @@ data class Schedule(
     val id: Long,
     val sectionId: Long,
     val dayOfWeek: Int,
-    val timeStart: LocalTime,
-    val timeEnd: LocalTime,
+    val timeStart: String,
+    val timeEnd: String,
     val scheduleType: String,
     val room: String
 )

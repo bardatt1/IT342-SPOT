@@ -218,17 +218,7 @@ fun ProfileContent(
 
         ProfileOption(
             title = "Attendance History",
-            onClick = { navController.navigate(Routes.ATTENDANCE_LOG) }
-        )
-
-        ProfileOption(
-            title = "Settings",
-            onClick = { /* Navigate to settings */ }
-        )
-
-        ProfileOption(
-            title = "Help & Support",
-            onClick = { /* Navigate to help & support */ }
+            onClick = { navController.navigate(Routes.ATTENDANCE_HISTORY) }
         )
 
         Spacer(modifier = Modifier.weight(1f))

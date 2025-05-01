@@ -34,9 +34,37 @@ public class SecurityConfig {
         return new JwtAuthenticationFilter();
     }
     
+    /**
+     * Custom password encoder that accepts both BCrypt passwords and plain text passwords.
+     * - If a password is already in BCrypt format, it's passed through unchanged
+     * - If a password is in plain text, it's encrypted with BCrypt
+     */
     @Bean
     public PasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
+        return new PasswordEncoder() {
+            private final BCryptPasswordEncoder bCryptEncoder = new BCryptPasswordEncoder();
+            
+            @Override
+            public String encode(CharSequence rawPassword) {
+                // If it's already in BCrypt format, return as is
+                if (rawPassword.toString().startsWith("$2a$")) {
+                    return rawPassword.toString();
+                }
+                // Otherwise encrypt it
+                return bCryptEncoder.encode(rawPassword);
+            }
+            
+            @Override
+            public boolean matches(CharSequence rawPassword, String encodedPassword) {
+                // If the raw password is already in BCrypt format (coming from API)
+                if (rawPassword.toString().startsWith("$2a$")) {
+                    // Compare the two hashes directly
+                    return rawPassword.toString().equals(encodedPassword);
+                }
+                // Otherwise use standard BCrypt matching
+                return bCryptEncoder.matches(rawPassword, encodedPassword);
+            }
+        };
     }
     
     @Bean

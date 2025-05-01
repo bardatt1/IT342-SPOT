@@ -6,6 +6,7 @@ import com.example.spot.model.Enrollment
 import com.example.spot.repository.EnrollmentRepository
 import com.example.spot.util.NetworkResult
 import com.example.spot.util.TokenManager
+import com.example.spot.viewmodel.EnrollmentsState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -29,14 +30,7 @@ class EnrollmentViewModel : ViewModel() {
     val enrollAction: StateFlow<EnrollActionState> = _enrollAction
     
     init {
-        // Observe the enrollment cache for changes
-        viewModelScope.launch {
-            enrollmentRepository.enrollmentsCache.collect { cachedEnrollments ->
-                if (cachedEnrollments.isNotEmpty() && _enrollmentsState.value !is EnrollmentsState.Success) {
-                    _enrollmentsState.value = EnrollmentsState.Success(cachedEnrollments)
-                }
-            }
-        }
+        // Nothing to initialize
     }
     
     // Events
@@ -52,7 +46,11 @@ class EnrollmentViewModel : ViewModel() {
             
             when (val result = enrollmentRepository.getEnrollmentsByStudentId(userId)) {
                 is NetworkResult.Success -> {
-                    _enrollmentsState.value = EnrollmentsState.Success(result.data)
+                    if (result.data.isEmpty()) {
+                        _enrollmentsState.value = EnrollmentsState.Empty
+                    } else {
+                        _enrollmentsState.value = EnrollmentsState.Success(result.data)
+                    }
                 }
                 is NetworkResult.Error -> {
                     _enrollmentsState.value = EnrollmentsState.Error(result.message)
@@ -121,13 +119,6 @@ class EnrollmentViewModel : ViewModel() {
 }
 
 // States for Enrollment UI
-sealed class EnrollmentsState {
-    object Idle : EnrollmentsState()
-    object Loading : EnrollmentsState()
-    data class Success(val enrollments: List<Enrollment>) : EnrollmentsState()
-    data class Error(val message: String) : EnrollmentsState()
-}
-
 sealed class EnrollmentStatusState {
     object Idle : EnrollmentStatusState()
     object Loading : EnrollmentStatusState()

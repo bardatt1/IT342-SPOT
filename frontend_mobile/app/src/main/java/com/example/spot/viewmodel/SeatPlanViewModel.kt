@@ -9,6 +9,7 @@ import com.example.spot.model.Section
 import com.example.spot.model.Student
 import com.example.spot.repository.EnrollmentRepository
 import com.example.spot.repository.SeatRepository
+import com.example.spot.repository.ScheduleRepository
 import com.example.spot.util.NetworkResult
 import com.example.spot.util.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -23,6 +24,8 @@ class SeatPlanViewModel : ViewModel() {
     
     private val seatRepository = SeatRepository()
     private val enrollmentRepository = EnrollmentRepository()
+    private val scheduleRepository = ScheduleRepository()
+    private val TAG = "SeatPlanViewModel"
     
     // UI States
     private val _sectionState = MutableStateFlow<Section?>(null)
@@ -54,8 +57,114 @@ class SeatPlanViewModel : ViewModel() {
      * Set the current section
      */
     fun setSection(section: Section) {
-        _sectionState.value = section
-        loadSeatPlan(section.id)
+        viewModelScope.launch {
+            Log.d(TAG, "Setting section with ID: ${section.id}, original schedule: ${section.schedule}")
+            // First fetch schedule information for this section and enhance it
+            val enhancedSection = fetchScheduleForSection(section)
+            Log.d(TAG, "Setting enhanced section with schedule: ${enhancedSection.schedule}")
+            _sectionState.value = enhancedSection
+            loadSeatPlan(enhancedSection.id)
+        }
+    }
+    
+    /**
+     * Fetch schedules for a section and update the section object with formatted schedule
+     */
+    private suspend fun fetchScheduleForSection(section: Section): Section {
+        try {
+            val scheduleResult = scheduleRepository.getSchedulesBySectionId(section.id)
+            
+            if (scheduleResult is NetworkResult.Success && scheduleResult.data.isNotEmpty()) {
+                val schedules = scheduleResult.data
+                Log.d(TAG, "Found ${schedules.size} schedules for section ${section.id}")
+                
+                // For debugging
+                schedules.forEach { schedule ->
+                    Log.d(TAG, "Schedule: day=${schedule.dayOfWeek}, time=${schedule.timeStart}-${schedule.timeEnd}, room=${schedule.room}")
+                }
+                
+                val formattedSchedule = formatSchedulesToString(schedules)
+                Log.d(TAG, "Formatted schedule: $formattedSchedule")
+                
+                // Create a brand new section with formatted schedule
+                return Section(
+                    id = section.id,
+                    course = section.course,
+                    teacher = section.teacher,
+                    sectionName = section.sectionName,
+                    enrollmentKey = section.enrollmentKey,
+                    enrollmentOpen = section.enrollmentOpen,
+                    enrollmentCount = section.enrollmentCount,
+                    schedule = formattedSchedule
+                )
+            } else {
+                if (scheduleResult is NetworkResult.Error) {
+                    Log.e(TAG, "Error fetching schedules: ${scheduleResult.message}")
+                } else {
+                    Log.d(TAG, "No schedules found for section ${section.id}")
+                }
+                return section
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error processing section: ${e.message}", e)
+            return section
+        }
+    }
+    
+    /**
+     * Format a list of schedules into a readable string
+     */
+    private fun formatSchedulesToString(schedules: List<com.example.spot.model.Schedule>): String {
+        if (schedules.isEmpty()) return ""
+        
+        return schedules.joinToString(", ") { schedule ->
+            val day = when (schedule.dayOfWeek) {
+                1 -> "Mon"
+                2 -> "Tue"
+                3 -> "Wed"
+                4 -> "Thu"
+                5 -> "Fri"
+                6 -> "Sat"
+                7 -> "Sun"
+                else -> "Unknown"
+            }
+            
+            val startTime = formatTime(schedule.timeStart)
+            val endTime = formatTime(schedule.timeEnd)
+            val room = schedule.room.orEmpty()
+            val type = schedule.scheduleType.orEmpty()
+            
+            "$day ${startTime}-${endTime} | ${room} (${type})"
+        }
+    }
+    
+    /**
+     * Format time from 24-hour format (HH:MM:SS) to 12-hour format (h:MMa)
+     */
+    private fun formatTime(timeString: String): String {
+        try {
+            // Extract hours and minutes from the time string
+            val timeParts = timeString.split(":")
+            if (timeParts.size < 2) return timeString
+            
+            val hour = timeParts[0].toIntOrNull() ?: return timeString
+            val minute = timeParts[1].toIntOrNull() ?: return timeString
+            
+            val amPm = if (hour < 12) "AM" else "PM"
+            val hour12 = when {
+                hour == 0 -> 12
+                hour > 12 -> hour - 12
+                else -> hour
+            }
+            
+            // Format minutes with leading zero if needed
+            val minuteStr = if (minute < 10) "0$minute" else minute.toString()
+            
+            return "${hour12}:${minuteStr}${amPm}"
+        } catch (e: Exception) {
+            Log.e(TAG, "Error formatting time: $timeString", e)
+            return timeString
+        }
     }
     
     /**

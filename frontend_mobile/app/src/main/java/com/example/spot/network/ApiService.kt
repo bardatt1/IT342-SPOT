@@ -118,6 +118,13 @@ interface ApiService {
     @GET("api/attendance/student/{studentId}")
     suspend fun getAttendanceByStudentId(@Path("studentId") studentId: Long): ApiResponse<List<Attendance>>
     
+    // Attendance Analytics
+    @GET("api/analytics/{sectionId}/students/{studentId}")
+    suspend fun getStudentAttendanceStatsInSection(
+        @Path("sectionId") sectionId: Long,
+        @Path("studentId") studentId: Long
+    ): ApiResponse<StudentAttendance>
+    
     // Courses
     @GET("api/courses")
     suspend fun getAllCourses(): ApiResponse<List<Course>>

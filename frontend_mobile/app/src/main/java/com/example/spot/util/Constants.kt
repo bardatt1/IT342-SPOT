@@ -5,10 +5,18 @@ package com.example.spot.util
  */
 object Constants {
     /**
-     * API base URL - Uses 10.0.2.2 to reach localhost from Android emulator
-     * For real devices on the same network as the server, use the actual IP address
+     * API base URLs - Different URLs for emulator and physical devices
+     * - 10.0.2.2 is used to reach localhost from Android emulator
+     * - For real devices, use the actual IP address of your development machine
+     * 
+     * You can toggle between them by changing USE_EMULATOR_URL
      */
-    const val API_BASE_URL = "http://10.0.2.2:8080/"
+    private const val USE_EMULATOR_URL = false
+    private const val EMULATOR_BASE_URL = "http://10.0.2.2:8080/"
+    private const val PHYSICAL_DEVICE_BASE_URL = "http://192.168.1.6:8080/" // Updated with correct IP address
+    
+    val API_BASE_URL: String
+        get() = if (USE_EMULATOR_URL) EMULATOR_BASE_URL else PHYSICAL_DEVICE_BASE_URL
     
     /**
      * QR code format for attendance

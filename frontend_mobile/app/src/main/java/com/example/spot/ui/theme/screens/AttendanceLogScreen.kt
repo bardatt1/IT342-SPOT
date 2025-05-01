@@ -5,6 +5,7 @@ package com.example.spot.ui.theme.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -17,22 +18,58 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.spot.model.Section
+import com.example.spot.model.StudentAttendance
 import com.example.spot.ui.theme.*
+import com.example.spot.viewmodel.AttendanceViewModel
+import com.example.spot.viewmodel.SectionAttendanceState
+import com.example.spot.viewmodel.SectionViewModel
+import java.time.LocalDate
+import java.time.YearMonth
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun AttendanceLogScreen(
-    navController: NavController
+    navController: NavController,
+    sectionId: Long?,
+    sectionViewModel: SectionViewModel = viewModel(),
+    attendanceViewModel: AttendanceViewModel = viewModel()
 ) {
-    var showSubmitTicketModal by remember { mutableStateOf(false) }
-
-    // Use the hardcoded classData directly
-    val classDetails = classData
+    val sectionState by sectionViewModel.sectionState.collectAsState()
+    val attendanceState by attendanceViewModel.sectionAttendanceState.collectAsState()
+    
+    LaunchedEffect(sectionId) {
+        if (sectionId != null) {
+            sectionViewModel.fetchSectionById(sectionId)
+            attendanceViewModel.loadSectionAttendanceHistory(sectionId)
+        }
+    }
+    
+    DisposableEffect(Unit) {
+        onDispose {
+            sectionViewModel.resetStates()
+            attendanceViewModel.resetStates()
+        }
+    }
 
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text(classDetails.code, color = Green700, fontWeight = FontWeight.Bold) },
+                title = { 
+                    when (sectionState) {
+                        is com.example.spot.viewmodel.SectionState.Success -> {
+                            val section = (sectionState as com.example.spot.viewmodel.SectionState.Success).section
+                            Text(
+                                "${section.course.courseCode} - ${section.sectionName}", 
+                                color = Green700, 
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                        else -> Text("Attendance History", color = Green700, fontWeight = FontWeight.Bold)
+                    }
+                },
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
@@ -44,95 +81,265 @@ fun AttendanceLogScreen(
                 },
                 colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
             )
-        },
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { showSubmitTicketModal = true },
-                containerColor = Green700,
-                contentColor = Color.White
-            ) {
-                Icon(
-                    painter = painterResource(android.R.drawable.ic_menu_help),
-                    contentDescription = "Submit Ticket"
-                )
-            }
         }
     ) { innerPadding ->
-        LazyColumn(
+        Box(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
-                .padding(horizontal = 16.dp)
         ) {
-            // Class details
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .size(60.dp)
-                            .clip(RoundedCornerShape(20.dp))
-                            .background(Color.Gray)
-                    ) {
-                        // Placeholder for instructor image
-                    }
-                    Spacer(modifier = Modifier.width(16.dp))
-                    Column {
-                        Text(
-                            text = classDetails.schedule,
-                            style = MaterialTheme.typography.bodyMedium.copy(color = TextDark)
-                        )
-                        Text(
-                            text = classDetails.instructor,
-                            style = MaterialTheme.typography.bodyLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = TextDark
-                            )
-                        )
-                        Text(
-                            text = classDetails.room,
-                            style = MaterialTheme.typography.bodyMedium.copy(color = TextDark.copy(alpha = 0.7f))
-                        )
-                    }
+            when {
+                sectionState is com.example.spot.viewmodel.SectionState.Loading || 
+                attendanceState is SectionAttendanceState.Loading -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.align(Alignment.Center),
+                        color = Green700
+                    )
                 }
-            }
-
-            // Attendance Log title
-            item {
-                Text(
-                    text = "Attendance Log",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontSize = 18.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = TextDark
-
-                    ),
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-            }
-
-            // Monthly attendance grids
-            sampleAttendanceLog.forEach { monthlyAttendance ->
-                item {
-                    MonthlyAttendanceGrid(monthlyAttendance)
-                    Spacer(modifier = Modifier.height(8.dp))
+                
+                sectionState is com.example.spot.viewmodel.SectionState.Error -> {
+                    ErrorContent(
+                        message = (sectionState as com.example.spot.viewmodel.SectionState.Error).message,
+                        onRetry = { 
+                            if (sectionId != null) {
+                                sectionViewModel.fetchSectionById(sectionId)
+                            }
+                        }
+                    )
+                }
+                
+                attendanceState is SectionAttendanceState.Error -> {
+                    ErrorContent(
+                        message = (attendanceState as SectionAttendanceState.Error).message,
+                        onRetry = { 
+                            if (sectionId != null) {
+                                attendanceViewModel.loadSectionAttendanceHistory(sectionId)
+                            }
+                        }
+                    )
+                }
+                
+                sectionState is com.example.spot.viewmodel.SectionState.Success && 
+                attendanceState is SectionAttendanceState.Success -> {
+                    val section = (sectionState as com.example.spot.viewmodel.SectionState.Success).section
+                    val attendanceStats = (attendanceState as SectionAttendanceState.Success).studentAttendance
+                    
+                    AttendanceContent(
+                        section = section,
+                        attendanceStats = attendanceStats
+                    )
                 }
             }
         }
     }
+}
 
-    // Show Submit Ticket modal if triggered
-    if (showSubmitTicketModal) {
-        SubmitTicketModal(
-            onDismiss = { showSubmitTicketModal = false },
-            onSubmit = { inquiry ->
-                println("Submitted inquiry: $inquiry")
-                showSubmitTicketModal = false
+@Composable
+fun ErrorContent(
+    message: String,
+    onRetry: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center
+    ) {
+        Text(
+            text = "Error Loading Data",
+            style = MaterialTheme.typography.headlineSmall,
+            color = MaterialTheme.colorScheme.error
+        )
+        
+        Spacer(modifier = Modifier.height(8.dp))
+        
+        Text(
+            text = message,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray,
+            textAlign = TextAlign.Center
+        )
+        
+        Spacer(modifier = Modifier.height(16.dp))
+        
+        Button(
+            onClick = onRetry,
+            colors = ButtonDefaults.buttonColors(containerColor = Green700)
+        ) {
+            Text("Retry")
+        }
+    }
+}
+
+@Composable
+fun AttendanceContent(
+    section: Section,
+    attendanceStats: StudentAttendance
+) {
+    LazyColumn(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        // Class details
+        item {
+            SectionInfoCard(section)
+        }
+
+        // Attendance stats summary
+        item {
+            AttendanceSummaryCard(attendanceStats)
+        }
+
+        // Attendance Log title
+        item {
+            Text(
+                text = "Attendance Calendar",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Medium,
+                    color = TextDark
+                ),
+                modifier = Modifier.padding(vertical = 8.dp)
+            )
+        }
+
+        // Generate monthly attendance grids based on actual data
+        val attendanceByMonth = createMonthlyAttendance(attendanceStats.attendanceByDate)
+        items(attendanceByMonth) { monthlyAttendance ->
+            MonthlyAttendanceGrid(monthlyAttendance)
+            Spacer(modifier = Modifier.height(8.dp))
+        }
+    }
+}
+
+@Composable
+fun SectionInfoCard(section: Section) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(60.dp)
+                    .clip(RoundedCornerShape(20.dp))
+                    .background(Green700.copy(alpha = 0.2f)),
+                contentAlignment = Alignment.Center
+            ) {
+                val teacherInitials = section.teacher?.let {
+                    val firstName = it.firstName.firstOrNull() ?: ""
+                    val lastName = it.lastName.firstOrNull() ?: ""
+                    "$firstName$lastName"
+                } ?: "NA"
+                
+                Text(
+                    text = teacherInitials,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = Green700
+                )
             }
+            
+            Spacer(modifier = Modifier.width(16.dp))
+            
+            Column {
+                Text(
+                    text = section.schedule ?: "Schedule not available",
+                    style = MaterialTheme.typography.bodyMedium.copy(color = TextDark)
+                )
+                
+                Text(
+                    text = section.teacher?.name ?: "Instructor not assigned",
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = TextDark
+                    )
+                )
+                
+                Text(
+                    text = section.course.courseName,
+                    style = MaterialTheme.typography.bodyMedium.copy(color = TextDark.copy(alpha = 0.7f))
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun AttendanceSummaryCard(attendanceStats: StudentAttendance) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Green700),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp)
+        ) {
+            Text(
+                text = "Attendance Summary",
+                style = MaterialTheme.typography.titleMedium.copy(
+                    color = Color.White,
+                    fontWeight = FontWeight.Bold
+                )
+            )
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                StatItem(
+                    label = "Total Classes",
+                    value = attendanceStats.totalClassDays.toString(),
+                    textColor = Color.White
+                )
+                
+                StatItem(
+                    label = "Present",
+                    value = attendanceStats.daysPresent.toString(),
+                    textColor = Color.White
+                )
+                
+                StatItem(
+                    label = "Attendance Rate",
+                    value = String.format("%.1f%%", attendanceStats.attendanceRate * 100),
+                    textColor = Color.White
+                )
+            }
+        }
+    }
+}
+
+@Composable
+fun StatItem(label: String, value: String, textColor: Color) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.headlineSmall.copy(
+                fontWeight = FontWeight.Bold,
+                color = textColor
+            )
+        )
+        
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodySmall.copy(
+                color = textColor.copy(alpha = 0.8f)
+            )
         )
     }
 }
@@ -162,24 +369,14 @@ fun MonthlyAttendanceGrid(monthlyAttendance: MonthlyAttendance) {
                 .padding(vertical = 4.dp),
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            Text(
-                text = "M",
-                style = MaterialTheme.typography.bodyMedium.copy(color = TextDark),
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "W",
-                style = MaterialTheme.typography.bodyMedium.copy(color = TextDark),
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center
-            )
-            Text(
-                text = "F",
-                style = MaterialTheme.typography.bodyMedium.copy(color = TextDark),
-                modifier = Modifier.weight(1f),
-                textAlign = TextAlign.Center
-            )
+            listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
+                Text(
+                    text = day,
+                    style = MaterialTheme.typography.bodyMedium.copy(color = TextDark),
+                    modifier = Modifier.weight(1f),
+                    textAlign = TextAlign.Center
+                )
+            }
         }
 
         // Attendance grid
@@ -193,7 +390,7 @@ fun MonthlyAttendanceGrid(monthlyAttendance: MonthlyAttendance) {
             return@Column
         }
 
-        val rows = (entries.size + 2) / 3 // Ceiling division to determine number of rows
+        val rows = (entries.size + 6) / 7 // Ceiling division to determine number of rows
         for (row in 0 until rows) {
             Row(
                 modifier = Modifier
@@ -201,8 +398,8 @@ fun MonthlyAttendanceGrid(monthlyAttendance: MonthlyAttendance) {
                     .padding(vertical = 2.dp),
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
-                for (col in 0 until 3) {
-                    val index = row * 3 + col
+                for (col in 0 until 7) {
+                    val index = row * 7 + col
                     if (index < entries.size) {
                         val entry = entries[index]
                         Box(
@@ -214,7 +411,7 @@ fun MonthlyAttendanceGrid(monthlyAttendance: MonthlyAttendance) {
                                     when (entry.status) {
                                         AttendanceStatus.PRESENT -> Green500
                                         AttendanceStatus.ABSENT -> Color.Red
-                                        AttendanceStatus.LATE -> Color.Yellow
+                                        AttendanceStatus.LATE -> Color(0xFFFFB300) // Amber
                                         AttendanceStatus.NO_CLASS -> Color.Gray
                                     }
                                 ),
@@ -222,7 +419,10 @@ fun MonthlyAttendanceGrid(monthlyAttendance: MonthlyAttendance) {
                         ) {
                             Text(
                                 text = entry.date,
-                                style = MaterialTheme.typography.bodySmall.copy(color = Color.White)
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    color = if (entry.status == AttendanceStatus.NO_CLASS) 
+                                        Color.White.copy(alpha = 0.7f) else Color.White
+                                )
                             )
                         }
                     } else {
@@ -234,72 +434,40 @@ fun MonthlyAttendanceGrid(monthlyAttendance: MonthlyAttendance) {
     }
 }
 
-@Composable
-fun SubmitTicketModal(
-    onDismiss: () -> Unit,
-    onSubmit: (String) -> Unit
-) {
-    var inquiryText by remember { mutableStateOf("") }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = "Submit Ticket",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark
-                    )
-                )
-                IconButton(onClick = onDismiss) {
-                    Icon(
-                        painter = painterResource(android.R.drawable.ic_menu_close_clear_cancel),
-                        contentDescription = "Close",
-                        tint = TextDark
-                    )
-                }
+// Helper function to create monthly attendance from attendanceByDate map
+private fun createMonthlyAttendance(attendanceByDate: Map<String, Boolean>): List<MonthlyAttendance> {
+    val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val monthFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
+    val dayFormatter = DateTimeFormatter.ofPattern("dd")
+    
+    // Group dates by month-year
+    val attendanceByMonth = attendanceByDate.keys
+        .mapNotNull { dateStr ->
+            try {
+                dateStr to LocalDate.parse(dateStr, dateFormatter)
+            } catch (e: Exception) {
+                null
             }
-        },
-        text = {
-            Column {
-                Text(
-                    text = "Submit a ticket here if you have concerns or inquiries regarding your attendance log",
-                    style = MaterialTheme.typography.bodyMedium.copy(color = TextDark),
-                    modifier = Modifier.padding(bottom = 16.dp)
-                )
-                TextField(
-                    value = inquiryText,
-                    onValueChange = { inquiryText = it },
-                    placeholder = { Text("Type inquiry here") },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(120.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = Green100,
-                        unfocusedContainerColor = Green100,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    )
-                )
+        }
+        .groupBy { (_, date) -> 
+            YearMonth.from(date).format(monthFormatter)
+        }
+    
+    return attendanceByMonth.map { (month, dates) ->
+        val entries = dates.map { (dateStr, date) ->
+            val status = if (attendanceByDate[dateStr] == true) {
+                AttendanceStatus.PRESENT
+            } else {
+                AttendanceStatus.ABSENT
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = { onSubmit(inquiryText) },
-                colors = ButtonDefaults.buttonColors(containerColor = Green700),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(48.dp)
-            ) {
-                Text("SUBMIT", color = Color.White)
-            }
-        },
-        dismissButton = {},
-        containerColor = Color.White
-    )
+            
+            AttendanceEntry(
+                date = date.format(dayFormatter),
+                dayOfWeek = date.dayOfWeek.toString().take(1),
+                status = status
+            )
+        }.sortedBy { it.date }
+        
+        MonthlyAttendance(month = month, entries = entries)
+    }.sortedBy { it.month }
 }

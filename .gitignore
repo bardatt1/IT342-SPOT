@@ -1,6 +1,12 @@
-# 
+# IDE
 .vscode
 .idea
 
 # windsurf rules
 .windsurfrules
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local

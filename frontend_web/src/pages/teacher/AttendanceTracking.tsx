@@ -5,8 +5,34 @@ import { sectionApi, type Section } from '../../lib/api/section';
 import { attendanceApi, type Attendance, type AttendanceAnalytics } from '../../lib/api/attendance';
 import { studentApi, type Student } from '../../lib/api/student';
 import { scheduleApi, type Schedule } from '../../lib/api/schedule';
+
+// UI Components
 import { Button } from '../../components/ui/button';
-import { Calendar, Clock, User, Download, Users, BarChart } from 'lucide-react';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Badge } from '../../components/ui/badge';
+
+// Icons
+import { 
+  User, 
+  Users,
+  Calendar, 
+  Clock, 
+  BarChart, 
+  FileSpreadsheet,
+  CalendarDays, 
+  CircleAlert, 
+  ClipboardCheck, 
+  ListFilter, 
+  AlertTriangle, 
+  FilterX,
+  RefreshCw 
+} from 'lucide-react';
 import FirstLoginModal from '../../components/ui/FirstLoginModal';
 
 const AttendanceTracking = () => {
@@ -257,8 +283,9 @@ const AttendanceTracking = () => {
     setDateFilter('');
   };
 
-  const toggleView = () => {
-    setShowAnalytics(!showAnalytics);
+  // Toggle between attendance records and analytics view
+  const handleViewToggle = (value: string) => {
+    setShowAnalytics(value === "analytics");
   };
 
   // Calculate analytics directly from attendance records
@@ -621,332 +648,432 @@ const AttendanceTracking = () => {
         <FirstLoginModal onClose={() => setShowFirstLoginModal(false)} />
       )}
       <div className="space-y-6">
-        <div className="flex flex-col justify-between sm:flex-row sm:items-center">
-          <h2 className="text-xl font-semibold">Attendance Tracking</h2>
+        <Card className="border-[#215f47]/20">
+          <CardHeader className="pb-3">
+            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+              <div>
+                <CardTitle className="text-2xl font-bold text-[#215f47]">Attendance Tracking</CardTitle>
+                <CardDescription className="mt-1">Manage and analyze student attendance records</CardDescription>
+              </div>
 
-          {sections.length > 0 && (
-            <div className="mt-4 sm:mt-0">
-              <select
-                value={selectedSectionId || ''}
-                onChange={handleSectionChange}
-                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-              >
-                {sections.map(section => (
-                  <option key={section.id} value={section.id}>
-                    Section ID: {section.id} ({section.sectionName})
-                  </option>
-                ))}
-              </select>
+              {sections.length > 0 && (
+                <div className="flex-shrink-0">
+                  <Select
+                    value={selectedSectionId?.toString() || ''}
+                    onValueChange={(value) => handleSectionChange({ target: { value } } as any)}
+                  >
+                    <SelectTrigger className="w-[240px] border-[#215f47]/20 bg-white/50 focus:ring-[#215f47]/30">
+                      <SelectValue placeholder="Select a section" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectGroup>
+                        <SelectLabel>Available Sections</SelectLabel>
+                        {sections.map(section => (
+                          <SelectItem key={section.id} value={section.id.toString()}>
+                            Section ID: {section.id} ({section.sectionName})
+                          </SelectItem>
+                        ))}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
             </div>
-          )}
-        </div>
+          </CardHeader>
+        </Card>
         
         {error && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Alert variant="destructive">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
         
         {sections.length === 0 ? (
-          <div className="rounded-lg bg-white p-6 shadow">
-            <p className="text-center text-gray-500">
-              You have not been assigned to any sections yet.
-            </p>
-          </div>
+          <Card className="border-[#215f47]/20 shadow-sm">
+            <CardContent className="flex h-32 items-center justify-center">
+              <p className="text-center text-gray-500">
+                You have not been assigned to any sections yet.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="mb-4 flex space-x-2">
-            <Button
-              onClick={toggleView}
-              className={`flex items-center ${showAnalytics ? '' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
-              variant={showAnalytics ? 'outline' : 'default'}
-            >
-              <User className="mr-1 h-4 w-4" />
-              Attendance Records
-            </Button>
-            <Button
-              onClick={toggleView}
-              className={`flex items-center ${!showAnalytics ? '' : 'bg-blue-500 text-white hover:bg-blue-600'}`}
-              variant={!showAnalytics ? 'outline' : 'default'}
-            >
-              <BarChart className="mr-1 h-4 w-4" />
-              Analytics Dashboard
-            </Button>
-          </div>
+          <Tabs defaultValue={showAnalytics ? "analytics" : "attendance"} className="w-full" onValueChange={handleViewToggle}>
+            <TabsList className="mb-4 grid w-full grid-cols-2 bg-[#f8f9fa]">
+              <TabsTrigger 
+                value="attendance" 
+                className="data-[state=active]:bg-[#215f47] data-[state=active]:text-white"
+              >
+                <User className="mr-2 h-4 w-4" />
+                Attendance Records
+              </TabsTrigger>
+              <TabsTrigger 
+                value="analytics" 
+                className="data-[state=active]:bg-[#215f47] data-[state=active]:text-white"
+              >
+                <BarChart className="mr-2 h-4 w-4" />
+                Analytics Dashboard
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
         )}
         
         {sections.length === 0 ? null : !showAnalytics ? (
           <>
-            <div className="rounded-lg bg-white p-6 shadow">
-              <h3 className="mb-4 text-lg font-medium">Filters</h3>
-              
-              <div className="flex flex-wrap items-end gap-4">
-                <div>
-                  <label htmlFor="dateFilter" className="block text-sm font-medium text-gray-700">
-                    Date
-                  </label>
-                  <input
-                    type="date"
-                    id="dateFilter"
-                    value={dateFilter}
-                    onChange={handleDateFilterChange}
-                    className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  />
+            <Card className="border-[#215f47]/20 shadow-sm">
+              <CardHeader>
+                <CardTitle className="text-lg font-medium text-[#215f47]">
+                  <div className="flex items-center">
+                    <ListFilter className="mr-2 h-5 w-5" />
+                    Attendance Filters
+                  </div>
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap items-end gap-4">
+                  <div className="w-full sm:w-auto">
+                    <Label htmlFor="dateFilter" className="mb-2 block text-sm font-medium text-gray-700">
+                      Attendance Date
+                    </Label>
+                    <Input
+                      type="date"
+                      id="dateFilter"
+                      value={dateFilter}
+                      onChange={handleDateFilterChange}
+                      className="w-full border-[#215f47]/20 focus:border-[#215f47] focus:ring-[#215f47]/20 sm:w-[240px]"
+                    />
+                  </div>
+                  
+                  <div className="mt-4 flex w-full space-x-2 sm:mt-0 sm:w-auto">
+                    <Button 
+                      variant="outline" 
+                      onClick={clearFilters} 
+                      className="border-[#215f47]/30 text-[#215f47] hover:bg-[#215f47]/5"
+                    >
+                      <FilterX className="mr-2 h-4 w-4" />
+                      Clear Filters
+                    </Button>
+                    <Button 
+                      onClick={exportAttendance} 
+                      disabled={isExporting} 
+                      className="bg-[#215f47] hover:bg-[#215f47]/90"
+                    >
+                      <FileSpreadsheet className="mr-2 h-4 w-4" />
+                      {isExporting ? 'Exporting...' : 'Export CSV'}
+                    </Button>
+                  </div>
                 </div>
-                
-                <div className="flex space-x-2">
-                  <Button variant="outline" onClick={clearFilters} className="flex-shrink-0">
-                    Clear Filters
-                  </Button>
-                  <Button onClick={exportAttendance} disabled={isExporting} className="flex items-center flex-shrink-0">
-                    <Download className="mr-1 h-4 w-4" />
-                    {isExporting ? 'Exporting...' : 'Export CSV'}
-                  </Button>
-                </div>
-              </div>
-            </div>
+              </CardContent>
+            </Card>
             
-            <div className="overflow-hidden rounded-lg bg-white shadow">
-              <div className="px-4 py-5 sm:px-6">
-                <h3 className="text-lg font-medium leading-6 text-gray-900">
-                  Attendance Records {selectedSectionId && `for Section ${selectedSectionId}`}
-                </h3>
-                <p className="mt-1 max-w-2xl text-sm text-gray-500">
-                  Showing {filteredRecords.length} records
-                </p>
-              </div>
+            <Card className="border-[#215f47]/20 shadow-sm">
+              <CardHeader className="pb-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <CardTitle className="text-lg font-medium text-[#215f47]">
+                      <div className="flex items-center">
+                        <ClipboardCheck className="mr-2 h-5 w-5" />
+                        Attendance Records {selectedSectionId && `for Section ${selectedSectionId}`}
+                      </div>
+                    </CardTitle>
+                    <CardDescription className="mt-1">
+                      Showing {filteredRecords.length} records
+                    </CardDescription>
+                  </div>
+                  <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47] border-[#215f47]/20">
+                    {new Date().toLocaleDateString()}
+                  </Badge>
+                </div>
+              </CardHeader>
               
-              {isLoading ? (
-                <div className="flex h-40 items-center justify-center">
-                  <p className="text-gray-500">Loading attendance data...</p>
-                </div>
-              ) : filteredRecords.length === 0 ? (
-                <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
-                  <p className="text-center text-gray-500 mb-2">
-                    No attendance records found for the selected filters.
-                  </p>
-                </div>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                          Student ID
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                          Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                          Time In
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                          Time Out
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {filteredRecords.map((record, index) => (
-                        <tr key={index}>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                            <div className="flex items-center">
-                              <User className="mr-2 h-4 w-4 text-gray-400" />
-                              {record.student?.studentPhysicalId || 'Unknown'}
-                              {record.student && (
-                                <span className="ml-2 text-gray-500 text-xs">
-                                  ({record.student.firstName} {record.student.lastName})
-                                </span>
-                              )}
-                            </div>
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                            <div className="flex items-center">
-                              <Calendar className="mr-2 h-4 w-4 text-gray-400" />
-                              {formatDate(record.date)}
-                            </div>
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                            <div className="flex items-center">
-                              <Clock className="mr-2 h-4 w-4 text-gray-400" />
-                              {formatTime(record.startTime)}
-                            </div>
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                            <div className="flex items-center">
-                              <Clock className="mr-2 h-4 w-4 text-gray-400" />
-                              {record.endTime ? formatTime(record.endTime) : 'Not recorded'}
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
-            </div>
-          </> 
+              <CardContent>
+                {isLoading ? (
+                  <div className="flex h-40 items-center justify-center">
+                    <div className="flex flex-col items-center">
+                      <RefreshCw className="h-8 w-8 animate-spin text-[#215f47]/60 mb-3" />
+                      <p className="text-gray-500">Loading attendance data...</p>
+                    </div>
+                  </div>
+                ) : filteredRecords.length === 0 ? (
+                  <div className="flex h-40 flex-col items-center justify-center">
+                    <AlertTriangle className="h-10 w-10 text-amber-500/70 mb-3" />
+                    <p className="text-gray-500 text-center">
+                      No attendance records found for the selected filters.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-[#215f47]/10">
+                    <Table>
+                      <TableHeader className="bg-[#215f47]/5">
+                        <TableRow>
+                          <TableHead className="font-medium text-[#215f47]">
+                            Student ID
+                          </TableHead>
+                          <TableHead className="font-medium text-[#215f47]">
+                            Date
+                          </TableHead>
+                          <TableHead className="font-medium text-[#215f47]">
+                            Time In
+                          </TableHead>
+                          <TableHead className="font-medium text-[#215f47]">
+                            Time Out
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredRecords.map((record, index) => (
+                          <TableRow key={index} className="hover:bg-[#215f47]/5">
+                            <TableCell>
+                              <div className="flex items-center">
+                                <User className="mr-2 h-4 w-4 text-[#215f47]" />
+                                <span className="font-medium">{record.student?.studentPhysicalId || 'Unknown'}</span>
+                                {record.student && (
+                                  <span className="ml-2 text-xs text-gray-500">
+                                    ({record.student.firstName} {record.student.lastName})
+                                  </span>
+                                )}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Calendar className="mr-2 h-4 w-4 text-[#215f47]" />
+                                {formatDate(record.date)}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Clock className="mr-2 h-4 w-4 text-[#215f47]" />
+                                {formatTime(record.startTime)}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <Clock className="mr-2 h-4 w-4 text-[#215f47]" />
+                                {record.endTime ? formatTime(record.endTime) : (
+                                  <span className="text-amber-500">Not recorded</span>
+                                )}
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </>
         ) : showAnalytics && analytics ? (
           // Analytics Dashboard View
           <>
             {/* Overview Cards */}
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              <div className="rounded-lg bg-white p-6 shadow">
-                <div className="flex items-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
-                    <Calendar className="h-6 w-6 text-blue-600" />
+              <Card className="border-[#215f47]/20 shadow-sm">
+                <CardContent className="pt-6">
+                  <div className="flex items-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#215f47]/10">
+                      <CalendarDays className="h-6 w-6 text-[#215f47]" />
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-sm font-medium text-gray-600">Total Sessions</h3>
+                      <p className="text-2xl font-semibold text-[#215f47]">{analytics?.totalSessions || 0}</p>
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <h3 className="text-sm font-medium text-gray-500">Total Sessions</h3>
-                    <p className="text-2xl font-semibold text-gray-900">{analytics?.totalSessions || 0}</p>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
               
-              <div className="rounded-lg bg-white p-6 shadow">
-                <div className="flex items-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100">
-                    <Users className="h-6 w-6 text-green-600" />
+              <Card className="border-[#215f47]/20 shadow-sm">
+                <CardContent className="pt-6">
+                  <div className="flex items-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#215f47]/10">
+                      <Users className="h-6 w-6 text-[#215f47]" />
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-sm font-medium text-gray-600">Total Students</h3>
+                      <p className="text-2xl font-semibold text-[#215f47]">{analytics?.totalStudents || 0}</p>
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <h3 className="text-sm font-medium text-gray-500">Total Students</h3>
-                    <p className="text-2xl font-semibold text-gray-900">{analytics?.totalStudents || 0}</p>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
               
-              <div className="rounded-lg bg-white p-6 shadow">
-                <div className="flex items-center">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100">
-                    <BarChart className="h-6 w-6 text-purple-600" />
+              <Card className="border-[#215f47]/20 shadow-sm">
+                <CardContent className="pt-6">
+                  <div className="flex items-center">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-[#215f47]/10">
+                      <BarChart className="h-6 w-6 text-[#215f47]" />
+                    </div>
+                    <div className="ml-4">
+                      <h3 className="text-sm font-medium text-gray-600">Average Attendance</h3>
+                      <p className="text-2xl font-semibold text-[#215f47]">
+                        {(analytics?.averageAttendance || 0).toFixed(2)}%
+                      </p>
+                    </div>
                   </div>
-                  <div className="ml-4">
-                    <h3 className="text-sm font-medium text-gray-500">Average Attendance</h3>
-                    <p className="text-2xl font-semibold text-gray-900">
-                      {(analytics?.averageAttendance || 0).toFixed(2)}%
-                    </p>
-                  </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             </div>
             
             {/* Attendance by Date Chart */}
-            <div className="rounded-lg bg-white p-6 shadow mt-4">
-              <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium">Attendance by Date</h3>
-                <Button onClick={exportAnalytics} disabled={isExporting} className="flex items-center">
-                  <Download className="mr-1 h-4 w-4" />
-                  {isExporting ? 'Exporting...' : 'Export Report'}
-                </Button>
-              </div>
+            <Card className="border-[#215f47]/20 shadow-sm mt-4">
+              <CardHeader className="pb-2">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
+                  <CardTitle className="text-lg font-medium text-[#215f47]">
+                    <div className="flex items-center">
+                      <BarChart className="mr-2 h-5 w-5" />
+                      Attendance by Date
+                    </div>
+                  </CardTitle>
+                  <Button 
+                    onClick={exportAnalytics} 
+                    disabled={isExporting}
+                    className="bg-[#215f47] hover:bg-[#215f47]/90"
+                  >
+                    <FileSpreadsheet className="mr-2 h-4 w-4" />
+                    {isExporting ? 'Exporting...' : 'Export Report'}
+                  </Button>
+                </div>
+              </CardHeader>
               
-              <div className="h-64">
-                {(Array.isArray(analytics?.attendanceByDate) && analytics.attendanceByDate.length > 0) ? (
-                  <div className="flex h-full items-end space-x-2">
-                    {analytics.attendanceByDate.map((item: { date: string; count: number; percentage: number }, index: number) => {
-                      // Ensure we have a valid date
-                      const dateObj = new Date(item.date);
-                      const isValidDate = !isNaN(dateObj.getTime());
-                      const displayDate = isValidDate ? dateObj.toLocaleDateString() : item.date;
-                      
-                      return (
-                        <div key={index} className="flex flex-1 flex-col items-center">
-                          <div 
-                            className="w-full bg-blue-500" 
-                            style={{ 
-                              height: `${Math.max(item.percentage, 4)}%`, // Ensure minimum visibility
-                              minHeight: '4px'
-                            }}
-                          ></div>
-                          <span className="mt-2 text-xs text-gray-500">{displayDate}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                ) : (
-                  <div className="flex h-full items-center justify-center">
-                    <p className="text-gray-500">No attendance data available to display.</p>
-                  </div>
-                )}
-              </div>
-            </div>
+              <CardContent>
+                <div className="h-64 pt-4">
+                  {(Array.isArray(analytics?.attendanceByDate) && analytics.attendanceByDate.length > 0) ? (
+                    <div className="flex h-full items-end space-x-2">
+                      {analytics.attendanceByDate.map((item: { date: string; count: number; percentage: number }, index: number) => {
+                        // Ensure we have a valid date
+                        const dateObj = new Date(item.date);
+                        const isValidDate = !isNaN(dateObj.getTime());
+                        const displayDate = isValidDate ? dateObj.toLocaleDateString() : item.date;
+                        
+                        return (
+                          <div key={index} className="flex flex-1 flex-col items-center">
+                            <div 
+                              className="w-full bg-[#215f47]" 
+                              style={{ 
+                                height: `${Math.max(item.percentage, 4)}%`, // Ensure minimum visibility
+                                minHeight: '4px',
+                                borderTopLeftRadius: '3px',
+                                borderTopRightRadius: '3px'
+                              }}
+                            ></div>
+                            <span className="mt-2 text-xs text-gray-500">{displayDate}</span>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    <div className="flex h-full items-center justify-center">
+                      <div className="flex flex-col items-center">
+                        <CircleAlert className="h-10 w-10 text-amber-500/70 mb-3" />
+                        <p className="text-gray-500">No attendance data available to display.</p>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
             
             {/* Student Attendance Table */}
-            <div className="overflow-hidden rounded-lg bg-white shadow mt-4">
-              <div className="px-4 py-5 sm:px-6">
-                <h3 className="text-lg font-medium leading-6 text-gray-900">Student Attendance</h3>
-                <p className="mt-1 max-w-2xl text-sm text-gray-500">
+            <Card className="border-[#215f47]/20 shadow-sm mt-4">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-lg font-medium text-[#215f47]">
+                  <div className="flex items-center">
+                    <User className="mr-2 h-5 w-5" />
+                    Student Attendance
+                  </div>
+                </CardTitle>
+                <CardDescription>
                   Detailed attendance statistics for each student
-                </p>
-              </div>
+                </CardDescription>
+              </CardHeader>
               
-              {Array.isArray(analytics?.studentAttendance) && analytics.studentAttendance.length > 0 ? (
-                <div className="overflow-x-auto">
-                  <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                          Student ID
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                          Student Name
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                          Attendance Count
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                          Attendance Percentage
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 bg-white">
-                      {analytics.studentAttendance.map((student, index) => (
-                        <tr key={index}>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                            {student.studentId}
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                            {student.studentName}
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                            {student.attendanceCount}
-                          </td>
-                          <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                            <div className="flex items-center">
-                              <div className="w-16 bg-gray-200 rounded-full h-2.5 mr-2">
-                                <div 
-                                  className="bg-blue-600 h-2.5 rounded-full" 
-                                  style={{ width: `${student.attendancePercentage}%` }}
-                                ></div>
+              <CardContent>
+                {Array.isArray(analytics?.studentAttendance) && analytics.studentAttendance.length > 0 ? (
+                  <div className="rounded-md border border-[#215f47]/10">
+                    <Table>
+                      <TableHeader className="bg-[#215f47]/5">
+                        <TableRow>
+                          <TableHead className="font-medium text-[#215f47]">
+                            Student ID
+                          </TableHead>
+                          <TableHead className="font-medium text-[#215f47]">
+                            Student Name
+                          </TableHead>
+                          <TableHead className="font-medium text-[#215f47]">
+                            Attendance Count
+                          </TableHead>
+                          <TableHead className="font-medium text-[#215f47]">
+                            Attendance Percentage
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {analytics.studentAttendance.map((student, index) => (
+                          <TableRow key={index} className="hover:bg-[#215f47]/5">
+                            <TableCell className="font-medium">
+                              {student.studentId}
+                            </TableCell>
+                            <TableCell>
+                              {student.studentName}
+                            </TableCell>
+                            <TableCell>
+                              {student.attendanceCount}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center">
+                                <div className="w-16 bg-gray-200 rounded-full h-2 mr-2">
+                                  <div 
+                                    className="bg-[#215f47] h-2 rounded-full" 
+                                    style={{ width: `${student.attendancePercentage}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-sm">{student.attendancePercentage.toFixed(2)}%</span>
                               </div>
-                              {student.attendancePercentage.toFixed(2)}%
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              ) : (
-                <div className="border-t border-gray-200 px-4 py-5 sm:px-6">
-                  <p className="text-center text-gray-500">
-                    No student attendance data available.
-                  </p>
-                </div>
-              )}
-            </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                ) : (
+                  <div className="flex h-40 flex-col items-center justify-center">
+                    <CircleAlert className="h-10 w-10 text-amber-500/70 mb-3" />
+                    <p className="text-center text-gray-500">
+                      No student attendance data available.
+                    </p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </>
         ) : showAnalytics ? (
-          <div className="rounded-lg bg-white p-6 shadow">
-            <div className="flex h-40 items-center justify-center">
-              <p className="text-gray-500">{isLoading ? 'Loading analytics data...' : 'No analytics data available.'}</p>
-            </div>
-          </div>
+          <Card className="border-[#215f47]/20 shadow-sm">
+            <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+              {isLoading ? (
+                <>
+                  <RefreshCw className="h-12 w-12 animate-spin text-[#215f47]/60 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-700 mb-1">Loading Analytics</h3>
+                  <p className="text-gray-500 max-w-sm">
+                    Please wait while we analyze the attendance data...
+                  </p>
+                </>
+              ) : (
+                <>
+                  <CircleAlert className="h-12 w-12 text-amber-500/70 mb-4" />
+                  <h3 className="text-lg font-medium text-gray-700 mb-1">No Analytics Available</h3>
+                  <p className="text-gray-500 max-w-sm mb-6">
+                    There is no attendance data available for analytics. This could be because there are no attendance records or because the section has not had any class sessions yet.
+                  </p>
+                  <Button 
+                    onClick={() => setShowAnalytics(false)}
+                    className="bg-[#215f47] hover:bg-[#215f47]/90"
+                  >
+                    View Attendance Records
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
         ) : null}
       </div>
     </DashboardLayout>

@@ -1,12 +1,23 @@
 import { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/ui/layout/DashboardLayout';
 import { sectionApi, type Section, type SectionCreateDto } from '../../lib/api/section';
 import { courseApi, type Course } from '../../lib/api/course';
 import { teacherApi, type Teacher } from '../../lib/api/teacher';
 import { Button } from '../../components/ui/button';
-import { Plus, Pencil, Trash2, Users } from 'lucide-react';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../../components/ui/card';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
+import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { Plus, Pencil, Trash2, UserCog, Book, BookOpen, AlertTriangle, CalendarDays } from 'lucide-react';
 
 const SectionManagement = () => {
+  const navigate = useNavigate();
   const [sections, setSections] = useState<Section[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
@@ -28,6 +39,13 @@ const SectionManagement = () => {
   // State for assigning teacher modal
   const [showAssignTeacherModal, setShowAssignTeacherModal] = useState(false);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
+  
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    if (value === "schedules") {
+      navigate('/admin/schedules');
+    }
+  };
 
   useEffect(() => {
     fetchData();
@@ -231,8 +249,15 @@ const SectionManagement = () => {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex h-full items-center justify-center">
-          <p className="text-lg">Loading sections...</p>
+        <div className="flex h-full items-center justify-center p-6">
+          <div className="flex flex-col items-center space-y-4 text-center">
+            <div className="animate-spin text-[#215f47]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+            </div>
+            <p className="text-lg font-medium text-gray-700">Loading sections...</p>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -240,244 +265,276 @@ const SectionManagement = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <div className="flex flex-col justify-between sm:flex-row sm:items-center">
-          <h2 className="text-xl font-semibold">Section Management</h2>
-          
-          <div className="mt-4 sm:mt-0">
-            <Button onClick={handleAddNew} className="flex items-center">
-              <Plus className="mr-1 h-4 w-4" />
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col justify-between sm:flex-row sm:items-center border-b border-[#215f47]/10 pb-4">
+          <div>
+            <h2 className="text-2xl font-bold text-[#215f47] flex items-center gap-2">
+              <BookOpen className="h-6 w-6" />
+              Sections & Schedules
+            </h2>
+            <p className="text-gray-500 mt-1">Manage academic sections and their class schedules</p>
+          </div>
+          <div>
+            <Button 
+              onClick={handleAddNew} 
+              className="bg-[#215f47] hover:bg-[#215f47]/90 text-white"
+            >
+              <Plus className="mr-2 h-4 w-4" />
               Add New Section
             </Button>
           </div>
         </div>
         
+        {/* Tabs for switching between sections and schedules */}
+        <Tabs defaultValue="sections" className="w-full" onValueChange={handleTabChange}>
+          <TabsList className="mb-4 grid w-full grid-cols-2 bg-[#f8f9fa]">
+            <TabsTrigger 
+              value="sections" 
+              className="data-[state=active]:bg-[#215f47] data-[state=active]:text-white"
+            >
+              <BookOpen className="mr-2 h-4 w-4" />
+              Sections Management
+            </TabsTrigger>
+            <TabsTrigger 
+              value="schedules" 
+              className="data-[state=active]:bg-[#215f47] data-[state=active]:text-white"
+            >
+              <CalendarDays className="mr-2 h-4 w-4" />
+              Schedules Management
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
+        
         {error && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Alert variant="destructive" className="border-red-500/20 mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
         
         {showForm && (
-          <div className="rounded-lg bg-white p-6 shadow">
-            <h3 className="mb-4 text-lg font-medium">
-              {formType === 'add' ? 'Add New' : 'Edit'} Section
-            </h3>
+          <Card className="border-[#215f47]/20 shadow-sm mb-6">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg font-medium text-[#215f47]">
+                {formType === 'add' ? 'Add New' : 'Edit'} Section
+              </CardTitle>
+              <CardDescription>
+                {formType === 'add' ? 'Create a new section in your course' : 'Update section details'}
+              </CardDescription>
+            </CardHeader>
             
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {formType === 'add' && (
-                <div>
-                  <label htmlFor="courseId" className="block text-sm font-medium text-gray-700">
-                    Course
-                  </label>
-                  <select
-                    id="courseId"
-                    name="courseId"
-                    value={formData.courseId}
+            <CardContent>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                {formType === 'add' && (
+                  <div className="space-y-2">
+                    <Label htmlFor="courseId" className="text-gray-700">Course</Label>
+                    <Select
+                      name="courseId"
+                      value={formData.courseId}
+                      onValueChange={(value: string) => setFormData({ ...formData, courseId: value })}
+                      required
+                    >
+                      <SelectTrigger className="border-[#215f47]/20 focus:ring-[#215f47]/20 focus:border-[#215f47]">
+                        <SelectValue placeholder="Select a course" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {courses.map(course => (
+                          <SelectItem key={course.id} value={course.id.toString()}>
+                            {course.courseCode} - {course.courseName}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+                
+                <div className="space-y-2">
+                  <Label htmlFor="sectionName" className="text-gray-700">Section Name</Label>
+                  <Input
+                    id="sectionName"
+                    name="sectionName"
+                    value={formData.sectionName}
                     onChange={handleInputChange}
                     required
-                    className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  >
-                    <option value="">Select a course</option>
-                    {courses.map(course => (
-                      <option key={course.id} value={course.id}>
-                        {course.courseCode} - {course.courseName}
-                      </option>
-                    ))}
-                  </select>
+                    className="border-[#215f47]/20 focus:ring-[#215f47]/20 focus:border-[#215f47]"
+                    placeholder="e.g., Morning Section" 
+                  />
                 </div>
-              )}
-              
-              <div>
-                <label htmlFor="sectionName" className="block text-sm font-medium text-gray-700">
-                  Section Name
-                </label>
-                <input
-                  type="text"
-                  id="sectionName"
-                  name="sectionName"
-                  value={formData.sectionName}
-                  onChange={handleInputChange}
-                  required
-                  className="mt-1 block w-full rounded-md border border-gray-300 px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                  placeholder="e.g., Morning Section" 
-                />
-              </div>
-              
-              {/* Room field removed - it's not in the backend model */}
-              
-              <div className="flex justify-end space-x-3 pt-4">
-                <Button variant="outline" type="button" onClick={resetForm}>
-                  Cancel
-                </Button>
-                <Button type="submit">
-                  {formType === 'add' ? 'Create' : 'Update'}
-                </Button>
-              </div>
-            </form>
-          </div>
+              </form>
+            </CardContent>
+            
+            <CardFooter className="flex justify-end space-x-3 pt-2">
+              <Button 
+                variant="outline" 
+                type="button" 
+                onClick={resetForm}
+                className="border-[#215f47]/20 text-[#215f47] hover:bg-[#215f47]/5"
+              >
+                Cancel
+              </Button>
+              <Button 
+                type="button"
+                onClick={handleSubmit}
+                className="bg-[#215f47] hover:bg-[#215f47]/90 text-white"
+              >
+                {formType === 'add' ? 'Create' : 'Update'}
+              </Button>
+            </CardFooter>
+          </Card>
         )}
         
         {/* Assign Teacher Modal */}
-        {showAssignTeacherModal && (
-          <div className="fixed inset-0 z-10 overflow-y-auto">
-            <div className="flex min-h-screen items-end justify-center px-4 pb-20 pt-4 text-center sm:block sm:p-0">
-              <div className="fixed inset-0 transition-opacity" aria-hidden="true">
-                <div className="absolute inset-0 bg-gray-500 opacity-75"></div>
-              </div>
-              
-              <span className="hidden sm:inline-block sm:h-screen sm:align-middle" aria-hidden="true">&#8203;</span>
-              
-              <div className="inline-block transform overflow-hidden rounded-lg bg-white text-left align-bottom shadow-xl transition-all sm:my-8 sm:w-full sm:max-w-lg sm:align-middle">
-                <div className="bg-white px-4 pb-4 pt-5 sm:p-6 sm:pb-4">
-                  <div className="sm:flex sm:items-start">
-                    <div className="mx-auto flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-blue-100 sm:mx-0 sm:h-10 sm:w-10">
-                      <Users className="h-6 w-6 text-blue-600" />
-                    </div>
-                    <div className="mt-3 text-center sm:ml-4 sm:mt-0 sm:text-left">
-                      <h3 className="text-lg font-medium leading-6 text-gray-900">
-                        Assign Teacher to Section
-                      </h3>
-                      <div className="mt-2">
-                        <p className="text-sm text-gray-500">
-                          Select a teacher to assign to this section
-                        </p>
-                      </div>
-                      
-                      <div className="mt-4">
-                        <select
-                          value={selectedTeacherId}
-                          onChange={(e) => setSelectedTeacherId(e.target.value)}
-                          className="mt-1 block w-full rounded-md border border-gray-300 bg-white px-3 py-2 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500 sm:text-sm"
-                        >
-                          <option value="">Select a teacher</option>
-                          {teachers.map(teacher => (
-                            <option key={teacher.id} value={teacher.id}>
-                              {teacher.firstName} {teacher.lastName} ({teacher.email})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                <div className="bg-gray-50 px-4 py-3 sm:flex sm:flex-row-reverse sm:px-6">
-                  <Button
-                    onClick={handleAssignTeacher}
-                    className="inline-flex w-full justify-center sm:ml-3 sm:w-auto"
-                  >
-                    Assign
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={resetAssignTeacherModal}
-                    className="mt-3 inline-flex w-full justify-center sm:mt-0 sm:w-auto"
-                  >
-                    Cancel
-                  </Button>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-        
-        <div className="overflow-hidden rounded-lg bg-white shadow">
-          {sections.length === 0 ? (
-            <div className="p-6 text-center text-gray-500">
-              No sections found. Click "Add New Section" to create one.
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      ID
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Course
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Section Name
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Teacher
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Enrollment Key
-                    </th>
-                    <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider text-gray-500">
-                      Actions
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-200 bg-white">
-                  {sections.map((section) => (
-                    <tr key={section.id}>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                        {section.id}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        {getCourseName(section.courseId)}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        {section.sectionName}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        {getTeacherName(section.teacherId)}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                        {section.enrollmentKey || 'Not generated'}
-                      </td>
-                      <td className="whitespace-nowrap px-6 py-4 text-right text-sm font-medium">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleOpenAssignTeacher(section.id)}
-                          className="mr-2 text-blue-600 hover:text-blue-900"
-                        >
-                          Assign Teacher
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(section.id)}
-                          className="text-blue-600 hover:text-blue-900"
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleDelete(section.id)}
-                          className="text-red-600 hover:text-red-900"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleEndSection(section.id)}
-                          className="ml-2 text-yellow-600 hover:text-yellow-900"
-                        >
-                          End Section
-                        </Button>
-                      </td>
-                    </tr>
+        <Dialog open={showAssignTeacherModal} onOpenChange={(open) => !open && resetAssignTeacherModal()}>
+          <DialogContent className="bg-white">
+            <DialogHeader>
+              <DialogTitle className="text-[#215f47] flex items-center gap-2">
+                <UserCog className="h-5 w-5" />
+                Assign Teacher to Section
+              </DialogTitle>
+              <DialogDescription>
+                Select a teacher to assign to this section
+              </DialogDescription>
+            </DialogHeader>
+            
+            <div className="py-4">
+              <Label htmlFor="teacherId" className="text-gray-700 mb-2 block">Teacher</Label>
+              <Select
+                value={selectedTeacherId}
+                onValueChange={(value: string) => setSelectedTeacherId(value)}
+              >
+                <SelectTrigger className="border-[#215f47]/20 focus:ring-[#215f47]/20 focus:border-[#215f47]">
+                  <SelectValue placeholder="Select a teacher" />
+                </SelectTrigger>
+                <SelectContent>
+                  {teachers.map(teacher => (
+                    <SelectItem key={teacher.id} value={teacher.id.toString()}>
+                      {teacher.firstName} {teacher.lastName} ({teacher.email})
+                    </SelectItem>
                   ))}
-                </tbody>
-              </table>
+                </SelectContent>
+              </Select>
             </div>
-          )}
-        </div>
+            
+            <DialogFooter>
+              <Button
+                variant="outline"
+                onClick={resetAssignTeacherModal}
+                className="border-[#215f47]/20 text-[#215f47] hover:bg-[#215f47]/5"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleAssignTeacher}
+                className="bg-[#215f47] hover:bg-[#215f47]/90 text-white"
+              >
+                Assign
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+        
+        <Card className="border-[#215f47]/20 shadow-sm">
+          <CardHeader className="px-6 pb-2 pt-6">
+            <CardTitle className="text-lg font-medium text-[#215f47] flex items-center gap-2">
+              <Book className="h-5 w-5" />
+              Sections List
+            </CardTitle>
+            <CardDescription className="text-gray-500">
+              A list of all course sections in the system
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="px-6 pb-6">
+            {sections.length === 0 ? (
+              <div className="py-12 text-center text-gray-500 border border-dashed border-[#215f47]/20 rounded-md bg-[#215f47]/5">
+                <Book className="w-12 h-12 text-[#215f47]/40 mx-auto mb-3" />
+                <p className="text-sm text-gray-600">No sections found</p>
+                <p className="text-xs text-gray-500 mt-1">Click "Add New Section" to create one</p>
+              </div>
+            ) : (
+              <div className="rounded-md overflow-hidden border border-[#215f47]/20">
+                <Table>
+                  <TableHeader className="bg-[#215f47]/5">
+                    <TableRow>
+                      <TableHead className="text-[#215f47] font-medium w-[60px]">ID</TableHead>
+                      <TableHead className="text-[#215f47] font-medium">Course</TableHead>
+                      <TableHead className="text-[#215f47] font-medium">Section Name</TableHead>
+                      <TableHead className="text-[#215f47] font-medium">Teacher</TableHead>
+                      <TableHead className="text-[#215f47] font-medium">Enrollment Key</TableHead>
+                      <TableHead className="text-[#215f47] font-medium text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {sections.map((section) => (
+                      <TableRow key={section.id} className="hover:bg-[#215f47]/5 transition-colors">
+                        <TableCell className="font-medium">{section.id}</TableCell>
+                        <TableCell>
+                          <span className="font-medium">{getCourseName(section.courseId)}</span>
+                        </TableCell>
+                        <TableCell>{section.sectionName}</TableCell>
+                        <TableCell>
+                          {section.teacherId ? (
+                            <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47]">
+                              {getTeacherName(section.teacherId)}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-gray-100 text-gray-500">
+                              Not Assigned
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          {section.enrollmentKey ? (
+                            <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47] font-mono">
+                              {section.enrollmentKey}
+                            </Badge>
+                          ) : (
+                            <span className="text-gray-500 text-sm">Not generated</span>
+                          )}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleOpenAssignTeacher(section.id)}
+                            className="h-8 py-1 px-2 text-[#215f47] hover:bg-[#215f47]/5 mr-1"
+                          >
+                            <UserCog className="h-4 w-4 mr-1" />
+                            Assign
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEdit(section.id)}
+                            className="h-8 w-8 p-0 text-[#215f47] mr-1"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleDelete(section.id)}
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 mr-1"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => handleEndSection(section.id)}
+                            className="h-8 py-1 px-2 text-amber-600 hover:bg-amber-50"
+                          >
+                            End
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

@@ -4,7 +4,11 @@ import { courseApi, type Course } from '../../lib/api/course';
 import { sectionApi, type Section } from '../../lib/api/section';
 import { teacherApi, type Teacher } from '../../lib/api/teacher';
 import { studentApi, type Student } from '../../lib/api/student';
-import { Users, BookOpen, Calendar} from 'lucide-react';
+import { Users, BookOpen, Calendar, AlertTriangle, UserCog } from 'lucide-react';
+import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
+import { Badge } from '../../components/ui/badge';
+import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 
 const AdminDashboard = () => {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -67,7 +71,10 @@ const AdminDashboard = () => {
     return (
       <DashboardLayout>
         <div className="flex h-full items-center justify-center">
-          <p className="text-lg">Loading dashboard data...</p>
+          <div className="flex items-center space-x-2">
+            <div className="h-4 w-4 animate-spin rounded-full border-2 border-[#215f47] border-t-transparent"></div>
+            <p className="text-lg font-medium text-[#215f47]">Loading dashboard data...</p>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -76,17 +83,11 @@ const AdminDashboard = () => {
   if (error) {
     return (
       <DashboardLayout>
-        <div className="flex h-full items-center justify-center">
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+        <div className="flex h-full items-center justify-center p-6">
+          <Alert variant="destructive" className="border-red-300 bg-red-50">
+            <AlertTriangle className="h-5 w-5 text-red-600" />
+            <AlertDescription className="text-red-700">{error}</AlertDescription>
+          </Alert>
         </div>
       </DashboardLayout>
     );
@@ -94,105 +95,118 @@ const AdminDashboard = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        <h2 className="text-xl font-semibold">Admin Dashboard</h2>
+      <div className="space-y-6 p-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-2xl font-bold text-[#215f47] flex items-center gap-2">
+              <UserCog className="h-6 w-6" />
+              Admin Dashboard
+            </h2>
+            <p className="text-sm text-gray-500 mt-1">Overview of system data and metrics</p>
+          </div>
+          <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47] px-3 py-1">
+            Admin View
+          </Badge>
+        </div>
     
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {/* Summary Cards */}
-          <div className="rounded-lg bg-white p-6 shadow">
-            <div className="flex items-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-blue-100">
-                <BookOpen className="h-6 w-6 text-blue-600" />
+          <Card className="border-[#215f47]/20 shadow-sm hover:shadow transition-shadow duration-200">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#215f47]/10">
+                  <BookOpen className="h-6 w-6 text-[#215f47]" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Total Courses</p>
+                  <h3 className="text-2xl font-bold text-[#215f47]">{courses.length}</h3>
+                </div>
               </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Total Courses</h3>
-                <p className="text-2xl font-semibold text-gray-900">{courses.length}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
           
-          <div className="rounded-lg bg-white p-6 shadow">
-            <div className="flex items-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-green-100">
-                <Calendar className="h-6 w-6 text-green-600" />
+          <Card className="border-[#215f47]/20 shadow-sm hover:shadow transition-shadow duration-200">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#215f47]/10">
+                  <Calendar className="h-6 w-6 text-[#215f47]" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Total Sections</p>
+                  <h3 className="text-2xl font-bold text-[#215f47]">{sections.length}</h3>
+                </div>
               </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Total Sections</h3>
-                <p className="text-2xl font-semibold text-gray-900">{sections.length}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
           
-          <div className="rounded-lg bg-white p-6 shadow">
-            <div className="flex items-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-purple-100">
-                <Users className="h-6 w-6 text-purple-600" />
+          <Card className="border-[#215f47]/20 shadow-sm hover:shadow transition-shadow duration-200">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#215f47]/10">
+                  <Users className="h-6 w-6 text-[#215f47]" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Teachers</p>
+                  <h3 className="text-2xl font-bold text-[#215f47]">{teachers.length}</h3>
+                </div>
               </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Teachers</h3>
-                <p className="text-2xl font-semibold text-gray-900">{teachers.length}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
           
-          <div className="rounded-lg bg-white p-6 shadow">
-            <div className="flex items-center">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-yellow-100">
-                <Users className="h-6 w-6 text-yellow-600" />
+          <Card className="border-[#215f47]/20 shadow-sm hover:shadow transition-shadow duration-200">
+            <CardContent className="p-6">
+              <div className="flex items-center">
+                <div className="flex h-12 w-12 items-center justify-center rounded-full bg-[#215f47]/10">
+                  <Users className="h-6 w-6 text-[#215f47]" />
+                </div>
+                <div className="ml-4">
+                  <p className="text-sm font-medium text-gray-500">Students</p>
+                  <h3 className="text-2xl font-bold text-[#215f47]">{students.length}</h3>
+                </div>
               </div>
-              <div className="ml-4">
-                <h3 className="text-sm font-medium text-gray-500">Students</h3>
-                <p className="text-2xl font-semibold text-gray-900">{students.length}</p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
         
         {/* Recent Courses */}
-        <div className="rounded-lg bg-white p-6 shadow">
-          <h3 className="font-medium text-gray-900">Recent Courses</h3>
-          <div className="mt-4 overflow-x-auto">
-            <table className="min-w-full divide-y divide-gray-200">
-              <thead className="bg-gray-50">
-                <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Course Code
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Name
-                  </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500">
-                    Description
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-200 bg-white">
-                {courses.slice(0, 5).map((course) => (
-                  <tr key={course.id}>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm font-medium text-gray-900">
-                      {course.courseCode}
-                    </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-sm text-gray-500">
-                      {course.courseName}
-                    </td>
-                    <td className="px-6 py-4 text-sm text-gray-500">
-                      {course.courseDescription.length > 50
-                        ? `${course.courseDescription.substring(0, 50)}...`
-                        : course.courseDescription}
-                    </td>
-                  </tr>
-                ))}
-                {courses.length === 0 && (
-                  <tr>
-                    <td colSpan={3} className="px-6 py-4 text-center text-sm text-gray-500">
-                      No courses found
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-        </div>
+        <Card className="border-[#215f47]/20 shadow-sm">
+          <CardHeader className="px-6 pb-2 pt-6">
+            <CardTitle className="text-lg font-medium text-[#215f47]">Recent Courses</CardTitle>
+          </CardHeader>
+          <CardContent className="px-6 pb-6">
+            <div className="rounded-md overflow-hidden border border-[#215f47]/20">
+              <Table>
+                <TableHeader className="bg-[#215f47]/5">
+                  <TableRow>
+                    <TableHead className="text-[#215f47] font-medium">Course Code</TableHead>
+                    <TableHead className="text-[#215f47] font-medium">Name</TableHead>
+                    <TableHead className="text-[#215f47] font-medium">Description</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {courses.slice(0, 5).map((course) => (
+                    <TableRow key={course.id} className="hover:bg-[#215f47]/5 transition-colors">
+                      <TableCell className="font-medium">{course.courseCode}</TableCell>
+                      <TableCell>{course.courseName}</TableCell>
+                      <TableCell className="max-w-md">
+                        {course.courseDescription.length > 50
+                          ? `${course.courseDescription.substring(0, 50)}...`
+                          : course.courseDescription}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                  {courses.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                        No courses found
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </DashboardLayout>
   );

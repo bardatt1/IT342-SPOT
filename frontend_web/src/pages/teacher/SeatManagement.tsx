@@ -5,7 +5,11 @@ import { sectionApi, type Section } from '../../lib/api/section';
 import { studentApi, type Student } from '../../lib/api/student';
 import { seatApi, type SeatMap } from '../../lib/api/seat';
 import { Button } from '../../components/ui/button';
-import { Save, AlertTriangle, User, UserCheck } from 'lucide-react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Badge } from '../../components/ui/badge';
+import { Save, AlertTriangle, User, UserCheck, Check, Grid, MapPin, Users } from 'lucide-react';
 import FirstLoginModal from '../../components/ui/FirstLoginModal';
 
 const SeatManagement = () => {
@@ -229,8 +233,15 @@ const SeatManagement = () => {
   if (isLoading && sections.length === 0) {
     return (
       <DashboardLayout>
-        <div className="flex h-full items-center justify-center">
-          <p className="text-lg">Loading your sections...</p>
+        <div className="flex h-full items-center justify-center p-6">
+          <div className="flex flex-col items-center space-y-4 text-center">
+            <div className="animate-spin text-[#215f47]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+            </div>
+            <p className="text-lg font-medium text-gray-700">Loading your sections...</p>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -241,202 +252,262 @@ const SeatManagement = () => {
       {showFirstLoginModal && (
         <FirstLoginModal onClose={() => setShowFirstLoginModal(false)} />
       )}
-      <div className="space-y-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-2xl font-bold">Seat Management</h2>
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-[#215f47] flex items-center gap-2">
+              <Grid className="h-6 w-6" />
+              Seat Management
+            </h2>
+            <p className="text-gray-500 mt-1">Assign and manage student seating arrangements</p>
+          </div>
           
           {sections.length > 0 && (
-            <div className="flex items-center space-x-2">
-              <select
-                value={selectedSectionId || ''}
-                onChange={handleSectionChange}
-                className="rounded-md border border-gray-300 bg-white px-3 py-2 text-sm shadow-sm focus:border-blue-500 focus:outline-none focus:ring-blue-500"
+            <div className="mt-4 sm:mt-0 min-w-[200px]">
+              <Select
+                value={selectedSectionId?.toString() || ''}
+                onValueChange={(value) => handleSectionChange({ target: { value } } as any)}
               >
-                {sections.map(section => (
-                  <option key={section.id} value={section.id}>
-                    Section ID: {section.id} ({section.sectionName})
-                  </option>
-                ))}
-              </select>
+                <SelectTrigger className="border-[#215f47]/20 focus:ring-[#215f47]/20 focus:border-[#215f47]">
+                  <SelectValue placeholder="Select a section" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sections.map(section => (
+                    <SelectItem key={section.id} value={section.id.toString()}>
+                      Section: {section.sectionName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
           )}
         </div>
         
         {error && (
-          <div className="rounded-md bg-red-50 p-4">
-            <div className="flex">
-              <AlertTriangle className="h-5 w-5 text-red-400" />
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Alert variant="destructive" className="border-red-500/20 mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
         
         {success && (
-          <div className="rounded-md bg-green-50 p-4">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">Success</h3>
-                <div className="mt-2 text-sm text-green-700">
-                  <p>{success}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Alert className="bg-green-50 border-green-500/20 text-green-800 mb-6">
+            <Check className="h-4 w-4 text-green-500" />
+            <AlertTitle className="text-green-800">Success</AlertTitle>
+            <AlertDescription className="text-green-700">{success}</AlertDescription>
+          </Alert>
         )}
         
         {sections.length === 0 ? (
-          <div className="rounded-lg bg-white p-6 shadow">
-            <p className="text-center text-gray-500">
-              You have not been assigned to any sections yet.
-            </p>
-          </div>
+          <Card className="border-[#215f47]/20 shadow-sm">
+            <CardContent className="py-12 flex flex-col items-center justify-center text-center">
+              <Users className="h-12 w-12 text-[#215f47]/30 mb-4" />
+              <p className="text-gray-500 max-w-sm">
+                You have not been assigned to any sections yet. Please contact an administrator if you believe this is an error.
+              </p>
+            </CardContent>
+          </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
             {/* Student List */}
-            <div className="rounded-lg bg-white p-4 shadow md:col-span-1">
-              <h3 className="mb-4 border-b border-gray-200 pb-2 text-lg font-medium">Students</h3>
-              {sectionStudents.length === 0 ? (
-                <p className="text-center text-gray-500">
-                  No students in this section
-                </p>
-              ) : (
-                <div className="max-h-[500px] overflow-y-auto">
-                  <ul className="space-y-2">
-                    {sectionStudents.map(student => (
-                      <li 
-                        key={student.id}
-                        className={`cursor-pointer rounded-md p-2 ${
-                          selectedStudentId === student.id 
-                            ? 'bg-blue-100 text-blue-800'
-                            : 'hover:bg-gray-100'
-                        }`}
-                        onClick={() => handleStudentSelect(student.id)}
-                      >
-                        <div className="flex items-center">
-                          <User className="mr-2 h-4 w-4" />
-                          <div>
-                            <p className="font-medium">{student.lastName}, {student.firstName}</p>
-                            <p className="text-xs text-gray-500">ID: {student.studentPhysicalId}</p>
+            <Card className="border-[#215f47]/20 shadow-sm lg:col-span-1">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-medium text-[#215f47] flex items-center gap-2">
+                  <Users className="h-5 w-5" />
+                  Students
+                </CardTitle>
+                <CardDescription>
+                  Select a student to assign a seat
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {sectionStudents.length === 0 ? (
+                  <div className="py-8 text-center text-gray-500 border border-dashed border-[#215f47]/20 rounded-md bg-[#215f47]/5">
+                    <Users className="w-10 h-10 text-[#215f47]/40 mx-auto mb-3" />
+                    <p className="text-sm text-gray-600">No students in this section</p>
+                  </div>
+                ) : (
+                  <div className="max-h-[500px] overflow-y-auto pr-1">
+                    <ul className="space-y-1">
+                      {sectionStudents.map(student => (
+                        <li 
+                          key={student.id}
+                          className={`cursor-pointer rounded-md p-2.5 transition-colors ${
+                            selectedStudentId === student.id 
+                              ? 'bg-[#215f47]/10 text-[#215f47] border-l-2 border-[#215f47]'
+                              : 'hover:bg-gray-100'
+                          }`}
+                          onClick={() => handleStudentSelect(student.id)}
+                        >
+                          <div className="flex items-center">
+                            <div className={`mr-3 flex h-8 w-8 items-center justify-center rounded-full ${selectedStudentId === student.id ? 'bg-[#215f47]/10 text-[#215f47]' : 'bg-gray-100 text-gray-500'}`}>
+                              <User className="h-4 w-4" />
+                            </div>
+                            <div>
+                              <p className="font-medium">{student.lastName}, {student.firstName}</p>
+                              <div className="flex items-center mt-1">
+                                <Badge variant="outline" className="text-xs bg-gray-50">
+                                  {student.studentPhysicalId}
+                                </Badge>
+                                {student.year && (
+                                  <Badge variant="outline" className="text-xs ml-1 bg-[#215f47]/5 text-[#215f47]">
+                                    Year {student.year}
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
             
             {/* Seat Map */}
-            <div className="rounded-lg bg-white p-4 shadow md:col-span-2">
-              <h3 className="mb-4 border-b border-gray-200 pb-2 text-lg font-medium">Seat Map</h3>
-              
-              {seatMap ? (
-                <div className="space-y-4">
-                  <div className="overflow-x-auto">
-                    <div className="inline-block min-w-full">
-                      <div className="mb-2 text-center text-sm font-medium text-gray-500">
-                        Front of Classroom
-                      </div>
-                      
-                      <table className="min-w-full border border-gray-200">
-                        <tbody>
-                          {Array.from({ length: seatMap.rows }).map((_, rowIndex) => (
-                            <tr key={rowIndex}>
-                              {Array.from({ length: seatMap.columns }).map((_, colIndex) => {
-                                const isOccupied = isSeatOccupied(rowIndex, colIndex);
-                                const isSelected = selectedSeat?.row === rowIndex && selectedSeat?.column === colIndex;
-                                const student = findStudentBySeat(rowIndex, colIndex);
-                                
-                                return (
-                                  <td 
-                                    key={`${rowIndex}-${colIndex}`}
-                                    className={`h-16 w-16 border border-gray-200 p-1 text-center ${
-                                      isSelected 
-                                        ? 'bg-blue-200' 
-                                        : isOccupied 
-                                          ? 'bg-green-100' 
-                                          : 'bg-white hover:bg-gray-100'
-                                    } cursor-pointer`}
-                                    onClick={() => handleSeatSelect(rowIndex, colIndex)}
-                                  >
-                                    <div className="flex h-full flex-col items-center justify-center">
-                                      {isOccupied && student ? (
-                                        <>
-                                          <UserCheck className="h-4 w-4 text-green-600" />
-                                          <div className="mt-1 text-xs font-medium">
-                                            {student.lastName.substring(0, 6)}
-                                          </div>
-                                        </>
-                                      ) : (
-                                        <div className="text-xs text-gray-500">
-                                          Row {rowIndex+1}, Col {colIndex+1}
-                                        </div>
-                                      )}
-                                    </div>
-                                  </td>
-                                );
-                              })}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                  
-                  <div className="mt-4 rounded-md bg-gray-50 p-4">
-                    <h4 className="text-sm font-medium text-gray-900">Selection Details</h4>
-                    
-                    {selectedStudentId && (
-                      <div className="mt-2">
-                        <p className="text-sm font-medium text-gray-500">Selected Student:</p>
-                        <p className="text-sm text-gray-900">{getStudentNameById(selectedStudentId)}</p>
-                      </div>
-                    )}
-                    
-                    {selectedSeat && (
-                      <div className="mt-2">
-                        <p className="text-sm font-medium text-gray-500">Selected Seat:</p>
-                        <p className="text-sm text-gray-900">Row {selectedSeat.row + 1}, Column {selectedSeat.column + 1}</p>
+            <Card className="border-[#215f47]/20 shadow-sm lg:col-span-2">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-lg font-medium text-[#215f47] flex items-center gap-2">
+                  <Grid className="h-5 w-5" />
+                  Seat Map
+                </CardTitle>
+                <CardDescription>
+                  Arrange students in the classroom seating plan
+                </CardDescription>
+              </CardHeader>
+              <CardContent>
+                {seatMap ? (
+                  <div className="space-y-6">
+                    <div className="overflow-x-auto pb-2">
+                      <div className="inline-block min-w-full">
+                        <div className="mb-3 py-2 text-center border-b border-[#215f47]/10">
+                          <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47] font-normal">
+                            Front of Classroom
+                          </Badge>
+                        </div>
                         
-                        {isSeatOccupied(selectedSeat.row, selectedSeat.column) && (() => {
-                          const occupyingStudent = findStudentBySeat(selectedSeat.row, selectedSeat.column);
-                          return (
-                            <div className="mt-1 text-xs text-orange-500">
-                              <AlertTriangle className="mr-1 inline-block h-3 w-3" />
-                              This seat is already occupied by <span className="font-semibold">
-                                {occupyingStudent ? `${occupyingStudent.lastName}, ${occupyingStudent.firstName}` : 'Unknown Student'}
-                              </span>. Assigning will override the current assignment.
-                            </div>
-                          );
-                        })()}
+                        <table className="min-w-full border border-[#215f47]/10 rounded-md overflow-hidden">
+                          <tbody>
+                            {Array.from({ length: seatMap.rows }).map((_, rowIndex) => (
+                              <tr key={rowIndex}>
+                                {Array.from({ length: seatMap.columns }).map((_, colIndex) => {
+                                  const isOccupied = isSeatOccupied(rowIndex, colIndex);
+                                  const isSelected = selectedSeat?.row === rowIndex && selectedSeat?.column === colIndex;
+                                  const student = findStudentBySeat(rowIndex, colIndex);
+                                  
+                                  return (
+                                    <td 
+                                      key={`${rowIndex}-${colIndex}`}
+                                      className={`h-16 w-16 border border-[#215f47]/10 p-1 text-center transition-colors ${
+                                        isSelected 
+                                          ? 'bg-[#215f47]/20 border border-[#215f47]/40' 
+                                          : isOccupied 
+                                            ? 'bg-[#215f47]/10' 
+                                            : 'bg-white hover:bg-gray-50'
+                                      } cursor-pointer`}
+                                      onClick={() => handleSeatSelect(rowIndex, colIndex)}
+                                    >
+                                      <div className="flex h-full flex-col items-center justify-center rounded-sm">
+                                        {isOccupied && student ? (
+                                          <>
+                                            <div className="mb-1 h-6 w-6 rounded-full bg-[#215f47]/20 flex items-center justify-center">
+                                              <UserCheck className="h-4 w-4 text-[#215f47]" />
+                                            </div>
+                                            <div className="text-xs font-medium text-[#215f47]/80">
+                                              {student.lastName.substring(0, 6)}
+                                            </div>
+                                          </>
+                                        ) : (
+                                          <div className="text-xs text-gray-500 flex flex-col items-center">
+                                            <MapPin className="h-3 w-3 mb-1 text-gray-400" />
+                                            <span>R{rowIndex+1}, C{colIndex+1}</span>
+                                          </div>
+                                        )}
+                                      </div>
+                                    </td>
+                                  );
+                                })}
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
                       </div>
-                    )}
-                    
-                    <div className="mt-4">
-                      <Button
-                        onClick={assignSeat}
-                        disabled={isSaving || !selectedStudentId || !selectedSeat}
-                        className="w-full"
-                      >
-                        <Save className="mr-1 h-4 w-4" />
-                        {isSaving ? 'Saving...' : 'Assign Seat'}
-                      </Button>
                     </div>
+                    
+                    <Card className="border-[#215f47]/10 bg-[#215f47]/5">
+                      <CardHeader className="pb-2 pt-4">
+                        <CardTitle className="text-sm font-medium text-[#215f47]">Selection Details</CardTitle>
+                      </CardHeader>
+                      <CardContent className="pb-4">
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                          {selectedStudentId && (
+                            <div className="bg-white p-3 rounded-md border border-[#215f47]/10 shadow-sm">
+                              <p className="text-xs font-medium text-[#215f47]/70">Selected Student</p>
+                              <p className="text-sm font-semibold mt-1 flex items-center">
+                                <User className="h-4 w-4 mr-1.5 text-[#215f47]/70" />
+                                {getStudentNameById(selectedStudentId)}
+                              </p>
+                            </div>
+                          )}
+                          
+                          {selectedSeat && (
+                            <div className="bg-white p-3 rounded-md border border-[#215f47]/10 shadow-sm">
+                              <p className="text-xs font-medium text-[#215f47]/70">Selected Seat</p>
+                              <p className="text-sm font-semibold mt-1 flex items-center">
+                                <MapPin className="h-4 w-4 mr-1.5 text-[#215f47]/70" />
+                                Row {selectedSeat.row + 1}, Column {selectedSeat.column + 1}
+                              </p>
+                              
+                              {isSeatOccupied(selectedSeat.row, selectedSeat.column) && (() => {
+                                const occupyingStudent = findStudentBySeat(selectedSeat.row, selectedSeat.column);
+                                return (
+                                  <div className="mt-2 text-xs text-amber-600 bg-amber-50 p-1.5 rounded-md border border-amber-100 flex items-start">
+                                    <AlertTriangle className="mr-1.5 h-3.5 w-3.5 mt-0.5 flex-shrink-0" />
+                                    <span>
+                                      This seat is already occupied by <span className="font-semibold">
+                                        {occupyingStudent ? `${occupyingStudent.lastName}, ${occupyingStudent.firstName}` : 'Unknown Student'}
+                                      </span>. Assigning will override the current assignment.
+                                    </span>
+                                  </div>
+                                );
+                              })()}
+                            </div>
+                          )}
+                        </div>
+                        
+                        <div className="mt-4">
+                          <Button
+                            onClick={assignSeat}
+                            disabled={isSaving || !selectedStudentId || !selectedSeat}
+                            className="w-full bg-[#215f47] hover:bg-[#215f47]/90 text-white"
+                          >
+                            {isSaving ? (
+                              <>
+                                <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                                Saving...
+                              </>
+                            ) : (
+                              <>
+                                <Save className="mr-2 h-4 w-4" />
+                                Assign Seat
+                              </>
+                            )}
+                          </Button>
+                        </div>
+                      </CardContent>
+                    </Card>
                   </div>
-                </div>
-              ) : (
-                <div className="rounded-lg bg-gray-100 p-6 text-center">
-                  <p className="text-gray-500">
-                    Select a section to view and manage the seat map
-                  </p>
-                </div>
-              )}
-            </div>
+                ) : (
+                  <div className="py-12 text-center text-gray-500 border border-dashed border-[#215f47]/20 rounded-md bg-[#215f47]/5">
+                    <Grid className="w-12 h-12 text-[#215f47]/40 mx-auto mb-3" />
+                    <p className="text-sm text-gray-600">Select a section to view the seat map</p>
+                    <p className="text-xs text-gray-500 mt-1">Once selected, you can assign students to seats</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </div>
         )}
       </div>

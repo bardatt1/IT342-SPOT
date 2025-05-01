@@ -2,8 +2,13 @@ import { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
 import { teacherApi, type Teacher } from '../../lib/api/teacher';
 import DashboardLayout from '../../components/ui/layout/DashboardLayout';
-import { Button, Input, Label } from '../../components/ui';
-import { AlertTriangle, Save, User, Mail, Check, X, Eye, EyeOff } from 'lucide-react';
+import { Button } from '../../components/ui/button';
+import { Input } from '../../components/ui/input';
+import { Label } from '../../components/ui/label';
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
+import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
+import { Separator } from '../../components/ui/separator';
+import { AlertTriangle, Save, User, Mail, Check, X, Eye, EyeOff, Shield, UserCog } from 'lucide-react';
 
 const TeacherProfile = () => {
   const { user, refreshUserData, logout } = useAuth();
@@ -201,8 +206,15 @@ const TeacherProfile = () => {
   if (isLoading) {
     return (
       <DashboardLayout>
-        <div className="flex h-full items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+        <div className="flex h-full items-center justify-center p-6">
+          <div className="flex flex-col items-center space-y-4 text-center">
+            <div className="animate-spin text-[#215f47]">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+              </svg>
+            </div>
+            <p className="text-lg font-medium text-gray-700">Loading profile...</p>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -210,246 +222,270 @@ const TeacherProfile = () => {
   
   return (
     <DashboardLayout>
-      <div className="container mx-auto px-4 py-8">
-        <h1 className="text-2xl font-bold mb-6">My Profile</h1>
+      <div className="space-y-6 p-6">
+        <div className="flex items-center">
+          <div>
+            <h1 className="text-2xl font-bold text-[#215f47] flex items-center gap-2">
+              <UserCog className="h-6 w-6" />
+              Teacher Profile
+            </h1>
+            <p className="text-gray-500 mt-1">Update your personal information and change password</p>
+          </div>
+        </div>
         
         {error && (
-          <div className="rounded-md bg-red-50 p-4 mb-6">
-            <div className="flex">
-              <AlertTriangle className="h-5 w-5 text-red-400" />
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">Error</h3>
-                <div className="mt-2 text-sm text-red-700">
-                  <p>{error}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Alert variant="destructive" className="border-red-500/20 mb-6">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
         )}
         
         {success && (
-          <div className="rounded-md bg-green-50 p-4 mb-6">
-            <div className="flex">
-              <Check className="h-5 w-5 text-green-400" />
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-green-800">Success</h3>
-                <div className="mt-2 text-sm text-green-700">
-                  <p>{success}</p>
-                </div>
-              </div>
-            </div>
-          </div>
+          <Alert className="bg-green-50 border-green-500/20 text-green-800 mb-6">
+            <Check className="h-4 w-4 text-green-500" />
+            <AlertTitle className="text-green-800">Success</AlertTitle>
+            <AlertDescription className="text-green-700">{success}</AlertDescription>
+          </Alert>
         )}
         
-        <div className="bg-white rounded-lg shadow-md p-6">
-          <form onSubmit={handleSubmit}>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div>
-                <Label htmlFor="firstName" className="block text-sm font-medium text-gray-700 mb-1">
-                  First Name
-                </Label>
-                <div className="relative">
-                  <User className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
+        <Card className="border-[#215f47]/20 shadow-sm">
+          <CardHeader className="pb-4">
+            <CardTitle className="text-lg font-medium text-[#215f47] flex items-center gap-2">
+              <User className="h-5 w-5" />
+              Personal Information
+            </CardTitle>
+            <CardDescription>
+              Manage your account details and contact information
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <form onSubmit={handleSubmit}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className="text-gray-700">
+                    First Name
+                  </Label>
+                  <div className="relative">
+                    <User className="h-4 w-4 text-[#215f47]/60 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <Input
+                      id="firstName"
+                      value={firstName}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)}
+                      className="pl-9 border-[#215f47]/20 focus:ring-[#215f47]/20 focus:border-[#215f47]"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="middleName" className="text-gray-700">
+                    Middle Name (optional)
+                  </Label>
                   <Input
-                    id="firstName"
-                    value={firstName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFirstName(e.target.value)}
-                    className="pl-10 w-full"
-                    required
+                    id="middleName"
+                    value={middleName}
+                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMiddleName(e.target.value)}
+                    className="border-[#215f47]/20 focus:ring-[#215f47]/20 focus:border-[#215f47]"
                   />
                 </div>
-              </div>
-              
-              <div>
-                <Label htmlFor="middleName" className="block text-sm font-medium text-gray-700 mb-1">
-                  Middle Name (optional)
-                </Label>
-                <Input
-                  id="middleName"
-                  value={middleName}
-                  onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMiddleName(e.target.value)}
-                  className="w-full"
-                />
-              </div>
-              
-              <div>
-                <Label htmlFor="lastName" className="block text-sm font-medium text-gray-700 mb-1">
-                  Last Name
-                </Label>
-                <div className="relative">
-                  <User className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                  <Input
-                    id="lastName"
-                    value={lastName}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)}
-                    className="pl-10 w-full"
-                    required
-                  />
+                
+                <div className="space-y-2">
+                  <Label htmlFor="lastName" className="text-gray-700">
+                    Last Name
+                  </Label>
+                  <div className="relative">
+                    <User className="h-4 w-4 text-[#215f47]/60 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <Input
+                      id="lastName"
+                      value={lastName}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setLastName(e.target.value)}
+                      className="pl-9 border-[#215f47]/20 focus:ring-[#215f47]/20 focus:border-[#215f47]"
+                      required
+                    />
+                  </div>
                 </div>
-              </div>
 
-              <div>
-                <Label htmlFor="teacherId" className="block text-sm font-medium text-gray-700 mb-1">
-                  Teacher ID
-                </Label>
-                <Input
-                  id="teacherId"
-                  value={teacher?.teacherPhysicalId || ''}
-                  className="w-full bg-gray-100"
-                  disabled
-                />
-                <p className="mt-1 text-xs text-gray-500">Teacher ID cannot be changed</p>
-              </div>
-              
-              <div>
-                <Label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                  Email
-                </Label>
-                <div className="relative">
-                  <Mail className="h-5 w-5 text-gray-400 absolute left-3 top-1/2 transform -translate-y-1/2" />
-                  <Input
-                    id="email"
-                    type="email"
-                    value={email}
-                    onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
-                    className="pl-10 w-full"
-                    required
-                  />
+                <div className="space-y-2">
+                  <Label htmlFor="teacherId" className="text-gray-700">
+                    Teacher ID
+                  </Label>
+                  <div className="relative">
+                    <Shield className="h-4 w-4 text-[#215f47]/60 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <Input
+                      id="teacherId"
+                      value={teacher?.teacherPhysicalId || ''}
+                      className="pl-9 border-[#215f47]/20 bg-[#215f47]/5 text-gray-500"
+                      disabled
+                    />
+                  </div>
+                  <p className="text-xs text-gray-500">Teacher ID cannot be changed</p>
+                </div>
+                
+                <div className="space-y-2 md:col-span-2">
+                  <Label htmlFor="email" className="text-gray-700">
+                    Email Address
+                  </Label>
+                  <div className="relative">
+                    <Mail className="h-4 w-4 text-[#215f47]/60 absolute left-3 top-1/2 transform -translate-y-1/2" />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e: React.ChangeEvent<HTMLInputElement>) => setEmail(e.target.value)}
+                      className="pl-9 border-[#215f47]/20 focus:ring-[#215f47]/20 focus:border-[#215f47]"
+                      required
+                    />
+                  </div>
+                </div>
+                
+                <div className="col-span-2">
+                  <Separator className="my-6 bg-[#215f47]/10" />
+                  
+                  <div className="mb-4">
+                    <h3 className="text-lg font-medium text-[#215f47] flex items-center gap-2">
+                      <Shield className="h-5 w-5" />
+                      Security Settings
+                    </h3>
+                    <p className="text-sm text-gray-500">Update your password or security preferences</p>
+                  </div>
+                  
+                  {passwordError && (
+                    <Alert variant="destructive" className="mb-4 bg-red-50/50 border-red-200 text-red-800">
+                      <AlertTriangle className="h-4 w-4" />
+                      <AlertTitle>Password Error</AlertTitle>
+                      <AlertDescription>{passwordError}</AlertDescription>
+                    </Alert>
+                  )}
+                  
+                  <div className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="currentPassword" className="text-gray-700">
+                        Current Password
+                      </Label>
+                      <div className="relative">
+                        <Input
+                          id="currentPassword"
+                          type={showCurrentPassword ? "text" : "password"}
+                          value={currentPassword}
+                          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
+                          placeholder="Enter current password"
+                          className="border-[#215f47]/20 focus:ring-[#215f47]/20 focus:border-[#215f47] pr-10"
+                        />
+                        <button
+                          type="button"
+                          className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#215f47]"
+                          onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                          tabIndex={-1}
+                        >
+                          {showCurrentPassword ? (
+                            <EyeOff className="h-4 w-4" aria-hidden="true" />
+                          ) : (
+                            <Eye className="h-4 w-4" aria-hidden="true" />
+                          )}
+                        </button>
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="newPassword" className="text-gray-700">
+                          New Password
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="newPassword"
+                            type={showNewPassword ? "text" : "password"}
+                            value={newPassword}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
+                            placeholder="Enter new password"
+                            className="border-[#215f47]/20 focus:ring-[#215f47]/20 focus:border-[#215f47] pr-10"
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#215f47]"
+                            onClick={() => setShowNewPassword(!showNewPassword)}
+                            tabIndex={-1}
+                          >
+                            {showNewPassword ? (
+                              <EyeOff className="h-4 w-4" aria-hidden="true" />
+                            ) : (
+                              <Eye className="h-4 w-4" aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-2">
+                        <Label htmlFor="confirmPassword" className="text-gray-700">
+                          Confirm New Password
+                        </Label>
+                        <div className="relative">
+                          <Input
+                            id="confirmPassword"
+                            type={showConfirmPassword ? "text" : "password"}
+                            value={confirmPassword}
+                            onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
+                            placeholder="Re-enter new password"
+                            className="border-[#215f47]/20 focus:ring-[#215f47]/20 focus:border-[#215f47] pr-10"
+                          />
+                          <button
+                            type="button"
+                            className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-[#215f47]"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            tabIndex={-1}
+                          >
+                            {showConfirmPassword ? (
+                              <EyeOff className="h-4 w-4" aria-hidden="true" />
+                            ) : (
+                              <Eye className="h-4 w-4" aria-hidden="true" />
+                            )}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <p className="text-xs text-gray-500 mt-1 bg-[#215f47]/5 p-2 rounded-md border border-[#215f47]/10">
+                      <span className="font-medium">Note:</span> Passwords are stored securely using one-way encryption and cannot be displayed.
+                      Leave these fields blank if you don't want to change your password.
+                    </p>
+                  </div>              
                 </div>
               </div>
-              
-              <div className="col-span-2 border-t pt-4 mt-2">
-                <h3 className="text-lg font-medium mb-3">Change Password</h3>
-                {passwordError && (
-                  <div className="mb-3 p-2 text-sm border border-red-300 bg-red-50 text-red-700 rounded">
-                    {passwordError}
-                  </div>
-                )}
-                <div className="space-y-3">
-                  <div>
-                    <Label htmlFor="currentPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                      Current Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="currentPassword"
-                        type={showCurrentPassword ? "text" : "password"}
-                        value={currentPassword}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setCurrentPassword(e.target.value)}
-                        placeholder="Enter current password"
-                        className="w-full"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        tabIndex={-1}
-                      >
-                        {showCurrentPassword ? (
-                          <EyeOff className="h-4 w-4" aria-hidden="true" />
-                        ) : (
-                          <Eye className="h-4 w-4" aria-hidden="true" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="newPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                      New Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="newPassword"
-                        type={showNewPassword ? "text" : "password"}
-                        value={newPassword}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setNewPassword(e.target.value)}
-                        placeholder="Enter new password"
-                        className="w-full"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        onClick={() => setShowNewPassword(!showNewPassword)}
-                        tabIndex={-1}
-                      >
-                        {showNewPassword ? (
-                          <EyeOff className="h-4 w-4" aria-hidden="true" />
-                        ) : (
-                          <Eye className="h-4 w-4" aria-hidden="true" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <div>
-                    <Label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
-                      Confirm New Password
-                    </Label>
-                    <div className="relative">
-                      <Input
-                        id="confirmPassword"
-                        type={showConfirmPassword ? "text" : "password"}
-                        value={confirmPassword}
-                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(e.target.value)}
-                        placeholder="Re-enter new password"
-                        className="w-full"
-                      />
-                      <button
-                        type="button"
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 hover:text-gray-700"
-                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        tabIndex={-1}
-                      >
-                        {showConfirmPassword ? (
-                          <EyeOff className="h-4 w-4" aria-hidden="true" />
-                        ) : (
-                          <Eye className="h-4 w-4" aria-hidden="true" />
-                        )}
-                      </button>
-                    </div>
-                  </div>
-                  
-                  <p className="text-xs text-gray-500 mt-1">
-                    Passwords are stored securely using one-way encryption and cannot be displayed.
-                    Leave these fields blank if you don't want to change your password.
-                  </p>
-                </div>              
-              </div>
-            </div>
+            </form>
+          </CardContent>
+          <CardFooter className="flex flex-col sm:flex-row justify-end gap-3 pt-2 border-t border-[#215f47]/10">
+            <Button
+              type="button"
+              variant="outline"
+              onClick={handleCancel}
+              disabled={isSaving}
+              className="w-full sm:w-auto border-[#215f47]/20 text-[#215f47] hover:bg-[#215f47]/5 order-2 sm:order-1"
+            >
+              <X className="mr-2 h-4 w-4" />
+              Cancel Changes
+            </Button>
             
-            <div className="mt-6 flex flex-col md:flex-row gap-3">
-              <Button
-                type="submit"
-                className="w-full md:w-auto"
-                disabled={isSaving}
-              >
-                {isSaving ? (
-                  <>
-                    <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
-                    Saving...
-                  </>
-                ) : (
-                  <>
-                    <Save className="mr-2 h-4 w-4" />
-                    Save Changes
-                  </>
-                )}
-              </Button>
-              
-              <Button
-                type="button"
-                variant="outline"
-                className="w-full md:w-auto"
-                onClick={handleCancel}
-                disabled={isSaving}
-              >
-                <X className="mr-2 h-4 w-4" />
-                Cancel Changes
-              </Button>
-            </div>
-          </form>
-        </div>
+            <Button
+              type="button"
+              onClick={handleSubmit}
+              className="w-full sm:w-auto bg-[#215f47] hover:bg-[#215f47]/90 text-white order-1 sm:order-2"
+              disabled={isSaving}
+            >
+              {isSaving ? (
+                <>
+                  <div className="animate-spin mr-2 h-4 w-4 border-t-2 border-b-2 border-white rounded-full"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="mr-2 h-4 w-4" />
+                  Save Changes
+                </>
+              )}
+            </Button>
+          </CardFooter>
+        </Card>
       </div>
     </DashboardLayout>
   );

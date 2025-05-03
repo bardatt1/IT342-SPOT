@@ -1,6 +1,6 @@
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/attendance_db?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true
+    url: 
     username: root
     password: 
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -17,8 +17,8 @@ spring:
       client:
         registration:
           google:
-            client-id: ${GOOGLE_CLIENT_ID:717702285338-tn14846cq9li6i0n5qp2r8npl784a1h9.apps.googleusercontent.com}
-            client-secret: ${GOOGLE_CLIENT_SECRET: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}
+            client-id: 
+            client-secret: 
             scope:
               - email
               - profile

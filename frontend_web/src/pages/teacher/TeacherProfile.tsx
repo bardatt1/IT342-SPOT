@@ -8,6 +8,7 @@ import { Label } from '../../components/ui/label';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '../../components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { Separator } from '../../components/ui/separator';
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { AlertTriangle, Save, User, Mail, Check, X, Eye, EyeOff, Shield, UserCog } from 'lucide-react';
 
 const TeacherProfile = () => {
@@ -30,6 +31,9 @@ const TeacherProfile = () => {
   const [showCurrentPassword, setShowCurrentPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  
+  // Email change confirmation dialog
+  const [showEmailChangeDialog, setShowEmailChangeDialog] = useState(false);
   
   useEffect(() => {
     fetchTeacherDetails();
@@ -87,9 +91,52 @@ const TeacherProfile = () => {
     }
   };
   
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Handle form submission - checks if email is changed and prompts for confirmation
+  const handleSubmit = (e: React.MouseEvent<HTMLButtonElement>) => {
     e.preventDefault();
     
+    // Reset states
+    setError(null);
+    setSuccess(null);
+    setIsSaving(true);
+    
+    // Validate passwords
+    if (newPassword) {
+      // Check if passwords match
+      if (newPassword !== confirmPassword) {
+        setPasswordError("New passwords don't match");
+        setIsSaving(false);
+        return;
+      }
+      
+      // Check password length
+      if (newPassword.length < 8) {
+        setPasswordError("New password must be at least 8 characters long");
+        setIsSaving(false);
+        return;
+      }
+      
+      // Check current password
+      if (!currentPassword) {
+        setPasswordError("Please enter your current password");
+        setIsSaving(false);
+        return;
+      }
+    }
+    
+    // Check if email was changed
+    if (user && email !== user.email) {
+      // Show confirmation dialog instead of proceeding directly
+      setShowEmailChangeDialog(true);
+      setIsSaving(false);
+    } else {
+      // No email change, proceed directly
+      processProfileUpdate();
+    }
+  };
+  
+  // Process the actual profile update after all checks
+  const processProfileUpdate = async (forceLogout: boolean = false) => {
     if (!teacher || !user?.id) {
       setError('Teacher data not available. Please refresh the page.');
       return;
@@ -152,26 +199,25 @@ const TeacherProfile = () => {
       setLastName(result.lastName || '');
       setEmail(result.email || '');
       
-      // Check if email was changed - if so, we need to refresh auth data
-      // or the next request will fail with 401 Unauthorized
-      if (email !== user?.email) {
-        console.log('Email was changed, refreshing authentication data...');
-        try {
-          // Refresh the user data in the auth context
-          await refreshUserData();
+      // Handle email change - always force logout if email was changed or forceLogout is true
+      if (email !== user?.email || forceLogout) {
+        console.log('Email was changed, initiating logout...');
+        
+        // Set success message for email change
+        setSuccess('Profile updated successfully. You will be redirected to login with your new email in a moment.');
+        
+        // Log the user out after a brief delay to show the message
+        setTimeout(() => {
+          // Clear all authentication data and redirect to login page
+          console.log('Logging out user after email change...');
+          logout();
           
-          // Set success message specifically for email change
-          setSuccess('Profile updated successfully. Please note that your email was changed, which may require you to log in again if you encounter any issues.');
-        } catch (refreshError) {
-          console.error('Error refreshing auth data after email change:', refreshError);
-          // Advise user to log in again if refresh fails
-          setSuccess('Profile updated successfully. Please log in again with your new email address.');
-          // Log the user out after a brief delay to show the message
+          // Forcibly reload the page to ensure all auth state is cleared
           setTimeout(() => {
-            logout();
-          }, 3000);
-          return;
-        }
+            window.location.href = '/login';
+          }, 500);
+        }, 2000);
+        return;
       }
       
       // Clear all password fields after successful update
@@ -260,7 +306,7 @@ const TeacherProfile = () => {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={(e) => e.preventDefault()}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-2">
                   <Label htmlFor="firstName" className="text-gray-700">
@@ -466,11 +512,11 @@ const TeacherProfile = () => {
               Cancel Changes
             </Button>
             
-            <Button
+            <Button 
               type="button"
               onClick={handleSubmit}
-              className="w-full sm:w-auto bg-[#215f47] hover:bg-[#215f47]/90 text-white order-1 sm:order-2"
               disabled={isSaving}
+              className="w-full sm:w-auto bg-[#215f47] hover:bg-[#215f47]/90 text-white order-1 sm:order-2"
             >
               {isSaving ? (
                 <>
@@ -487,6 +533,56 @@ const TeacherProfile = () => {
           </CardFooter>
         </Card>
       </div>
+      
+      {/* Email Change Confirmation Dialog */}
+      <Dialog open={showEmailChangeDialog} onOpenChange={(open) => !open && setShowEmailChangeDialog(false)}>
+        <DialogContent className="bg-white">
+          <DialogHeader>
+            <DialogTitle className="text-[#215f47] flex items-center gap-2">
+              <AlertTriangle className="h-5 w-5 text-amber-500" />
+              Email Change Confirmation
+            </DialogTitle>
+            <DialogDescription>
+              Changing your email will log you out. You'll need to log in again with your new email.
+            </DialogDescription>
+          </DialogHeader>
+          
+          <div className="py-4">
+            <p className="text-sm text-gray-500">Current email: <span className="font-medium text-gray-900">{user?.email}</span></p>
+            <p className="text-sm text-gray-500 mt-1">New email: <span className="font-medium text-gray-900">{email}</span></p>
+            
+            <Alert className="mt-4 border-amber-200 bg-amber-50">
+              <AlertTriangle className="h-4 w-4 text-amber-500" />
+              <AlertDescription className="text-amber-800 text-sm">
+                You will be logged out immediately after confirming this change.
+              </AlertDescription>
+            </Alert>
+          </div>
+          
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setShowEmailChangeDialog(false);
+                setIsSaving(false);
+              }}
+              className="border-[#215f47]/20 text-[#215f47] hover:bg-[#215f47]/5"
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={() => {
+                setShowEmailChangeDialog(false);
+                // Process profile update and then force logout
+                processProfileUpdate(true);
+              }}
+              className="bg-[#215f47] hover:bg-[#215f47]/90 text-white"
+            >
+              Confirm Change
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

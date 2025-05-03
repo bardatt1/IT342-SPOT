@@ -280,22 +280,46 @@ export const sectionApi = {
     }
   },
   
-  // Open enrollment
-  openEnrollment: async (sectionId: number): Promise<void> => {
+  // Open enrollment - using the dedicated open enrollment endpoint
+  openEnrollment: async (sectionId: number, enrollmentKey?: string): Promise<void> => {
     try {
-      await axiosInstance.post(`/sections/${sectionId}/open`);
-    } catch (error) {
+      console.log(`Attempting to open enrollment for section ${sectionId}`);
+      
+      // First check if we need to generate an enrollment key
+      let key = enrollmentKey;
+      if (!key) {
+        // If no key provided, try to generate one first
+        const updatedSection = await sectionApi.generateClassCode(sectionId);
+        key = updatedSection.enrollmentKey;
+        console.log(`Generated enrollment key: ${key} for section ${sectionId}`);
+      }
+      
+      // Now open enrollment with the key
+      await axiosInstance.post(`/sections/${sectionId}/open?enrollmentKey=${key}`);
+      console.log(`Successfully opened enrollment for section ${sectionId}`);
+    } catch (error: any) { // TypeScript needs explicit type casting for error handling
       console.error(`Error opening enrollment for section ${sectionId}:`, error);
+      // Check if there's a specific error message from the server
+      if (error?.response?.data?.message) {
+        console.error('Server error message:', error.response.data.message);
+      }
       throw error;
     }
   },
   
-  // Close enrollment
+  // Close enrollment - using the dedicated close enrollment endpoint
   closeEnrollment: async (sectionId: number): Promise<void> => {
     try {
-      await axiosInstance.post(`/sections/${sectionId}/close`);
-    } catch (error) {
+      console.log(`Attempting to close enrollment for section ${sectionId}`);
+      // The API documentation confirms this endpoint exists, adding empty body
+      await axiosInstance.post(`/sections/${sectionId}/close`, {});
+      console.log(`Successfully closed enrollment for section ${sectionId}`);
+    } catch (error: any) { // TypeScript needs explicit type casting for error handling
       console.error(`Error closing enrollment for section ${sectionId}:`, error);
+      // Check if there's a specific error message from the server
+      if (error?.response?.data?.message) {
+        console.error('Server error message:', error.response.data.message);
+      }
       throw error;
     }
   },

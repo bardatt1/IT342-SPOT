@@ -33,7 +33,7 @@ const Login = () => {
       console.log("Attempting login with:", email)
 
       // Make direct API call to login
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8080/api"
+      const apiUrl = import.meta.env.VITE_API_URL || "https://backend.spot-edu.me/api"
       const response = await axios.post(`${apiUrl}/auth/login`, { email, password })
       console.log("Login API response:", response.data)
 

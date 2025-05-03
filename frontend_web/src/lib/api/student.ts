@@ -23,14 +23,21 @@ export interface StudentCreateDto {
 }
 
 export const studentApi = {
-  // Get all students - admin only endpoint
+  // Get all students - admin or system-admin endpoint
   getAll: async (): Promise<Student[]> => {
     try {
-      // Using admin endpoint for getting all students
-      // This endpoint requires admin permissions
-      const response = await axiosInstance.get('/admin/students');
-      console.log('Student data response:', response.data);
-      return response.data?.data || [];
+      // Try to use system-admin endpoint first, fall back to admin endpoint
+      try {
+        const response = await axiosInstance.get('/system-admin/students');
+        console.log('Student data response from system-admin endpoint:', response.data);
+        return response.data?.data || [];
+      } catch (systemAdminError) {
+        // If the system-admin endpoint fails, try the regular admin endpoint
+        console.log('Falling back to admin endpoint for students');
+        const response = await axiosInstance.get('/admin/students');
+        console.log('Student data response from admin endpoint:', response.data);
+        return response.data?.data || [];
+      }
     } catch (error: any) {
       console.error('Error fetching students:', error);
       // Check if it's an authorization error and provide more context

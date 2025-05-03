@@ -25,7 +25,9 @@ const ProtectedRoute = ({ children, allowedRoles }: ProtectedRouteProps) => {
   // Check role permissions if roles are specified
   if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     // Redirect based on role
-    if (user.role === 'ADMIN') {
+    if (user.role === 'SYSTEMADMIN') {
+      return <Navigate to="/system-admin/dashboard" replace />;
+    } else if (user.role === 'ADMIN') {
       return <Navigate to="/admin/dashboard" replace />;
     } else if (user.role === 'TEACHER') {
       return <Navigate to="/teacher/dashboard" replace />;

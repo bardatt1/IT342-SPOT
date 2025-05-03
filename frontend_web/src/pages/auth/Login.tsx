@@ -33,7 +33,7 @@ const Login = () => {
       console.log("Attempting login with:", email)
 
       // Make direct API call to login
-      const apiUrl = import.meta.env.VITE_API_URL || "https://backend.spot-edu.me/api"
+      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8080/api"
       const response = await axios.post(`${apiUrl}/auth/login`, { email, password })
       console.log("Login API response:", response.data)
 
@@ -48,7 +48,10 @@ const Login = () => {
       // Determine redirect based on user type from API response
       let targetRoute = "/"
 
-      if (userType === "ADMIN") {
+      if (userType === "SYSTEMADMIN") {
+        console.log("User is SYSTEMADMIN, redirecting to system admin dashboard")
+        targetRoute = "/system-admin/dashboard"
+      } else if (userType === "ADMIN") {
         console.log("User is ADMIN, redirecting to admin dashboard")
         targetRoute = "/admin/dashboard"
       } else if (userType === "TEACHER") {

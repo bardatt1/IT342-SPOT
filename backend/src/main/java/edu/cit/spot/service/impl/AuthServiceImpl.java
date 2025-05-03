@@ -82,10 +82,13 @@ public class AuthServiceImpl implements AuthService {
             () -> new IllegalArgumentException("User not found with email: " + loginRequest.email())
         );
         
+        // Check if the admin is a system admin and set the role accordingly
+        String role = admin.isSystemAdmin() ? "SYSTEMADMIN" : "ADMIN";
+        
         return new JwtResponse(
             jwt,
             "Bearer",
-            "ADMIN",
+            role,
             admin.getId(),
             admin.getEmail(),
             admin.getFirstName() + " " + admin.getLastName(),

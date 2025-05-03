@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Create axios instance with default config
-const apiUrl = import.meta.env.VITE_API_URL || 'https://backend.spot-edu.me/api';
+const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
 console.log('API URL:', apiUrl); // Debug API URL
 
 const axiosInstance = axios.create({

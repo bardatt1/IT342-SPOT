@@ -7,7 +7,8 @@ public record AdminDto(
     String firstName,
     String middleName,
     String lastName,
-    String email
+    String email,
+    boolean systemAdmin
 ) {
     public AdminDto {
         if (firstName == null || firstName.isBlank()) {
@@ -27,7 +28,8 @@ public record AdminDto(
             admin.getFirstName(),
             admin.getMiddleName(),
             admin.getLastName(),
-            admin.getEmail()
+            admin.getEmail(),
+            admin.isSystemAdmin()
         );
     }
 }

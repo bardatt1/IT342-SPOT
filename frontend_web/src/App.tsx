@@ -13,6 +13,9 @@ import CourseManagement from './pages/admin/CourseManagement';
 import SectionManagement from './pages/admin/SectionManagement';
 import ScheduleManagement from './pages/admin/ScheduleManagement';
 
+// SystemAdmin Pages
+import SystemAdminDashboard from './pages/system_admin/Dashboard';
+
 // Teacher Pages
 import TeacherDashboard from './pages/teacher/Dashboard';
 import TeacherSections from './pages/teacher/Sections';
@@ -52,7 +55,7 @@ function App() {
               <Route 
                 path="/admin/dashboard" 
                 element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <ProtectedRoute allowedRoles={['ADMIN', 'SYSTEMADMIN']}>
                     <AdminDashboard />
                   </ProtectedRoute>
                 } 
@@ -60,7 +63,7 @@ function App() {
               <Route 
                 path="/admin/users" 
                 element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <ProtectedRoute allowedRoles={['ADMIN', 'SYSTEMADMIN']}>
                     <UserManagement />
                   </ProtectedRoute>
                 } 
@@ -68,7 +71,7 @@ function App() {
               <Route 
                 path="/admin/courses" 
                 element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <ProtectedRoute allowedRoles={['ADMIN', 'SYSTEMADMIN']}>
                     <CourseManagement />
                   </ProtectedRoute>
                 } 
@@ -76,7 +79,7 @@ function App() {
               <Route 
                 path="/admin/sections" 
                 element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <ProtectedRoute allowedRoles={['ADMIN', 'SYSTEMADMIN']}>
                     <SectionManagement />
                   </ProtectedRoute>
                 } 
@@ -84,7 +87,7 @@ function App() {
               <Route 
                 path="/admin/schedules" 
                 element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <ProtectedRoute allowedRoles={['ADMIN', 'SYSTEMADMIN']}>
                     <ScheduleManagement />
                   </ProtectedRoute>
                 } 
@@ -140,13 +143,25 @@ function App() {
                 } 
               />
               
+              {/* SystemAdmin Routes */}
+              <Route 
+                path="/system-admin/dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['SYSTEMADMIN']}>
+                    <SystemAdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
               {/* Dashboard route that redirects based on role */}
               <Route 
                 path="/dashboard" 
                 element={
                   <ProtectedRoute>
                     {({ user }: any) => {
-                      if (user?.role === 'ADMIN') {
+                      if (user?.role === 'SYSTEMADMIN') {
+                        return <Navigate to="/system-admin/dashboard" replace />;
+                      } else if (user?.role === 'ADMIN') {
                         return <Navigate to="/admin/dashboard" replace />;
                       } else if (user?.role === 'TEACHER') {
                         return <Navigate to="/teacher/dashboard" replace />;

@@ -1,22 +1,24 @@
 package com.example.spot.ui.theme.screens
 
-import android.app.Activity
 import android.util.Log
-import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Login
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -31,11 +33,9 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.spot.R
-import com.example.spot.auth.GoogleAuthHelper
 import com.example.spot.navigation.Routes
 import com.example.spot.ui.theme.Green700
 import com.example.spot.ui.theme.TextDark
-import com.example.spot.util.TokenManager
 import com.example.spot.viewmodel.*
 
 @Composable
@@ -43,13 +43,12 @@ fun LoginScreen(
     navController: NavController,
     authViewModel: AuthViewModel = viewModel()
 ) {
+    // Collect login state first
+    val loginState by authViewModel.loginState.collectAsState()
+    
     // UI State variables
-    var isLoading by remember { mutableStateOf(false) }
-    var isGoogleSignInLoading by remember { mutableStateOf(false) }
+    val isLoading = loginState is AuthState.Loading
     var errorMessage by remember { mutableStateOf<String?>(null) }
-    var showBindGooglePrompt by remember { mutableStateOf(false) }
-    var currentUserId by remember { mutableStateOf<Long?>(null) }
-    var currentUserType by remember { mutableStateOf<String?>(null) }
     var showPasswordChangeDialog by remember { mutableStateOf(false) }
     
     // Student ID and password state
@@ -57,207 +56,33 @@ fun LoginScreen(
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
     
-    // Initialize TokenManager with context
-    val context = LocalContext.current
-    
-    // Create GoogleAuthHelper instance
-    val googleAuthHelper = remember { GoogleAuthHelper(context) }
-    
-    // Collect binding state from ViewModel
-    val bindStudentGoogleState by authViewModel.bindStudentGoogleState.collectAsState()
-    
-    // Collect showBindGooglePrompt state from the ViewModel
-    val shouldBindGoogleAccount by authViewModel.showBindGooglePrompt.collectAsState()
-    
-    // Function to handle binding a Google account after successful sign-in
-    val handleGoogleAccountBinding = { googleId: String ->
-        currentUserId?.let { userId ->
-            when (currentUserType) {
-                "STUDENT" -> {
-                    Log.d("LoginScreen", "Binding Google account to student ID: $userId")
-                    authViewModel.bindStudentGoogleAccount(userId, googleId)
-                }
-                else -> {
-                    Log.e("LoginScreen", "Unsupported user type for mobile: $currentUserType")
-                    errorMessage = "Cannot bind Google account: unsupported user type for mobile"
-                }
-            }
-        } ?: run {
-            Log.e("LoginScreen", "Cannot bind Google account: no user ID")
-            errorMessage = "Cannot bind Google account: please log in first"
-        }
-    }
-    
-    // Set up the activity result launcher for Google Sign In
-    val googleSignInLauncher = rememberLauncherForActivityResult(
-        contract = ActivityResultContracts.StartActivityForResult()
-    ) { result ->
-        Log.d("LoginScreen", "Google Sign-In activity result received: resultCode=${result.resultCode}")
-        isGoogleSignInLoading = false
-        
-        if (result.resultCode == Activity.RESULT_OK) {
-            try {
-                val account = googleAuthHelper.handleSignInResult(result.data)
-                if (account != null) {
-                    // Process the signed-in account
-                    Log.d("LoginScreen", "Google Sign-In successful for: ${account.email}, binding=${showBindGooglePrompt}")
-                    
-                    if (showBindGooglePrompt && currentUserId != null) {
-                        // We're binding a Google account to an existing student account
-                        Log.d("LoginScreen", "Binding Google account to existing student ID: $currentUserId")
-                        handleGoogleAccountBinding(account.id ?: "")
-                    } else {
-                        // Regular Google sign-in flow for returning users
-                        authViewModel.performGoogleLogin(account.email ?: "", account.id ?: "")
-                    }
-                } else {
-                    Log.e("LoginScreen", "Google Sign-In returned null account")
-                    errorMessage = "Google Sign-In failed. Account could not be obtained."
-                }
-            } catch (e: Exception) {
-                Log.e("LoginScreen", "Error processing Google Sign-In result", e)
-                errorMessage = "Error during Google Sign-In: ${e.message}"
-            }
-        } else {
-            Log.d("LoginScreen", "Google Sign-In was cancelled or failed. Result code: ${result.resultCode}")
-            errorMessage = "Google Sign-In was cancelled"
-        }
-    }
-    
-    // Trigger Google Sign-In if binding is needed and prompt is shown
-    LaunchedEffect(shouldBindGoogleAccount) {
-        if (shouldBindGoogleAccount && !showBindGooglePrompt) {
-            Log.d("LoginScreen", "Showing Google binding prompt based on viewModel state")
-            showBindGooglePrompt = true
-        }
-    }
-    
-    LaunchedEffect(Unit) {
-        TokenManager.initialize(context)
-    }
-    
-    // Observe login state
-    val loginState by authViewModel.loginState.collectAsState()
-    
-    // Observe Google sign-in state for binding flow
-    val googleSignInState by authViewModel.googleSignInState.collectAsState()
-    LaunchedEffect(googleSignInState) {
-        when (googleSignInState) {
-            is GoogleSignInState.Loading -> {
-                isGoogleSignInLoading = true
-                errorMessage = null
-            }
-            is GoogleSignInState.Success -> {
-                isGoogleSignInLoading = false
-                val result = googleSignInState as GoogleSignInState.Success
-                
-                if (showBindGooglePrompt && currentUserId != null) {
-                    // User is logged in and needs to bind Google account
-                    Log.d("LoginScreen", "Binding Google account ${result.email} to user ID $currentUserId")
-                    // Call the binding function with the googleId
-                    currentUserId?.let { userId ->
-                        Log.d("LoginScreen", "Binding Google account to student ID: $userId")
-                        authViewModel.bindStudentGoogleAccount(userId, result.googleId)
-                    }
-                } else {
-                    // Regular Google sign-in flow for returning users
-                    Log.d("LoginScreen", "Attempting Google login with email: ${result.email}")
-                    authViewModel.performGoogleLogin(result.email, result.googleId)
-                }
-            }
-            is GoogleSignInState.Error -> {
-                isGoogleSignInLoading = false
-                val errorMsg = (googleSignInState as GoogleSignInState.Error).message
-                errorMessage = "Google Sign-In Error: $errorMsg"
-                Log.e("LoginScreen", "Google Sign-In Error: $errorMsg")
-            }
-            is GoogleSignInState.Cancelled -> {
-                isGoogleSignInLoading = false
-                errorMessage = "Google Sign-In was cancelled"
-                Log.d("LoginScreen", "Google Sign-In was cancelled")
-            }
-            else -> {
-                // Idle state, no action needed
-            }
-        }
-    }
+    // Collect password change state
+    val passwordChangeState by authViewModel.passwordChangeState.collectAsState()
     
     LaunchedEffect(loginState) {
         when (loginState) {
             is AuthState.Loading -> {
-                isLoading = true
-                errorMessage = null
+                // Do nothing, already handled by isLoading state
             }
             is AuthState.Success -> {
-                isLoading = false
-                isGoogleSignInLoading = false
-                
                 // Navigate based on user type
                 val data = (loginState as? AuthState.Success)?.data
                 if (data != null) {
-                    Log.d("LoginScreen", "Login successful for ID: ${data.id}, user type: ${data.userType}")
-                    
-                    // Store current user info for binding Google account later if needed
-                    currentUserId = data.id
-                    currentUserType = data.userType
-                    
                     // Check if using temporary password
                     if (password == "temporary") {
                         // Set temporary password flag and show password change dialog
-                        authViewModel.checkTemporaryPassword(password)
                         showPasswordChangeDialog = true
                         errorMessage = null
-                        Log.d("LoginScreen", "Detected temporary password, showing change dialog")
-                    } else if (!data.googleLinked) {
-                        // If account doesn't have Google bound, show binding prompt
-                        showBindGooglePrompt = true
-                        Log.d("LoginScreen", "User doesn't have Google account bound, showing binding prompt")
                     } else {
                         // Navigate to dashboard
                         navController.navigate(Routes.DASHBOARD) {
                             popUpTo(Routes.LOGIN) { inclusive = true }
                         }
                     }
-                } else {
-                    errorMessage = "Login successful but no user data received"
-                    Log.e("LoginScreen", "No user data received in successful login")
                 }
             }
             is AuthState.Error -> {
-                isLoading = false
-                isGoogleSignInLoading = false
                 errorMessage = (loginState as AuthState.Error).message
-                Log.e("LoginScreen", "Login error: $errorMessage")
-            }
-            else -> {
-                // Idle state, no action needed
-            }
-        }
-    }
-    
-    // Observe the Google binding state to properly handle successful binding
-    LaunchedEffect(bindStudentGoogleState) {
-        when (bindStudentGoogleState) {
-            is BindOAuthState.Success -> {
-                Log.d("LoginScreen", "Google account binding successful")
-                showBindGooglePrompt = false
-                // Reset the binding prompt flag in ViewModel
-                authViewModel.resetBindGooglePrompt()
-                
-                // Navigate to dashboard after successful binding
-                navController.navigate(Routes.DASHBOARD) {
-                    popUpTo(Routes.LOGIN) { inclusive = true }
-                }
-            }
-            is BindOAuthState.Error -> {
-                isGoogleSignInLoading = false
-                val errorMsg = (bindStudentGoogleState as BindOAuthState.Error).message
-                Log.e("LoginScreen", "Google account binding failed: $errorMsg")
-                errorMessage = "Failed to bind Google account: $errorMsg"
-            }
-            is BindOAuthState.Loading -> {
-                isGoogleSignInLoading = true
-                errorMessage = null
             }
             else -> {
                 // Do nothing for Idle state
@@ -265,10 +90,6 @@ fun LoginScreen(
         }
     }
     
-    // Collect password change state
-    val passwordChangeState by authViewModel.passwordChangeState.collectAsState()
-    
-    // Effect to handle password change state
     LaunchedEffect(passwordChangeState) {
         when (passwordChangeState) {
             is PasswordChangeState.Success -> {
@@ -276,21 +97,9 @@ fun LoginScreen(
                 // Close password change dialog
                 showPasswordChangeDialog = false
                 
-                // Check if Google account binding is needed
-                currentUserId?.let { _ ->
-                    if (currentUserType == "STUDENT") {
-                        val jwtResponse = (loginState as? AuthState.Success)?.data
-                        if (jwtResponse != null && !jwtResponse.googleLinked) {
-                            // Show Google account binding prompt
-                            showBindGooglePrompt = true
-                            Log.d("LoginScreen", "Showing Google binding prompt after password change")
-                        } else {
-                            // Navigate to dashboard
-                            navController.navigate(Routes.DASHBOARD) {
-                                popUpTo(Routes.LOGIN) { inclusive = true }
-                            }
-                        }
-                    }
+                // Navigate to dashboard
+                navController.navigate(Routes.DASHBOARD) {
+                    popUpTo(Routes.LOGIN) { inclusive = true }
                 }
             }
             is PasswordChangeState.Error -> {
@@ -303,418 +112,356 @@ fun LoginScreen(
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .padding(horizontal = 24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // App Logo
-        Image(
-            painter = painterResource(id = R.drawable.spot_logo),
-            contentDescription = "SPOT Logo",
-            modifier = Modifier
-                .size(100.dp)
-                .padding(bottom = 16.dp)
-        )
-
-        // Title
-        Text(
-            text = "Login",
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Bold,
-                color = TextDark,
-                fontSize = 28.sp
-            ),
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-        
-        // Login instruction
-        Text(
-            text = "Please enter your student ID and password",
-            style = MaterialTheme.typography.bodyMedium,
-            color = TextDark,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.padding(bottom = 16.dp)
-        )
-
-        // Error message if any
-        errorMessage?.let {
-            Text(
-                text = it,
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.bodyMedium,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-        }
-
-        // Student ID field
-        OutlinedTextField(
-            value = studentPhysicalId,
-            onValueChange = { studentPhysicalId = it },
-            label = { Text("Student ID") },
-            placeholder = { Text("Enter your student physical ID") },
-            modifier = Modifier.fillMaxWidth(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text),
-            singleLine = true,
-            isError = errorMessage != null
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Password field with visibility toggle
-        OutlinedTextField(
-            value = password,
-            onValueChange = { password = it },
-            label = { Text("Password") },
-            modifier = Modifier.fillMaxWidth(),
-            visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-            singleLine = true,
-            isError = errorMessage != null,
-            trailingIcon = {
-                IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                    Icon(
-                        imageVector = if (passwordVisible) Icons.Default.Visibility else Icons.Default.VisibilityOff,
-                        contentDescription = if (passwordVisible) "Hide password" else "Show password"
+            .background(
+                brush = Brush.linearGradient(
+                    colors = listOf(
+                        Color(0x0D215F47), // from-[#215f47]/5
+                        Color.White,       // via-white
+                        Color(0x1A215F47)  // to-[#215f47]/10
                     )
-                }
-            }
-        )
-
-        // Forgot Password link
-        Text(
-            text = "Forgot Password?",
-            style = MaterialTheme.typography.bodyMedium.copy(
-                color = TextDark,
-                fontSize = 14.sp
-            ),
+                )
+            )
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(top = 8.dp, bottom = 16.dp)
-                .clickable { /* Handle forgot password */ },
-            textAlign = TextAlign.End
-        )
-
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        // Login button
-        Button(
-            onClick = {
-                // Validate input fields
-                if (studentPhysicalId.isBlank()) {
-                    errorMessage = "Student ID cannot be empty"
-                    return@Button
-                }
-                if (password.isBlank()) {
-                    errorMessage = "Password cannot be empty"
-                    return@Button
+                .padding(horizontal = 16.dp),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 6.dp
+            ),
+            border = BorderStroke(1.dp, Color(0x33215F47)) // border-[#215f47]/20
+        ) {
+            // Green accent line at top
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(2.dp)
+                    .background(Green700)
+            )
+            
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                // Badge with "Secure Login"
+                Surface(
+                    shape = RoundedCornerShape(16.dp),
+                    color = Color(0x0D215F47), // bg-[#215f47]/5
+                    modifier = Modifier
+                        .padding(bottom = 16.dp)
+                ) {
+                    Text(
+                        text = "Secure Login",
+                        color = Green700,
+                        style = MaterialTheme.typography.labelMedium,
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                    )
                 }
                 
-                // Clear error message and trigger login
-                errorMessage = null
-                authViewModel.loginUser(studentPhysicalId, password)
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Green700),
-            enabled = !isLoading && !isGoogleSignInLoading
-        ) {
-            if (isLoading) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(24.dp),
-                    color = Color.White,
-                    strokeWidth = 2.dp
+                // App Logo
+                Image(
+                    painter = painterResource(id = R.drawable.spot_logo),
+                    contentDescription = "SPOT Logo",
+                    modifier = Modifier
+                        .size(80.dp)
+                        .padding(bottom = 8.dp)
                 )
-            } else {
+                
+                // Title and Description
                 Text(
-                    text = "Login",
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        // Continue with Google button
-        OutlinedButton(
-            onClick = { 
-                isGoogleSignInLoading = true
-                errorMessage = null
-                Log.d("LoginScreen", "Launching Google Sign-In intent")
-                try {
-                    val signInIntent = googleAuthHelper.getSignInIntent()
-                    googleSignInLauncher.launch(signInIntent)
-                } catch (e: Exception) {
-                    Log.e("LoginScreen", "Error launching Google Sign-In", e)
-                    errorMessage = "Error launching Google Sign-In: ${e.message}"
-                    isGoogleSignInLoading = false
-                }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp),
-            border = ButtonDefaults.outlinedButtonBorder(enabled = true),
-            enabled = !isLoading && !isGoogleSignInLoading,
-            colors = ButtonDefaults.outlinedButtonColors(
-                contentColor = Color(0xFF4285F4) // Google blue color
-            )
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.Center
-            ) {
-                if (isGoogleSignInLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(24.dp),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    // Using a text "G" styled like Google logo since we can't use the actual logo
-                    Text(
-                        text = "G",
-                        modifier = Modifier
-                            .size(24.dp)
-                            .background(Color(0xFF4285F4), shape = CircleShape)
-                            .padding(4.dp),
-                        color = Color.White,
+                    text = "SPOT",
+                    style = MaterialTheme.typography.headlineMedium.copy(
                         fontWeight = FontWeight.Bold,
-                        fontSize = 14.sp,
-                        textAlign = TextAlign.Center
-                    )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = "Continue with Google",
-                    color = TextDark,
-                    fontSize = 16.sp
+                        color = Green700
+                    ),
+                    modifier = Modifier.padding(bottom = 4.dp)
                 )
-            }
-        }
-
-        Spacer(modifier = Modifier.height(24.dp))
-
-        // Google account binding prompt dialog
-        if (showBindGooglePrompt) {
-            // Display the binding dialog
-            Dialog(
-                onDismissRequest = {
-                    showBindGooglePrompt = false
-                    authViewModel.resetBindGooglePrompt()
-                    // If user dismisses the prompt, navigate directly to dashboard
-                    navController.navigate(Routes.DASHBOARD) {
-                        popUpTo(Routes.LOGIN) { inclusive = true }
-                    }
-                }
-            ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                ) {
-                    Column(
+                
+                Text(
+                    text = "Student Presence and Oversight Tracker",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 24.dp)
+                )
+                
+                // Error message if any
+                errorMessage?.let {
+                    Card(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
+                            .padding(bottom = 16.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = Color(0xFFFFEBEE)
+                        ),
+                        border = BorderStroke(1.dp, Color(0xFFFFCDD2))
                     ) {
-                        Text(
-                            text = "Link Google Account",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Text(
-                            text = "Do you want to link your Google account for easier sign-in next time?",
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
-                        )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
                         Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceEvenly
-                        ) {
-                            // Skip button
-                            Button(
-                                onClick = {
-                                    showBindGooglePrompt = false
-                                    authViewModel.resetBindGooglePrompt()
-                                    navController.navigate(Routes.DASHBOARD) {
-                                        popUpTo(Routes.LOGIN) { inclusive = true }
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color.Gray)
-                            ) {
-                                Text("Skip")
-                            }
-                            
-                            // Link Google button
-                            Button(
-                                onClick = {
-                                    isGoogleSignInLoading = true
-                                    errorMessage = null
-                                    Log.d("LoginScreen", "Launching Google Sign-In intent for binding")
-                                    try {
-                                        // Ensure we're in binding mode
-                                        Log.d("LoginScreen", "Current user ID for binding: $currentUserId")
-                                        val signInIntent = googleAuthHelper.getSignInIntent()
-                                        googleSignInLauncher.launch(signInIntent)
-                                    } catch (e: Exception) {
-                                        Log.e("LoginScreen", "Error launching Google Sign-In", e)
-                                        errorMessage = "Error launching Google Sign-In: ${e.message}"
-                                        isGoogleSignInLoading = false
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Green700),
-                                enabled = !isGoogleSignInLoading
-                            ) {
-                                if (isGoogleSignInLoading) {
-                                    CircularProgressIndicator(
-                                        modifier = Modifier.size(20.dp),
-                                        color = Color.White,
-                                        strokeWidth = 2.dp
-                                    )
-                                } else {
-                                    Text("Link Google")
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        
-        // Password change dialog
-        if (showPasswordChangeDialog) {
-            var newPassword by remember { mutableStateOf("") }
-            var confirmPassword by remember { mutableStateOf("") }
-            var newPasswordVisible by remember { mutableStateOf(false) }
-            var confirmPasswordVisible by remember { mutableStateOf(false) }
-            var passwordChangeError by remember { mutableStateOf<String?>(null) }
-            
-            Dialog(
-                onDismissRequest = { /* Dialog cannot be dismissed */ }
-            ) {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(16.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Text(
-                            text = "Password Change Required",
-                            style = MaterialTheme.typography.titleLarge,
-                            fontWeight = FontWeight.Bold
-                        )
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        Text(
-                            text = "You are using a temporary password. For security reasons, please change your password before continuing.",
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center
-                        )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        // Display error message if any
-                        if (passwordChangeError != null) {
-                            Text(
-                                text = passwordChangeError!!,
-                                color = MaterialTheme.colorScheme.error,
-                                style = MaterialTheme.typography.bodyMedium,
-                                textAlign = TextAlign.Center,
-                                modifier = Modifier.fillMaxWidth()
-                            )
-                            
-                            Spacer(modifier = Modifier.height(8.dp))
-                        }
-                        
-                        // New password field
-                        OutlinedTextField(
-                            value = newPassword,
-                            onValueChange = { newPassword = it },
-                            label = { Text("New Password") },
-                            visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                            trailingIcon = {
-                                IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
-                                    Icon(
-                                        imageVector = if (newPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                        contentDescription = if (newPasswordVisible) "Hide password" else "Show password"
-                                    )
-                                }
-                            },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        
-                        Spacer(modifier = Modifier.height(8.dp))
-                        
-                        // Confirm password field
-                        OutlinedTextField(
-                            value = confirmPassword,
-                            onValueChange = { confirmPassword = it },
-                            label = { Text("Confirm Password") },
-                            visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
-                            trailingIcon = {
-                                IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                                    Icon(
-                                        imageVector = if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                                        contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password"
-                                    )
-                                }
-                            },
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        
-                        Spacer(modifier = Modifier.height(16.dp))
-                        
-                        // Change password button
-                        Button(
-                            onClick = {
-                                // Validate password change
-                                when {
-                                    newPassword.length < 8 -> {
-                                        passwordChangeError = "Password must be at least 8 characters"
-                                    }
-                                    newPassword != confirmPassword -> {
-                                        passwordChangeError = "Passwords do not match"
-                                    }
-                                    else -> {
-                                        passwordChangeError = null
-                                        
-                                        // If we have a student ID, change the password
-                                        currentUserId?.let { studentId ->
-                                            authViewModel.changePassword(studentId, newPassword)
-                                        } ?: run {
-                                            passwordChangeError = "Error: Student ID not found"
-                                        }
-                                    }
-                                }
-                            },
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(48.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = Green700)
+                                .padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Change Password")
+                            Icon(
+                                imageVector = Icons.Filled.Warning,
+                                contentDescription = "Error",
+                                tint = Color(0xFFE53935),
+                                modifier = Modifier.size(20.dp)
+                            )
+                            Spacer(modifier = Modifier.width(12.dp))
+                            Column {
+                                Text(
+                                    text = "Authentication Error",
+                                    style = MaterialTheme.typography.titleSmall.copy(
+                                        color = Color(0xFFB71C1C),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                )
+                                Text(
+                                    text = it,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = Color(0xFFB71C1C)
+                                )
+                            }
                         }
+                    }
+                }
+                
+                // Student ID (Email) Input
+                OutlinedTextField(
+                    value = studentPhysicalId,
+                    onValueChange = { studentPhysicalId = it },
+                    label = { Text("Student ID") },
+                    placeholder = { Text("Enter your student ID") },
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 16.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Green700,
+                        focusedLabelColor = Green700,
+                        cursorColor = Green700
+                    )
+                )
+                
+                // Password Input
+                OutlinedTextField(
+                    value = password,
+                    onValueChange = { password = it },
+                    label = { Text("Password") },
+                    placeholder = { Text("••••••••") },
+                    visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                    singleLine = true,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 24.dp),
+                    trailingIcon = {
+                        IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                            Icon(
+                                imageVector = if (passwordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                contentDescription = if (passwordVisible) "Hide password" else "Show password",
+                                tint = if (passwordVisible) Green700 else Color.Gray
+                            )
+                        }
+                    },
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Green700,
+                        focusedLabelColor = Green700,
+                        cursorColor = Green700
+                    )
+                )
+                
+                // Login Button
+                Button(
+                    onClick = {
+                        if (studentPhysicalId.isNotBlank() && password.isNotBlank()) {
+                            authViewModel.loginUser(studentPhysicalId, password)
+                        } else {
+                            errorMessage = "Please enter both student ID and password"
+                        }
+                    },
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(48.dp),
+                    enabled = !isLoading,
+                    shape = RoundedCornerShape(8.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Green700,
+                        contentColor = Color.White
+                    )
+                ) {
+                    if (isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = Color.White,
+                            strokeWidth = 2.dp
+                        )
+                    } else {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.Center
+                        ) {
+                            Text("Sign in")
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Icon(
+                                imageVector = Icons.Filled.Login,
+                                contentDescription = "Login",
+                                modifier = Modifier.size(16.dp)
+                            )
+                        }
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(24.dp))
+                
+                Text(
+                    text = "Protected access for authorized personnel only",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+            }
+        }
+    }
+    
+    // Password change dialog
+    if (showPasswordChangeDialog) {
+        var newPassword by remember { mutableStateOf("") }
+        var confirmPassword by remember { mutableStateOf("") }
+        var newPasswordVisible by remember { mutableStateOf(false) }
+        var confirmPasswordVisible by remember { mutableStateOf(false) }
+        var passwordChangeError by remember { mutableStateOf<String?>(null) }
+        
+        Dialog(
+            onDismissRequest = { /* Dialog cannot be dismissed */ }
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "Password Change Required",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = "You are using a temporary password. For security reasons, please change your password before continuing.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Display error message if any
+                    if (passwordChangeError != null) {
+                        Text(
+                            text = passwordChangeError!!,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        
+                        Spacer(modifier = Modifier.height(8.dp))
+                    }
+                    
+                    // New password field
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("New Password") },
+                        visualTransformation = if (newPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailingIcon = {
+                            IconButton(onClick = { newPasswordVisible = !newPasswordVisible }) {
+                                Icon(
+                                    imageVector = if (newPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                    contentDescription = if (newPasswordVisible) "Hide password" else "Show password"
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Confirm password field
+                    OutlinedTextField(
+                        value = confirmPassword,
+                        onValueChange = { confirmPassword = it },
+                        label = { Text("Confirm Password") },
+                        visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        trailingIcon = {
+                            IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                                Icon(
+                                    imageVector = if (confirmPasswordVisible) Icons.Filled.VisibilityOff else Icons.Filled.Visibility,
+                                    contentDescription = if (confirmPasswordVisible) "Hide password" else "Show password"
+                                )
+                            }
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    // Change password button
+                    Button(
+                        onClick = {
+                            // Validate password change
+                            when {
+                                newPassword.length < 8 -> {
+                                    passwordChangeError = "Password must be at least 8 characters"
+                                }
+                                newPassword != confirmPassword -> {
+                                    passwordChangeError = "Passwords do not match"
+                                }
+                                else -> {
+                                    passwordChangeError = null
+                                    
+                                    // Call the change password method with the string ID
+                                    // Note: The AuthViewModel should handle the conversion
+                                    try {
+                                        authViewModel.changePassword(studentPhysicalId, newPassword)
+                                    } catch (e: Exception) {
+                                        passwordChangeError = "Error: ${e.message}"
+                                        Log.e("LoginScreen", "Error changing password", e)
+                                    }
+                                }
+                            }
+                        },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(48.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Green700)
+                    ) {
+                        Text("Change Password")
                     }
                 }
             }

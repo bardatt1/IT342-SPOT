@@ -75,6 +75,29 @@ class StudentRepository {
     }
     
     /**
+     * Get student by physical ID
+     */
+    suspend fun getStudentByPhysicalId(physicalId: String): NetworkResult<Student> {
+        return withContext(Dispatchers.IO) {
+            try {
+                Log.d("StudentRepository", "Getting student by physical ID: $physicalId")
+                val response = apiService.getStudentByPhysicalId(physicalId)
+                
+                if (response.result == "SUCCESS" && response.data != null) {
+                    Log.d("StudentRepository", "Found student with physical ID: $physicalId")
+                    NetworkResult.Success(response.data)
+                } else {
+                    Log.e("StudentRepository", "Failed to find student: ${response.message}")
+                    NetworkResult.Error(response.message)
+                }
+            } catch (e: Exception) {
+                Log.e("StudentRepository", "Get student by physical ID error", e)
+                NetworkResult.Error("Network error: ${e.localizedMessage}")
+            }
+        }
+    }
+    
+    /**
      * Find a student by their physical ID
      * Note: This is a mock implementation since there's no direct backend API for this yet
      * It performs filtering on the student list received from the backend

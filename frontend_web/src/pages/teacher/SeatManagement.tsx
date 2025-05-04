@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/ui/layout/DashboardLayout';
 import { useAuth } from '../../contexts/AuthContext';
+import { useSearchParams } from 'react-router-dom';
 import { sectionApi, type Section } from '../../lib/api/section';
 import { studentApi, type Student } from '../../lib/api/student';
 import { seatApi, type SeatMap } from '../../lib/api/seat';
@@ -14,6 +15,7 @@ import FirstLoginModal from '../../components/ui/FirstLoginModal';
 
 const SeatManagement = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [seatMap, setSeatMap] = useState<SeatMap | null>(null);
@@ -30,8 +32,8 @@ const SeatManagement = () => {
   useEffect(() => {
     // Check if this is a temporary account based on email pattern
     const isTemporaryAccount = 
-      // Check if email ends with @temporary.com
-      user?.email?.endsWith('@temporary.com') ||
+      // Check if email ends with @edu-spot.me
+      user?.email?.endsWith('@edu-spot.me') ||
       // Or if the backend explicitly flags it
       user?.hasTemporaryPassword;
     
@@ -47,6 +49,19 @@ const SeatManagement = () => {
   useEffect(() => {
     fetchTeacherSections();
   }, [user?.id]);
+
+  // Get section ID from URL if present
+  useEffect(() => {
+    const sectionIdParam = searchParams.get('sectionId');
+    if (sectionIdParam && sections.length > 0) {
+      const parsedId = parseInt(sectionIdParam, 10);
+      // Check if the section exists and belongs to this teacher
+      const sectionExists = sections.some(s => s.id === parsedId);
+      if (sectionExists) {
+        setSelectedSectionId(parsedId);
+      }
+    }
+  }, [sections, searchParams]);
 
   useEffect(() => {
     if (selectedSectionId) {
@@ -274,7 +289,7 @@ const SeatManagement = () => {
                 <SelectContent>
                   {sections.map(section => (
                     <SelectItem key={section.id} value={section.id.toString()}>
-                      Section: {section.sectionName}
+                      {section.course?.courseCode} - {section.sectionName}
                     </SelectItem>
                   ))}
                 </SelectContent>

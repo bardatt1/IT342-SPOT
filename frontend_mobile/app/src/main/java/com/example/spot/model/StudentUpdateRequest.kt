@@ -11,5 +11,6 @@ data class StudentUpdateRequest(
     val program: String? = null,
     val email: String? = null,
     val studentPhysicalId: String? = null,
-    val password: String? = null
+    val password: String? = null,
+    val currentPassword: String? = null
 )

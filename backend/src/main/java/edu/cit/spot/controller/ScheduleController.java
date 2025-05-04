@@ -22,7 +22,7 @@ import java.util.List;
 @RequestMapping("/api/schedules")
 @Tag(name = "Schedules", description = "APIs for schedule management")
 @SecurityRequirement(name = "bearerAuth")
-@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')")
+@PreAuthorize("hasAnyRole('ADMIN', 'TEACHER')") // Default role restriction for most endpoints
 public class ScheduleController {
 
     @Autowired
@@ -30,6 +30,7 @@ public class ScheduleController {
     
     @GetMapping
     @Operation(summary = "Get schedules by section ID", description = "Get schedules for a specific section")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')") // Allow students to access schedules
     public ResponseEntity<ApiResponse<List<ScheduleDto>>> getSchedulesBySectionId(@RequestParam Long sectionId) {
         try {
             List<ScheduleDto> schedules = scheduleService.getSchedulesBySectionId(sectionId);
@@ -41,6 +42,7 @@ public class ScheduleController {
     
     @GetMapping("/{id}")
     @Operation(summary = "Get schedule by ID", description = "Get a schedule by its ID")
+    @PreAuthorize("hasAnyRole('ADMIN', 'TEACHER', 'STUDENT')") // Allow students to access schedule details too
     public ResponseEntity<ApiResponse<ScheduleDto>> getScheduleById(@PathVariable Long id) {
         try {
             ScheduleDto scheduleDto = scheduleService.getScheduleById(id);

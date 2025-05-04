@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
+import AdminRoute from './components/auth/AdminRoute';
 
 // Authentication Pages
 import Login from './pages/auth/Login';
@@ -52,41 +53,41 @@ function App() {
               <Route 
                 path="/admin/dashboard" 
                 element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <AdminRoute>
                     <AdminDashboard />
-                  </ProtectedRoute>
+                  </AdminRoute>
                 } 
               />
               <Route 
                 path="/admin/users" 
                 element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <AdminRoute>
                     <UserManagement />
-                  </ProtectedRoute>
+                  </AdminRoute>
                 } 
               />
               <Route 
                 path="/admin/courses" 
                 element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <AdminRoute>
                     <CourseManagement />
-                  </ProtectedRoute>
+                  </AdminRoute>
                 } 
               />
               <Route 
                 path="/admin/sections" 
                 element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <AdminRoute>
                     <SectionManagement />
-                  </ProtectedRoute>
+                  </AdminRoute>
                 } 
               />
               <Route 
                 path="/admin/schedules" 
                 element={
-                  <ProtectedRoute allowedRoles={['ADMIN']}>
+                  <AdminRoute>
                     <ScheduleManagement />
-                  </ProtectedRoute>
+                  </AdminRoute>
                 } 
               />
               

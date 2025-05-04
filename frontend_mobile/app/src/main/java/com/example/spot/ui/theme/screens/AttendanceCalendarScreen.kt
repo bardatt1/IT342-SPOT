@@ -9,14 +9,18 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowForward
 import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -26,6 +30,7 @@ import androidx.navigation.NavController
 import com.example.spot.model.AttendanceDayItem
 import com.example.spot.model.AttendanceStatus
 import com.example.spot.model.Section
+import com.example.spot.model.SectionSchedule
 import com.example.spot.model.StudentAttendance
 import com.example.spot.ui.theme.Green700
 import com.example.spot.viewmodel.AttendanceViewModel
@@ -33,7 +38,6 @@ import com.example.spot.viewmodel.SectionAttendanceState
 import com.example.spot.viewmodel.SectionState
 import com.example.spot.viewmodel.SectionViewModel
 import java.time.LocalDate
-import java.time.LocalTime
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
@@ -75,7 +79,9 @@ fun AttendanceCalendarScreen(
                             Text(
                                 "${section.course.courseCode} - ${section.sectionName} Attendance", 
                                 color = Green700, 
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 18.sp,
+                                maxLines = 1
                             )
                         }
                         else -> Text("Attendance Calendar", color = Green700, fontWeight = FontWeight.Bold)
@@ -84,13 +90,16 @@ fun AttendanceCalendarScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            painter = painterResource(android.R.drawable.ic_menu_revert),
+                            imageVector = Icons.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = Green700
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Green700
+                )
             )
         }
     ) { innerPadding ->
@@ -98,6 +107,15 @@ fun AttendanceCalendarScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0x0D215F47), // from-[#215f47]/5
+                            Color.White,       // via-white
+                            Color(0x1A215F47)  // to-[#215f47]/10
+                        )
+                    )
+                )
                 .padding(horizontal = 16.dp)
         ) {
             when {
@@ -178,34 +196,58 @@ fun CalendarErrorContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        // Change from showing "Error" to showing a more appropriate title based on the message
-        val title = if (message.contains("success", ignoreCase = true)) {
-            "No Data Available"
-        } else {
-            "Error"
-        }
-        
-        Text(
-            text = title,
-            style = MaterialTheme.typography.headlineMedium,
-            color = if (title == "Error") MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(containerColor = Green700)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.9f),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 4.dp
+            )
         ) {
-            Text("Retry")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Error,
+                    contentDescription = "Error",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .padding(bottom = 16.dp)
+                )
+                
+                Text(
+                    text = "Error Loading Data",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                Button(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Green700
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Retry")
+                }
+            }
         }
     }
 }
@@ -217,18 +259,18 @@ fun AttendanceCalendarContent(
     currentMonth: YearMonth,
     onMonthChange: (YearMonth) -> Unit
 ) {
-    val dateFormatter = DateTimeFormatter.ofPattern("MMM yyyy")
-    
     Column(
-        modifier = Modifier.fillMaxSize()
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(vertical = 8.dp)
     ) {
-        // Section info
-        CalendarSectionInfoCard(section = section)
+        // Class info card
+        CalendarSectionInfoCard(section)
         
         Spacer(modifier = Modifier.height(16.dp))
         
-        // Attendance summary
-        CalendarAttendanceSummaryCard(attendanceStats = attendanceStats)
+        // Attendance statistics
+        CalendarAttendanceSummaryCard(attendanceStats)
         
         Spacer(modifier = Modifier.height(16.dp))
         
@@ -240,50 +282,84 @@ fun AttendanceCalendarContent(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { onMonthChange(currentMonth.minusMonths(1)) }) {
+            IconButton(
+                onClick = { onMonthChange(currentMonth.minusMonths(1)) }
+            ) {
                 Icon(
-                    painter = painterResource(android.R.drawable.ic_media_previous),
+                    imageVector = Icons.Filled.ArrowBack,
                     contentDescription = "Previous Month",
                     tint = Green700
                 )
             }
             
-            Row(
-                verticalAlignment = Alignment.CenterVertically
+            Text(
+                text = currentMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Green700
+            )
+            
+            IconButton(
+                onClick = { onMonthChange(currentMonth.plusMonths(1)) }
             ) {
                 Icon(
-                    imageVector = Icons.Default.CalendarMonth,
-                    contentDescription = "Calendar",
-                    tint = Green700
-                )
-                
-                Spacer(modifier = Modifier.width(8.dp))
-                
-                Text(
-                    text = currentMonth.format(dateFormatter),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold
-                )
-            }
-            
-            IconButton(onClick = { onMonthChange(currentMonth.plusMonths(1)) }) {
-                Icon(
-                    painter = painterResource(android.R.drawable.ic_media_next),
+                    imageVector = Icons.Filled.ArrowForward,
                     contentDescription = "Next Month",
                     tint = Green700
                 )
             }
         }
         
+        Spacer(modifier = Modifier.height(8.dp))
+        
         // Calendar legend
         CalendarLegend()
         
+        Spacer(modifier = Modifier.height(8.dp))
+        
         // Calendar grid
-        CalendarGrid(
-            currentMonth = currentMonth,
-            attendanceByDate = attendanceStats.attendanceByDate,
-            attendanceData = attendanceStats.attendanceData
-        )
+        Card(
+            modifier = Modifier.fillMaxWidth(),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 2.dp
+            ),
+            shape = RoundedCornerShape(8.dp)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(12.dp)
+            ) {
+                // Days of week header
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    for (day in listOf("S", "M", "T", "W", "T", "F", "S")) {
+                        Text(
+                            text = day,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Gray,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+                
+                // Calendar days grid
+                CalendarGrid(
+                    currentMonth = currentMonth,
+                    attendanceByDate = attendanceStats.attendanceByDate,
+                    attendanceData = attendanceStats.attendanceDetails
+                )
+            }
+        }
     }
 }
 
@@ -291,33 +367,54 @@ fun AttendanceCalendarContent(
 fun CalendarSectionInfoCard(section: Section) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        ),
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp)
         ) {
-            Text(
-                text = section.course.courseName,
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
-            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.CalendarMonth,
+                    contentDescription = null,
+                    tint = Green700,
+                    modifier = Modifier.size(24.dp)
+                )
+                
+                Spacer(modifier = Modifier.width(8.dp))
+                
+                Text(
+                    text = "${section.course.courseCode} - ${section.sectionName}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
+                    color = Green700
+                )
+            }
             
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             
-            Text(
-                text = "Section: ${section.sectionName}",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
             
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             
-            Text(
-                text = "Schedule: ${section.schedule ?: "No schedule set"}",
-                style = MaterialTheme.typography.bodyMedium
-            )
+            // Display dynamically fetched schedule information
+            val scheduleText = section.getScheduleDisplay()
+            scheduleText.split("\n").forEach { scheduleLine ->
+                Text(
+                    text = "• $scheduleLine",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.DarkGray
+                )
+            }
         }
     }
 }
@@ -326,8 +423,13 @@ fun CalendarSectionInfoCard(section: Section) {
 fun CalendarAttendanceSummaryCard(attendanceStats: StudentAttendance) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        ),
+        shape = RoundedCornerShape(8.dp)
     ) {
         Column(
             modifier = Modifier
@@ -337,37 +439,38 @@ fun CalendarAttendanceSummaryCard(attendanceStats: StudentAttendance) {
             Text(
                 text = "Attendance Summary",
                 style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Bold
+                fontWeight = FontWeight.Bold,
+                color = Green700,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
+            
+            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
             
             Spacer(modifier = Modifier.height(8.dp))
             
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                CalendarStatItem(
-                    label = "Total Classes",
-                    value = attendanceStats.totalClassDays.toString(),
-                    textColor = Color.Black
-                )
-                
+                // Present count
                 CalendarStatItem(
                     label = "Present",
-                    value = attendanceStats.daysPresent.toString(),
+                    value = "${attendanceStats.presentCount}",
                     textColor = Color(0xFF4CAF50) // Green
                 )
                 
+                // Absent count
                 CalendarStatItem(
                     label = "Absent",
-                    value = (attendanceStats.totalClassDays - attendanceStats.daysPresent).toString(),
-                    textColor = Color(0xFFE57373) // Red
+                    value = "${attendanceStats.absentCount}",
+                    textColor = Color(0xFFF44336) // Red
                 )
                 
+                // Attendance rate
                 CalendarStatItem(
                     label = "Rate",
-                    value = "${String.format("%.1f", attendanceStats.attendanceRate * 100)}%",
-                    textColor = Color.Black
+                    value = "${attendanceStats.attendanceRate}%",
+                    textColor = Green700
                 )
             }
         }
@@ -381,14 +484,14 @@ fun CalendarStatItem(label: String, value: String, textColor: Color) {
     ) {
         Text(
             text = value,
-            style = MaterialTheme.typography.titleLarge,
-            color = textColor,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = textColor
         )
         
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall,
+            style = MaterialTheme.typography.bodyMedium,
             color = Color.Gray
         )
     }
@@ -399,32 +502,12 @@ fun CalendarLegend() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        for (day in 1..7) {
-            val dayName = java.time.DayOfWeek.of(day).getDisplayName(TextStyle.SHORT, Locale.getDefault())
-            Text(
-                text = dayName,
-                modifier = Modifier.width(32.dp),
-                textAlign = TextAlign.Center,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.Bold
-            )
-        }
-    }
-
-    // Legend for attendance status colors
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
+            .padding(vertical = 4.dp),
         horizontalArrangement = Arrangement.SpaceEvenly
     ) {
-        LegendItem(color = Color(0xFF4CAF50), label = "Present") // Green
-        LegendItem(color = Color(0xFFFFEB3B), label = "Late") // Yellow
-        LegendItem(color = Color(0xFFE57373), label = "Absent") // Red
-        LegendItem(color = Color(0xFFEEEEEE), label = "No Class") // Light Gray
+        LegendItem(color = Color(0xFF4CAF50), label = "Present")
+        LegendItem(color = Color(0xFFF44336), label = "Absent")
+        LegendItem(color = Color.LightGray, label = "No Class")
     }
 }
 
@@ -443,7 +526,8 @@ fun LegendItem(color: Color, label: String) {
         
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall
+            style = MaterialTheme.typography.bodySmall,
+            color = Color.DarkGray
         )
     }
 }
@@ -452,16 +536,16 @@ fun LegendItem(color: Color, label: String) {
 fun CalendarGrid(
     currentMonth: YearMonth,
     attendanceByDate: Map<String, Boolean>,
-    attendanceData: Map<String, com.example.spot.model.StudentAttendance.AttendanceDetail>? = null
+    attendanceData: Map<String, StudentAttendance.AttendanceDetail>? = null
 ) {
-    val days = createCalendarDays(currentMonth, attendanceByDate, attendanceData)
+    val calendarDays = createCalendarDays(currentMonth, attendanceByDate, attendanceData)
     
     LazyVerticalGrid(
         columns = GridCells.Fixed(7),
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(vertical = 8.dp)
+        verticalArrangement = Arrangement.spacedBy(4.dp),
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
-        items(days) { day ->
+        items(calendarDays) { day ->
             CalendarDay(day)
         }
     }
@@ -469,124 +553,108 @@ fun CalendarGrid(
 
 @Composable
 fun CalendarDay(day: AttendanceDayItem) {
-    val backgroundColor = when (day.status) {
-        AttendanceStatus.PRESENT -> Color(0xFF4CAF50) // Green
-        AttendanceStatus.LATE -> Color(0xFFFFEB3B) // Yellow
-        AttendanceStatus.ABSENT -> Color(0xFFE57373) // Red
-        AttendanceStatus.NO_CLASS -> Color(0xFFEEEEEE) // Light Gray
-    }
-    
-    // Determine if this day is today
-    val isToday = day.date == LocalDate.now()
-    
+    // Generate a background color based on the attendance status
     Box(
         modifier = Modifier
+            .aspectRatio(1f)
             .padding(2.dp)
-            .size(40.dp)
-            .clip(RoundedCornerShape(4.dp))
-            .background(backgroundColor)
-            .border(
-                width = if (isToday) 2.dp else 0.dp,
-                color = if (isToday) Green700 else Color.Transparent,
-                shape = RoundedCornerShape(4.dp)
+            .clip(CircleShape)
+            .background(
+                color = when (day.attendanceStatus) {
+                    AttendanceStatus.PRESENT -> Color(0xFF4CAF50).copy(alpha = 0.8f) // Green
+                    AttendanceStatus.ABSENT -> Color(0xFFF44336).copy(alpha = 0.8f)  // Red
+                    AttendanceStatus.LATE -> Color(0xFFFF9800).copy(alpha = 0.8f)    // Orange
+                    AttendanceStatus.UPCOMING -> Color(0xFF2196F3).copy(alpha = 0.2f) // Light Blue
+                    AttendanceStatus.NOT_RECORDED -> Color(0xFF9E9E9E).copy(alpha = 0.2f) // Gray
+                    else -> Color.Transparent
+                }
             ),
         contentAlignment = Alignment.Center
     ) {
         Text(
-            text = day.date.dayOfMonth.toString(),
-            color = if (day.status == AttendanceStatus.NO_CLASS) Color.Gray else 
-                   if (day.status == AttendanceStatus.LATE) Color.Black else Color.White,
+            text = day.day.toString(),
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = if (isToday) FontWeight.Bold else FontWeight.Normal
+            color = when (day.attendanceStatus) {
+                AttendanceStatus.PRESENT, AttendanceStatus.ABSENT, AttendanceStatus.LATE -> Color.White
+                else -> if (!day.isCurrentMonth) Color.LightGray else Color.DarkGray
+            },
+            fontWeight = if (day.isToday) FontWeight.Bold else FontWeight.Normal
         )
     }
 }
 
-// Helper function to create calendar day items
-fun createCalendarDays(
+/**
+ * Helper function to create calendar day items
+ */
+private fun createCalendarDays(
     yearMonth: YearMonth,
     attendanceByDate: Map<String, Boolean>,
-    attendanceData: Map<String, com.example.spot.model.StudentAttendance.AttendanceDetail>? = null
+    attendanceData: Map<String, StudentAttendance.AttendanceDetail>? = null
 ): List<AttendanceDayItem> {
-    val days = mutableListOf<AttendanceDayItem>()
-    
-    // Calculate first day of month offset (e.g., if month starts on Wednesday, offset is 2)
-    val firstDayOfMonth = yearMonth.atDay(1)
-    val dayOfWeekValue = firstDayOfMonth.dayOfWeek.value % 7 // Convert Monday=1 to Sunday=0 system
-    
-    // Add empty spaces for days before the first day of month
-    for (i in 0 until dayOfWeekValue) {
-        val prevDate = firstDayOfMonth.minusDays((dayOfWeekValue - i).toLong())
-        days.add(
-            AttendanceDayItem(
-                date = prevDate,
-                status = AttendanceStatus.NO_CLASS
-            )
-        )
-    }
-    
-    // Process actual days in the month
-    val daysInMonth = yearMonth.lengthOfMonth()
     val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
+    val today = LocalDate.now()
+    val firstOfMonth = yearMonth.atDay(1)
+    val lastOfMonth = yearMonth.atEndOfMonth()
     
-    for (dayOfMonth in 1..daysInMonth) {
-        val date = yearMonth.atDay(dayOfMonth)
-        val dateStr = date.format(formatter)
+    // Determine the start day (previous month days to show)
+    var startDay = firstOfMonth
+    while (startDay.dayOfWeek.value % 7 != 1) { // Start from Monday (1)
+        startDay = startDay.minusDays(1)
+    }
+    
+    // Determine the end day (next month days to show)
+    var endDay = lastOfMonth
+    while (endDay.dayOfWeek.value % 7 != 0) { // End with Sunday (0)
+        endDay = endDay.plusDays(1)
+    }
+    
+    val days = mutableListOf<AttendanceDayItem>()
+    var currentDay = startDay
+    
+    while (!currentDay.isAfter(endDay)) {
+        val isInCurrentMonth = !currentDay.isBefore(firstOfMonth) && !currentDay.isAfter(lastOfMonth)
+        val dateStr = currentDay.format(formatter)
         
-        // Determine attendance status - using enhanced logic with time details if available
-        var attendanceStatus = AttendanceStatus.NO_CLASS
-        var startTime: LocalTime? = null
-        var scheduleStartTime: LocalTime? = null
-        
-        if (attendanceData?.containsKey(dateStr) == true) {
-            // Enhanced data available with time details
-            val detail = attendanceData[dateStr]
-            startTime = detail?.startTime
-            scheduleStartTime = detail?.scheduleStartTime
-            
-            if (detail?.present == true) {
-                // Check if student was late (15+ minutes after schedule start)
-                attendanceStatus = if (startTime != null && scheduleStartTime != null &&
-                    startTime.isAfter(scheduleStartTime.plusMinutes(15))) {
-                    AttendanceStatus.LATE
-                } else {
-                    AttendanceStatus.PRESENT
+        // Determine attendance status
+        val status = if (isInCurrentMonth) {
+            when {
+                attendanceByDate.containsKey(dateStr) -> {
+                    val isPresent = attendanceByDate[dateStr] ?: false
+                    
+                    if (isPresent) {
+                        // Check if we have detailed information about attendance time
+                        val detail = attendanceData?.get(dateStr)
+                        if (detail != null && detail.startTime != null && detail.scheduleStartTime != null &&
+                            detail.startTime.isAfter(detail.scheduleStartTime)) {
+                            AttendanceStatus.LATE
+                        } else {
+                            AttendanceStatus.PRESENT
+                        }
+                    } else {
+                        AttendanceStatus.ABSENT
+                    }
                 }
-            } else {
-                attendanceStatus = AttendanceStatus.ABSENT
+                currentDay.isAfter(today) -> AttendanceStatus.UPCOMING
+                else -> AttendanceStatus.NOT_RECORDED
             }
-        } else if (attendanceByDate.containsKey(dateStr)) {
-            // Basic attendance data without time details
-            attendanceStatus = if (attendanceByDate[dateStr] == true) {
-                AttendanceStatus.PRESENT
-            } else {
-                AttendanceStatus.ABSENT
-            }
+        } else {
+            AttendanceStatus.NOT_APPLICABLE
         }
+        
+        // Get attendance detail for this date if available
+        val detail = attendanceData?.get(dateStr)
         
         days.add(
             AttendanceDayItem(
-                date = date,
-                status = attendanceStatus,
-                startTime = startTime,
-                scheduleStartTime = scheduleStartTime
+                date = currentDay,
+                isCurrentMonth = isInCurrentMonth,
+                attendanceStatus = status,
+                isSelected = false, // Can be updated based on selection state
+                detail = detail
             )
         )
-    }
-    
-    // Calculate how many days to add to complete the grid (if needed)
-    val remainingCells = 42 - days.size // 6 rows * 7 columns = 42 total cells
-    if (remainingCells > 0 && remainingCells < 7) {
-        val lastDate = yearMonth.atEndOfMonth()
-        for (i in 1..remainingCells) {
-            val nextDate = lastDate.plusDays(i.toLong())
-            days.add(
-                AttendanceDayItem(
-                    date = nextDate,
-                    status = AttendanceStatus.NO_CLASS
-                )
-            )
-        }
+        
+        currentDay = currentDay.plusDays(1)
     }
     
     return days
@@ -604,31 +672,58 @@ fun EmptyAttendanceContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        CalendarSectionInfoCard(section = section)
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Text(
-            text = "No Attendance Data",
-            style = MaterialTheme.typography.headlineMedium,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = "Student attendance stats retrieved successfully, but there are no attendance records yet for this course.",
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(containerColor = Green700)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.9f),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 4.dp
+            )
         ) {
-            Text("Refresh")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.CalendarToday,
+                    contentDescription = "No Attendance",
+                    tint = Green700,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .padding(bottom = 16.dp)
+                )
+                
+                Text(
+                    text = "No Attendance Records",
+                    style = MaterialTheme.typography.headlineSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Green700,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                Text(
+                    text = "No attendance data found for ${section.course.courseCode} - ${section.sectionName}",
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                Button(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Green700
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Refresh")
+                }
+            }
         }
     }
 }

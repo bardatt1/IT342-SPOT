@@ -91,46 +91,48 @@ class AttendanceViewModel : ViewModel() {
         _sectionAttendanceState.value = SectionAttendanceState.Loading
         
         viewModelScope.launch {
-            when (val result = attendanceRepository.getStudentAttendanceStats(sectionId)) {
-                is NetworkResult.Success<StudentAttendance> -> {
-                    // Process attendance data to include time details for late calculation
-                    val attendanceData = processAttendanceData(result.data)
-                    _sectionAttendanceState.value = SectionAttendanceState.Success(attendanceData)
+            try {
+                when (val result = attendanceRepository.getStudentAttendanceStats(sectionId)) {
+                    is NetworkResult.Success<StudentAttendance> -> {
+                        // Use real attendance data from API
+                        val studentAttendance = result.data
+                        Log.d(TAG, "Received attendance data for section $sectionId: ${studentAttendance.attendanceByDate.size} dates")
+                        
+                        // Process the data to include time information if available
+                        val processedData = processAttendanceData(studentAttendance)
+                        _sectionAttendanceState.value = SectionAttendanceState.Success(processedData)
+                    }
+                    is NetworkResult.Error -> {
+                        Log.e(TAG, "Error loading attendance: ${result.message}")
+                        _sectionAttendanceState.value = SectionAttendanceState.Error(result.message)
+                    }
+                    else -> {}
                 }
-                is NetworkResult.Error -> {
-                    _sectionAttendanceState.value = SectionAttendanceState.Error(result.message)
-                }
-                else -> {}
+            } catch (e: Exception) {
+                Log.e(TAG, "Exception loading attendance history", e)
+                _sectionAttendanceState.value = SectionAttendanceState.Error("Error: ${e.message}")
             }
         }
     }
     
     /**
-     * Process attendance data to include time details for late calculation
+     * Process attendance data to include time details
+     * If the API doesn't provide time information, we won't add mock data
      */
     private fun processAttendanceData(studentAttendance: StudentAttendance): StudentAttendance {
-        // Create a map for detailed attendance with time information
+        // Create a map for attendance with time information if available
         val attendanceDetails = mutableMapOf<String, StudentAttendance.AttendanceDetail>()
         
-        // Mock time data for demonstration purposes
-        // In a real app, this would come from the backend API
-        val timeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-        val classStartTime = LocalTime.parse("08:00", timeFormatter)
-        
-        // Create detailed attendance data for each date
+        // Process the attendance data from the API
         studentAttendance.attendanceByDate.forEach { (date, present) ->
-            // Mock different arrival times based on whether present or not
-            val arrivalTime = if (present) {
-                // Generate a random arrival time between 7:45 and 8:30
-                val minutes = (Math.random() * 45 - 15).toInt()
-                classStartTime.plusMinutes(minutes.toLong())
-            } else null
-            
+            // Convert the date string to a proper attendance detail object
+            // We're not adding mock time data anymore as it would be misleading
             attendanceDetails[date] = StudentAttendance.AttendanceDetail(
                 date = date,
                 present = present,
-                startTime = arrivalTime,
-                scheduleStartTime = classStartTime
+                // Only use real time data from the API if available in the future
+                startTime = null,
+                scheduleStartTime = null
             )
         }
         

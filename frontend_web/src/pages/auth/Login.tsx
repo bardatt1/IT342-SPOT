@@ -33,13 +33,16 @@ const Login = () => {
       console.log("Attempting login with:", email)
 
       // Make direct API call to login
-      const apiUrl = import.meta.env.VITE_API_URL || "http://localhost:8080/api"
+      const apiUrl = import.meta.env.VITE_API_URL || "https://backend.spot-edu.me/api"
       const response = await axios.post(`${apiUrl}/auth/login`, { email, password })
       console.log("Login API response:", response.data)
 
       // Extract data directly from response
       const responseData = response.data.data || response.data
       const userType = responseData.userType
+      
+      // IMPORTANT: Remove any existing userRole cookie to prevent security issues
+      document.cookie = "userRole=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
 
       // Update auth context - this will parse the response correctly
       await login(email, password)

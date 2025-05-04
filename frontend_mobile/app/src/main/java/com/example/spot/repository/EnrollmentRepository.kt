@@ -4,6 +4,8 @@ import android.util.Log
 import com.example.spot.model.EnrollRequest
 import com.example.spot.model.Enrollment
 import com.example.spot.model.Section
+import com.example.spot.model.SectionSchedule
+import com.example.spot.model.Schedule
 import com.example.spot.network.RetrofitClient
 import com.example.spot.util.NetworkResult
 import kotlinx.coroutines.Dispatchers
@@ -34,7 +36,60 @@ class EnrollmentRepository {
                 if (response.result == "SUCCESS" && response.data != null) {
                     // If successful, update cache and return data
                     _enrollmentsCache.value = response.data
-                    return@withContext NetworkResult.Success(response.data)
+                    
+                    // Process each enrollment to add schedules to the sections
+                    val enrollmentsWithSchedules = response.data.map { enrollment ->
+                        try {
+                            // Fetch schedules for this section
+                            val schedulesResult = getSchedulesForSection(enrollment.section.id)
+                            
+                            if (schedulesResult is NetworkResult.Success && schedulesResult.data.isNotEmpty()) {
+                                // Create formatted section schedules
+                                val sectionSchedules = schedulesResult.data.map { schedule ->
+                                    val dayName = when(schedule.dayOfWeek) {
+                                        1 -> "Monday"
+                                        2 -> "Tuesday"
+                                        3 -> "Wednesday"
+                                        4 -> "Thursday"
+                                        5 -> "Friday"
+                                        6 -> "Saturday"
+                                        7 -> "Sunday"
+                                        else -> "Unknown"
+                                    }
+                                    SectionSchedule(
+                                        day = dayName,
+                                        startTime = schedule.timeStart,
+                                        endTime = schedule.timeEnd
+                                    )
+                                }
+                                
+                                // Create a new section with schedules
+                                val updatedSection = Section(
+                                    id = enrollment.section.id,
+                                    course = enrollment.section.course,
+                                    teacher = enrollment.section.teacher,
+                                    sectionName = enrollment.section.sectionName,
+                                    enrollmentKey = enrollment.section.enrollmentKey,
+                                    enrollmentOpen = enrollment.section.enrollmentOpen,
+                                    enrollmentCount = enrollment.section.enrollmentCount,
+                                    schedule = enrollment.section.schedule,
+                                    schedules = sectionSchedules
+                                )
+                                
+                                // Create a new enrollment with the updated section
+                                enrollment.copy(section = updatedSection)
+                            } else {
+                                enrollment
+                            }
+                        } catch (e: Exception) {
+                            Log.e("EnrollmentRepository", "Error fetching schedules for section ${enrollment.section.id}", e)
+                            enrollment
+                        }
+                    }
+                    
+                    // Update cache with enriched data
+                    _enrollmentsCache.value = enrollmentsWithSchedules
+                    return@withContext NetworkResult.Success(enrollmentsWithSchedules)
                 } else {
                     // If backend call fails but we have cached data, use that
                     if (_enrollmentsCache.value.isNotEmpty()) {
@@ -91,8 +146,8 @@ class EnrollmentRepository {
             try {
                 val response = apiService.getEnrollmentsBySectionId(sectionId)
                 
-                if (response.result == "SUCCESS" && response.data != null) {
-                    return@withContext NetworkResult.Success(response.data)
+                if (response.result == "SUCCESS") {
+                    return@withContext NetworkResult.Success(response.data ?: emptyList())
                 } else {
                     return@withContext NetworkResult.Error(response.message)
                 }
@@ -144,6 +199,26 @@ class EnrollmentRepository {
             } catch (e: Exception) {
                 Log.e("EnrollmentRepository", "Enroll student error", e)
                 NetworkResult.Error("Network error: ${e.localizedMessage}")
+            }
+        }
+    }
+    
+    /**
+     * Fetch schedules for a specific section
+     */
+    private suspend fun getSchedulesForSection(sectionId: Long): NetworkResult<List<Schedule>> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getSchedulesBySectionId(sectionId)
+                
+                if (response.result == "SUCCESS") {
+                    return@withContext NetworkResult.Success(response.data ?: emptyList())
+                } else {
+                    return@withContext NetworkResult.Error(response.message)
+                }
+            } catch (e: Exception) {
+                Log.e("EnrollmentRepository", "Error fetching schedules", e)
+                return@withContext NetworkResult.Error("Network error: ${e.message}")
             }
         }
     }

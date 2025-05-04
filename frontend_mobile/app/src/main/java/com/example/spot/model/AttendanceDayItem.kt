@@ -8,17 +8,31 @@ import java.time.LocalTime
  */
 data class AttendanceDayItem(
     val date: LocalDate,
-    val status: AttendanceStatus,
-    val startTime: LocalTime? = null,
-    val scheduleStartTime: LocalTime? = null
-)
+    val isCurrentMonth: Boolean,
+    val attendanceStatus: AttendanceStatus,
+    val isSelected: Boolean = false,
+    val detail: StudentAttendance.AttendanceDetail? = null
+) {
+    // Convenience properties to access date components
+    val day: Int get() = date.dayOfMonth
+    val month: Int get() = date.monthValue
+    val year: Int get() = date.year
+    val isToday: Boolean get() = date.equals(LocalDate.now())
+    
+    // For backward compatibility
+    val isInCurrentMonth: Boolean get() = isCurrentMonth
+    val status: AttendanceStatus get() = attendanceStatus
+}
 
 /**
  * Enum representing possible attendance statuses
  */
 enum class AttendanceStatus {
     PRESENT,
-    LATE,
     ABSENT,
-    NO_CLASS
+    NO_CLASS,
+    LATE,
+    UPCOMING,
+    NOT_RECORDED,
+    NOT_APPLICABLE
 }

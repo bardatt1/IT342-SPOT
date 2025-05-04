@@ -12,8 +12,8 @@ object Constants {
      * You can toggle between them by changing USE_EMULATOR_URL
      */
     private const val USE_EMULATOR_URL = false
-    private const val EMULATOR_BASE_URL = "http://10.0.2.2:8080/"
-    private const val PHYSICAL_DEVICE_BASE_URL = "http://192.168.1.6:8080/" // Updated with correct IP address
+    private const val EMULATOR_BASE_URL = "https://backend.spot-edu.me/"
+    private const val PHYSICAL_DEVICE_BASE_URL = "https://backend.spot-edu.me/" // Updated with correct IP address
     
     val API_BASE_URL: String
         get() = if (USE_EMULATOR_URL) EMULATOR_BASE_URL else PHYSICAL_DEVICE_BASE_URL

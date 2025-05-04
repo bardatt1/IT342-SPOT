@@ -18,7 +18,9 @@ import {
   BookOpen, 
   GraduationCap, 
   CalendarDays,
-  MapPin
+  MapPin,
+  Lock,
+  Unlock
 } from 'lucide-react';
 import FirstLoginModal from '../../components/ui/FirstLoginModal';
 
@@ -31,13 +33,14 @@ const TeacherSections = () => {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const [copiedCodes, setCopiedCodes] = useState<Record<number, boolean>>({});
   const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
+  const [togglingEnrollment, setTogglingEnrollment] = useState<Record<number, boolean>>({});
 
   // Check for temporary password when user data is loaded
   useEffect(() => {
     // Check if this is a temporary account based on email pattern
     const isTemporaryAccount = 
-      // Check if email ends with @temporary.com
-      user?.email?.endsWith('@temporary.com') ||
+      // Check if email ends with @edu-spot.me
+      user?.email?.endsWith('@edu-spot.me') ||
       // Or if the backend explicitly flags it
       user?.hasTemporaryPassword;
     
@@ -102,16 +105,76 @@ const TeacherSections = () => {
   
   // Copy enrollment key to clipboard
   const copyToClipboard = (text: string, sectionId: number) => {
-    navigator.clipboard.writeText(text)
-      .then(() => {
-        setCopiedCodes(prev => ({ ...prev, [sectionId]: true }));
-        setTimeout(() => {
-          setCopiedCodes(prev => ({ ...prev, [sectionId]: false }));
-        }, 2000);
-      })
-      .catch(err => {
-        console.error('Error copying to clipboard:', err);
-      });
+    if (!navigator.clipboard) {
+      alert('Clipboard API not available in your browser.');
+      return;
+    }
+
+    navigator.clipboard.writeText(text).then(() => {
+      // Set the current section as copied
+      setCopiedCodes({ ...copiedCodes, [sectionId]: true });
+      
+      // Show a success message
+      setSuccessMessage('Enrollment key copied to clipboard!');
+      
+      // Reset the copied status and clear the success message after a delay
+      setTimeout(() => {
+        setCopiedCodes({ ...copiedCodes, [sectionId]: false });
+        setSuccessMessage(null);
+      }, 3000);
+    }).catch(err => {
+      console.error('Could not copy text: ', err);
+      alert('Failed to copy to clipboard.');
+    });
+  };
+  
+  // Toggle enrollment open/close status
+  const toggleEnrollment = async (sectionId: number, currentStatus: boolean) => {
+    // Set loading state for this specific section
+    setTogglingEnrollment({ ...togglingEnrollment, [sectionId]: true });
+    
+    try {
+      // Find the current section to get its enrollment key
+      const section = sections.find(s => s.id === sectionId);
+      
+      if (!section) {
+        throw new Error(`Section with ID ${sectionId} not found`);
+      }
+      
+      if (currentStatus) {
+        // Currently open, so close it
+        await sectionApi.closeEnrollment(sectionId);
+        setSuccessMessage('Enrollment closed successfully');
+      } else {
+        // Currently closed, so open it
+        // Pass the existing enrollment key if available
+        await sectionApi.openEnrollment(sectionId, section.enrollmentKey);
+        setSuccessMessage('Enrollment opened successfully');
+      }
+      
+      // Update the sections data
+      setSections(sections.map(s => 
+        s.id === sectionId 
+          ? { ...s, enrollmentOpen: !currentStatus } 
+          : s
+      ));
+      
+      // Clear success message after delay
+      setTimeout(() => {
+        setSuccessMessage(null);
+      }, 3000);
+    } catch (error) {
+      console.error(`Error ${currentStatus ? 'closing' : 'opening'} enrollment:`, error);
+      setError(`Failed to ${currentStatus ? 'close' : 'open'} enrollment. Please try again.`);
+      
+      // Clear error after delay
+      setTimeout(() => {
+        setError(null);
+      }, 5000);
+    } finally {
+      // Clear loading state
+      setTogglingEnrollment({ ...togglingEnrollment, [sectionId]: false });
+    }
   };
 
   return (
@@ -176,7 +239,7 @@ const TeacherSections = () => {
                     </CardTitle>
                     <CardDescription className="text-white/80">
                       <Badge variant="outline" className="bg-white/10 text-white font-mono border-white/20">
-                        Section #{section.id}
+                        Course: {section.course?.courseName}
                       </Badge>
                     </CardDescription>
                   </CardHeader>
@@ -195,12 +258,68 @@ const TeacherSections = () => {
                       <div className="rounded-md bg-[#215f47]/5 p-3 border border-[#215f47]/10">
                         <div className="flex items-center text-[#215f47] font-medium text-sm mb-1">
                           <CalendarDays className="h-3.5 w-3.5 mr-1.5" />
-                          Course
+                          Course Code
                         </div>
                         <p className="text-sm">
                           {section.course?.courseCode || 'Not set'}
                         </p>
                       </div>
+                    </div>
+                    
+                    {/* Enrollment Status */}
+                    <div className="bg-white p-4 rounded-md border border-[#215f47]/10 flex flex-col justify-between items-start gap-3 overflow-hidden">
+                      <div className="flex-1 w-full text-center">
+                        <div className="flex items-center justify-center mb-1">
+                          <Badge variant={section.enrollmentOpen ? "default" : "secondary"} 
+                            className={`mr-2 px-2 py-0.5 ${section.enrollmentOpen ? 'bg-green-100 text-green-800 hover:bg-green-100' : ''}`}>
+                            {section.enrollmentOpen ? (
+                              <>
+                                <Unlock className="h-3 w-3 mr-1" />
+                                <span>Open</span>
+                              </>
+                            ) : (
+                              <>
+                                <Lock className="h-3 w-3 mr-1" />
+                                <span>Closed</span>
+                              </>
+                            )}
+                          </Badge>
+                          <h4 className="text-sm font-medium text-gray-700">
+                            Enrollment Status
+                          </h4>
+                        </div>
+                        <p className="text-xs text-gray-500 mx-auto max-w-xs">
+                          {section.enrollmentOpen 
+                            ? "Students can join this section with the enrollment key" 
+                            : "Students cannot join this section until enrollment is opened"}
+                        </p>
+                      </div>
+                      
+                      <Button
+                        variant={section.enrollmentOpen ? "destructive" : "default"}
+                        size="sm"
+                        onClick={() => toggleEnrollment(section.id, section.enrollmentOpen)}
+                        disabled={togglingEnrollment[section.id]}
+                        className={`mt-2 py-1 h-8 whitespace-nowrap w-[60%] mx-auto transition-all ${section.enrollmentOpen 
+                          ? 'bg-red-600 hover:bg-red-700 text-white' 
+                          : 'bg-[#215f47] hover:bg-[#184938] text-white'}`}
+                      >
+                        {togglingEnrollment[section.id] ? (
+                          <span className="flex items-center justify-center">
+                            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin mr-2" />
+                            <span>Processing...</span>
+                          </span>
+                        ) : (
+                          <span className="flex items-center justify-center">
+                            {section.enrollmentOpen ? (
+                              <Lock className="h-4 w-4 mr-1.5" />
+                            ) : (
+                              <Unlock className="h-4 w-4 mr-1.5" />
+                            )}
+                            {section.enrollmentOpen ? 'Close Enrollment' : 'Open Enrollment'}
+                          </span>
+                        )}
+                      </Button>
                     </div>
                     
                     <div className="bg-white p-3 rounded-md border border-[#215f47]/10 flex items-center">
@@ -253,7 +372,7 @@ const TeacherSections = () => {
                         </>
                       ) : (
                         <>
-                          <QrCode className="mr-2 h-4 w-4" />
+                          <CalendarDays className="mr-2 h-4 w-4" />
                           Generate Class Code
                         </>
                       )}

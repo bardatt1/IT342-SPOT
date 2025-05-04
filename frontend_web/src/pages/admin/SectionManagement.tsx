@@ -24,6 +24,15 @@ const SectionManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // Handle tab change
+  const handleTabChange = (value: string) => {
+    if (value === 'sections') {
+      // Already on sections tab, no navigation needed
+    } else if (value === 'schedules') {
+      navigate('/admin/schedules');
+    }
+  };
+  
   // Form state
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<'add' | 'edit'>('add');
@@ -39,13 +48,6 @@ const SectionManagement = () => {
   // State for assigning teacher modal
   const [showAssignTeacherModal, setShowAssignTeacherModal] = useState(false);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
-  
-  // Handle tab change
-  const handleTabChange = (value: string) => {
-    if (value === "schedules") {
-      navigate('/admin/schedules');
-    }
-  };
 
   useEffect(() => {
     fetchData();
@@ -161,46 +163,6 @@ const SectionManagement = () => {
     }
   };
 
-  const handleEndSection = async (sectionId: number) => {
-    // Display a more detailed informative message to the user
-    if (!window.confirm(
-      'There is a temporary issue with the "End Section" functionality.\n\n' +
-      'As a workaround, please:\n' +
-      '1. Unassign the teacher using the "Unassign" button\n' +
-      '2. Update the section to clear the enrollment key\n\n' +
-      'Do you want to proceed with manually editing this section?'
-    )) {
-      return;
-    }
-    
-    // Get the current section
-    const section = sections.find(s => s.id === sectionId);
-    if (!section) {
-      setError('Section not found');
-      return;
-    }
-    
-    // Find the course
-    const course = courses.find(c => c.id === section.courseId);
-    if (!course) {
-      setError('Course not found for this section');
-      return;
-    }
-    
-    // Update form data with cleared enrollment key
-    setFormData({
-      courseId: section.courseId.toString(),
-      sectionName: section.sectionName,
-      teacherId: '',  // Clear teacher assignment
-      enrollmentKey: ''  // Clear the enrollment key
-    });
-    
-    setFormType('edit');
-    setShowForm(true);
-    setSelectedSectionId(sectionId);
-    setError('To complete ending the section, click "Update Section" after reviewing the changes.');
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
@@ -266,6 +228,7 @@ const SectionManagement = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
+      
         <div className="flex flex-col justify-between sm:flex-row sm:items-center border-b border-[#215f47]/10 pb-4">
           <div>
             <h2 className="text-2xl font-bold text-[#215f47] flex items-center gap-2">
@@ -274,18 +237,19 @@ const SectionManagement = () => {
             </h2>
             <p className="text-gray-500 mt-1">Manage academic sections and their class schedules</p>
           </div>
-          <div>
+          
+          
+          <div className="mt-4 sm:mt-0">
             <Button 
               onClick={handleAddNew} 
-              className="bg-[#215f47] hover:bg-[#215f47]/90 text-white"
+              className="flex items-center bg-[#215f47] hover:bg-[#215f47]/90 text-white"
             >
               <Plus className="mr-2 h-4 w-4" />
               Add New Section
             </Button>
           </div>
         </div>
-        
-        {/* Tabs for switching between sections and schedules */}
+
         <Tabs defaultValue="sections" className="w-full" onValueChange={handleTabChange}>
           <TabsList className="mb-4 grid w-full grid-cols-2 bg-[#f8f9fa]">
             <TabsTrigger 
@@ -517,14 +481,6 @@ const SectionManagement = () => {
                             className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 mr-1"
                           >
                             <Trash2 className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEndSection(section.id)}
-                            className="h-8 py-1 px-2 text-amber-600 hover:bg-amber-50"
-                          >
-                            End
                           </Button>
                         </TableCell>
                       </TableRow>

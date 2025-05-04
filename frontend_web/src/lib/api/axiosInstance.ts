@@ -1,7 +1,8 @@
 import axios from 'axios';
+import { getCookie } from '../cookies';
 
 // Create axios instance with default config
-const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:8080/api';
+const apiUrl = import.meta.env.VITE_API_URL || 'https://backend.spot-edu.me/api';
 console.log('API URL:', apiUrl); // Debug API URL
 
 const axiosInstance = axios.create({
@@ -16,7 +17,7 @@ const axiosInstance = axios.create({
 // Request interceptor
 axiosInstance.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getCookie('auth_token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
       console.log('Request with token to:', config.url);

@@ -151,8 +151,29 @@ const UserManagement = () => {
     }
   };
 
+  // Password validation helper function
+  const validatePassword = (password: string): { valid: boolean; message: string } => {
+    if (!password) {
+      return { valid: false, message: 'Password is required' };
+    }
+    if (password.length < 8) {
+      return { valid: false, message: 'Password must be at least 8 characters long' };
+    }
+    // Add more password requirements as needed
+    return { valid: true, message: '' };
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // Validate password for new user creation
+    if (formType === 'add' && formData.password) {
+      const passwordValidation = validatePassword(formData.password);
+      if (!passwordValidation.valid) {
+        setError(passwordValidation.message);
+        return;
+      }
+    }
     
     try {
       if (activeTab === 'students') {
@@ -178,7 +199,7 @@ const UserManagement = () => {
             firstName: formData.firstName || 'Temporary', // Placeholder values for required backend fields
             middleName: formData.middleName || null,
             lastName: formData.lastName || 'Account',
-            email: formData.email || `${formData.physicalId}@temporary.com`, // Generate temporary email if not provided
+            email: formData.email || `${formData.physicalId}@edu-spot.me`, // Generate temporary email if not provided
             studentPhysicalId: formData.physicalId, // This is the only required field
             year: formData.year || '1',
             program: formData.program || 'Temporary Program',
@@ -211,7 +232,7 @@ const UserManagement = () => {
             firstName: formData.firstName || 'Temporary', // Placeholder values for required backend fields
             middleName: formData.middleName || null,
             lastName: formData.lastName || 'Account',
-            email: formData.email || `${formData.physicalId}@temporary.com`, // Generate temporary email if not provided
+            email: formData.email || `${formData.physicalId}@edu-spot.me`, // Generate temporary email if not provided
             teacherPhysicalId: formData.physicalId, // This is the only required field
             // Generate a hashed password based on the physical ID
             password: formData.password || generateHashedPassword(formData.physicalId)
@@ -378,7 +399,11 @@ const UserManagement = () => {
                       type="password"
                       name="password"
                       value={formData.password}
-                      onChange={handleInputChange}
+                      onChange={(e) => {
+                        handleInputChange(e);
+                        // Clear password error when user changes input
+                        if (error && error.includes('Password')) setError(null);
+                      }}
                       placeholder="Leave empty for auto-generated password"
                       className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
                     />
@@ -468,7 +493,6 @@ const UserManagement = () => {
                   <Table>
                     <TableHeader className="bg-[#215f47]/5">
                       <TableRow>
-                        <TableHead className="text-[#215f47] font-medium w-[60px]">ID</TableHead>
                         <TableHead className="text-[#215f47] font-medium">Name</TableHead>
                         <TableHead className="text-[#215f47] font-medium">Email</TableHead>
                         <TableHead className="text-[#215f47] font-medium">Physical ID</TableHead>
@@ -481,7 +505,6 @@ const UserManagement = () => {
                       {students.length > 0 ? (
                         students.map((student) => (
                           <TableRow key={student.id} className="hover:bg-[#215f47]/5 transition-colors">
-                            <TableCell className="font-medium">{student.id}</TableCell>
                             <TableCell>
                               {`${student.firstName} ${student.middleName ? student.middleName + ' ' : ''}${student.lastName}`}
                             </TableCell>
@@ -544,7 +567,6 @@ const UserManagement = () => {
                   <Table>
                     <TableHeader className="bg-[#215f47]/5">
                       <TableRow>
-                        <TableHead className="text-[#215f47] font-medium w-[60px]">ID</TableHead>
                         <TableHead className="text-[#215f47] font-medium">Name</TableHead>
                         <TableHead className="text-[#215f47] font-medium">Email</TableHead>
                         <TableHead className="text-[#215f47] font-medium">Physical ID</TableHead>
@@ -555,7 +577,6 @@ const UserManagement = () => {
                       {teachers.length > 0 ? (
                         teachers.map((teacher) => (
                           <TableRow key={teacher.id} className="hover:bg-[#215f47]/5 transition-colors">
-                            <TableCell className="font-medium">{teacher.id}</TableCell>
                             <TableCell>
                               {`${teacher.firstName} ${teacher.middleName ? teacher.middleName + ' ' : ''}${teacher.lastName}`}
                             </TableCell>

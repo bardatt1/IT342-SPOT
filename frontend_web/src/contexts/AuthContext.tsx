@@ -2,6 +2,7 @@ import { createContext, useState, useContext, useEffect, ReactNode } from 'react
 import axios from 'axios';
 import { jwtDecode } from 'jwt-decode';
 import axiosInstance from '../lib/api/axiosInstance';
+import { setCookie, getCookie, removeCookie, clearAuthCookies } from '../lib/cookies';
 
 interface User {
   id: number;
@@ -69,14 +70,13 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   // Function to refresh user data with a direct API call
   const refreshUserData = async (): Promise<void> => {
-    const storedToken = localStorage.getItem('token');
+    const storedToken = getCookie('auth_token');
     
     if (!storedToken || isTokenExpired(storedToken)) {
       console.error('Cannot refresh user data: No valid token');
       setIsAuthenticated(false);
       setUser(null);
-      localStorage.removeItem('token');
-      localStorage.removeItem('user');
+      clearAuthCookies();
       return;
     }
 
@@ -87,7 +87,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // For future implementation: Add an endpoint to fetch current user data
       // For now, we'll still use the stored user data since there's no endpoint
       // that just returns current user info without requiring a new login
-      const storedUserData = localStorage.getItem('user');
+      const storedUserData = getCookie('user');
       if (storedUserData) {
         console.log('Using stored user data for refresh');
         const userData = JSON.parse(storedUserData);
@@ -107,67 +107,73 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   useEffect(() => {
     const initAuth = async () => {
-      const storedToken = localStorage.getItem('token');
-      const storedUserData = localStorage.getItem('user');
+      const token = getCookie('auth_token');
       
-      if (storedToken && !isTokenExpired(storedToken)) {
+      if (token && !isTokenExpired(token)) {
         try {
           // Set auth header for all axios instances
-          axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+          axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
           
           console.log('Valid token found, initializing authentication');
           
-          if (storedUserData) {
-            console.log('Using stored user data for initialization');
-            const userData = JSON.parse(storedUserData);
-            setUser(userData);
-            setIsAuthenticated(true);
-          } else {
-            // If we have a token but no user data, try to get user info from token
-            try {
-              console.log('No stored user data found, extracting from token');
-              const decoded = jwtDecode<JwtPayload>(storedToken);
+          // Fetch the user's current profile from the server to get accurate role information
+          try {
+            // Call API to get current user profile
+            // This ensures the role comes from the server, not cookies
+            const response = await axiosInstance.get('/auth/me');
+            
+            if (response && response.data && response.data.data) {
+              console.log('User profile retrieved from server');
+              const apiUserData = response.data.data;
               
-              // Try to fetch user data from API based on token's subject (email)
-              console.log('Attempting to fetch user data for:', decoded.sub);
-              
-              // For future implementation: Add an endpoint to fetch user data by email
-              // For now, we'll use the token data as a minimal solution
-              const partialUser = {
-                id: 0, 
-                role: 'GUEST', // Set a safe minimal role until we know better
-                email: decoded.sub,
-                name: decoded.sub.split('@')[0] || 'User',
-                googleLinked: false
+              // Create user object with verified role from server
+              const verifiedUser: User = {
+                id: apiUserData.id,
+                role: apiUserData.userType || 'GUEST', // Use role from server, default to GUEST instead of ADMIN
+                email: apiUserData.email,
+                name: `${apiUserData.firstName || ''} ${apiUserData.lastName || ''}`.trim(),
+                googleLinked: apiUserData.googleLinked || false,
+                hasTemporaryPassword: apiUserData.usesTemporaryPassword || false,
+                studentPhysicalId: apiUserData.studentPhysicalId || ''
               };
               
-              setUser(partialUser);
+              setUser(verifiedUser);
               setIsAuthenticated(true);
-              localStorage.setItem('user', JSON.stringify(partialUser));
-              console.log('Created partial user from token');
-            } catch (tokenError) {
-              console.error('Failed to extract user info from token:', tokenError);
-              // Token is invalid or malformed
-              localStorage.removeItem('token');
-              setIsAuthenticated(false);
-              setUser(null);
+            } else {
+              // If server doesn't return user data, extract info from token
+              try {
+                console.log('No API response, decoding from token');
+                const decoded = jwtDecode<JwtPayload>(token);
+                
+                // Create minimal user object with safe defaults
+                const safeUser: User = {
+                  id: parseInt(getCookie('user_id') || '0'),
+                  role: 'GUEST', // Always set a minimal role by default, not ADMIN
+                  email: decoded.sub,
+                  name: decoded.sub.split('@')[0] || 'User',
+                  googleLinked: false,
+                  hasTemporaryPassword: false
+                };
+                
+                setUser(safeUser);
+                setIsAuthenticated(true);
+              } catch (tokenError) {
+                console.error('Failed to decode token:', tokenError);
+                logout();
+              }
             }
+          } catch (apiError) {
+            console.error('Error fetching user profile:', apiError);
+            logout();
           }
         } catch (error) {
-          console.error('Error during auth initialization:', error);
-          // Clear credentials on initialization error
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          setIsAuthenticated(false);
-          setUser(null);
+          console.error('Auth initialization error:', error);
+          logout();
         }
-      } else if (storedToken) {
+      } else if (token) {
         // Token is expired, clean up
         console.warn('Token expired, cleaning up');
-        localStorage.removeItem('token');
-        localStorage.removeItem('user');
-        setIsAuthenticated(false);
-        setUser(null);
+        logout();
       } else {
         console.log('No authentication token found');
         setIsAuthenticated(false);
@@ -200,7 +206,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       
       // Always save the token for authenticated sessions
       if (responseData.accessToken) {
-        localStorage.setItem('token', responseData.accessToken);
+        setCookie('auth_token', responseData.accessToken);
         // Set auth header
         axios.defaults.headers.common['Authorization'] = `Bearer ${responseData.accessToken}`;
         console.log('Token saved and header set');
@@ -212,7 +218,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       // Map the API response fields to our User interface
       const userData: User = {
         id: responseData.id,
-        role: responseData.userType || 'ADMIN', // API uses userType for role
+        role: responseData.userType || 'GUEST', // Default to lowest privilege level instead of ADMIN
         email: responseData.email,
         name: `${responseData.firstName || ''} ${responseData.lastName || ''}`.trim(),
         googleLinked: responseData.googleLinked || false,
@@ -220,10 +226,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         studentPhysicalId: studentPhysicalId
       };
       
+      // Store minimal user data in cookies, excluding security-critical fields
+      setCookie('user', JSON.stringify({
+        id: userData.id,
+        email: userData.email,
+        name: userData.name,
+        googleLinked: userData.googleLinked,
+        hasTemporaryPassword: userData.hasTemporaryPassword,
+        studentPhysicalId: userData.studentPhysicalId
+        // Note: role is intentionally NOT stored in cookies
+      }));
+      setCookie('user_id', userData.id.toString());
+      
       setUser(userData);
       setIsAuthenticated(true);
-      localStorage.setItem('user', JSON.stringify(userData));
-      console.log('Login successful, user data:', userData);
+      console.log('Login successful, user data set');
       
       return userData;
     } catch (error) {
@@ -233,9 +250,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   };
 
   const logout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    localStorage.removeItem('teacherName'); // Also clear cached teacher name
+    clearAuthCookies();
     setUser(null);
     setIsAuthenticated(false);
     // Clear auth header
@@ -252,7 +267,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       if (user) {
         const updatedUser = { ...user, googleLinked: true };
         setUser(updatedUser);
-        localStorage.setItem('user', JSON.stringify(updatedUser));
+        setCookie('user', JSON.stringify(updatedUser));
       }
       
       return true;

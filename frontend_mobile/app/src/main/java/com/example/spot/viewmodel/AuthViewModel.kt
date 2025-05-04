@@ -4,12 +4,13 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spot.model.JwtResponse
 import com.example.spot.model.Student
-import com.example.spot.model.Teacher
 import com.example.spot.repository.AuthRepository
+import com.example.spot.repository.StudentRepository
 import com.example.spot.util.NetworkResult
-import com.google.android.gms.auth.api.signin.GoogleSignInAccount
+import com.example.spot.util.TokenManager
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import android.util.Log
 
@@ -19,27 +20,18 @@ import android.util.Log
 class AuthViewModel : ViewModel() {
 
     private val authRepository = AuthRepository()
+    private val studentRepository = StudentRepository()
     private val TAG = "AuthViewModel"
     
     // UI States
     private val _loginState = MutableStateFlow<AuthState>(AuthState.Idle)
     val loginState: StateFlow<AuthState> = _loginState
     
-    private val _bindGoogleState = MutableStateFlow<AuthState>(AuthState.Idle)
-    val bindGoogleState: StateFlow<AuthState> = _bindGoogleState
-    
     private val _emailCheckState = MutableStateFlow<EmailCheckState>(EmailCheckState.Idle)
     val emailCheckState: StateFlow<EmailCheckState> = _emailCheckState
     
     private val _registerState = MutableStateFlow<RegisterState>(RegisterState.Idle)
     val registerState: StateFlow<RegisterState> = _registerState
-
-    private val _googleSignInState = MutableStateFlow<GoogleSignInState>(GoogleSignInState.Idle)
-    val googleSignInState: StateFlow<GoogleSignInState> = _googleSignInState
-    
-    // State for student Google account binding
-    private val _bindStudentGoogleState = MutableStateFlow<BindOAuthState>(BindOAuthState.Idle)
-    val bindStudentGoogleState: StateFlow<BindOAuthState> = _bindStudentGoogleState
     
     // State for password change
     private val _passwordChangeState = MutableStateFlow<PasswordChangeState>(PasswordChangeState.Idle)
@@ -48,10 +40,6 @@ class AuthViewModel : ViewModel() {
     // Flag to indicate if the user is using a temporary password
     private val _isTemporaryPassword = MutableStateFlow<Boolean>(false)
     val isTemporaryPassword: StateFlow<Boolean> = _isTemporaryPassword
-    
-    // Flag to signal that Google account binding should be shown
-    private val _showBindGooglePrompt = MutableStateFlow<Boolean>(false)
-    val showBindGooglePrompt: StateFlow<Boolean> = _showBindGooglePrompt
     
     // Events
     fun loginUser(studentPhysicalId: String, password: String) {
@@ -66,15 +54,6 @@ class AuthViewModel : ViewModel() {
                     
                     // Check if using temporary password
                     checkTemporaryPassword(password)
-                    
-                    val userData = result.data
-                    // Show Google binding prompt if account isn't linked yet and not using temp password
-                    if (!userData.googleLinked && !_isTemporaryPassword.value) {
-                        Log.d(TAG, "User doesn't have Google account linked, showing binding prompt")
-                        _showBindGooglePrompt.value = true
-                    } else {
-                        _showBindGooglePrompt.value = false
-                    }
                     
                     _loginState.value = AuthState.Success(result.data)
                 }
@@ -91,53 +70,8 @@ class AuthViewModel : ViewModel() {
     }
     
     /**
-     * Handle Google Sign-In Authentication
+     * Register a new student account
      */
-    fun handleGoogleSignIn(account: GoogleSignInAccount) {
-        _googleSignInState.value = GoogleSignInState.Loading
-        
-        viewModelScope.launch {
-            Log.d(TAG, "Handling Google sign-in for: ${account.email}")
-            if (account.id.isNullOrEmpty() || account.email.isNullOrEmpty()) {
-                Log.e(TAG, "Invalid Google account data: id or email is null/empty")
-                _googleSignInState.value = GoogleSignInState.Error("Invalid Google account data")
-                return@launch
-            }
-            
-            // Try signing in with the Google account directly
-            performGoogleLogin(account.email!!, account.id!!)
-        }
-    }
-    
-    /**
-     * Perform login with Google credentials
-     */
-    fun performGoogleLogin(email: String, googleId: String) {
-        _googleSignInState.value = GoogleSignInState.Loading
-        
-        viewModelScope.launch {
-            Log.d(TAG, "Attempting Google login with email: $email, googleId: $googleId")
-            
-            when (val result = authRepository.loginWithGoogle(email, googleId)) {
-                is NetworkResult.Success -> {
-                    Log.d(TAG, "Google login successful for $email")
-                    _loginState.value = AuthState.Success(result.data)
-                    _googleSignInState.value = GoogleSignInState.Success(email = email, googleId = googleId)
-                }
-                is NetworkResult.Error -> {
-                    Log.e(TAG, "Google login failed: ${result.message}")
-                    // If we have a specific "account not bound" error, we might want to show a different UI
-                    // But for now, we'll just show the error message
-                    _googleSignInState.value = GoogleSignInState.Error(result.message)
-                }
-                else -> {
-                    Log.e(TAG, "Unknown error during Google login")
-                    _googleSignInState.value = GoogleSignInState.Error("Unknown error occurred")
-                }
-            }
-        }
-    }
-    
     fun registerStudent(
         firstName: String,
         middleName: String?,
@@ -151,52 +85,22 @@ class AuthViewModel : ViewModel() {
         _registerState.value = RegisterState.Loading
         
         viewModelScope.launch {
+            Log.d(TAG, "Registering student: $email, ID: $studentPhysicalId")
+            
             when (val result = authRepository.registerStudent(
                 firstName, middleName, lastName, year, program, email, studentPhysicalId, password
             )) {
                 is NetworkResult.Success -> {
+                    Log.d(TAG, "Student registration successful")
                     _registerState.value = RegisterState.Success(result.data)
                 }
                 is NetworkResult.Error -> {
+                    Log.e(TAG, "Student registration failed: ${result.message}")
                     _registerState.value = RegisterState.Error(result.message)
                 }
-                else -> {}
-            }
-        }
-    }
-    
-    fun bindGoogleAccount(email: String, googleId: String) {
-        _bindGoogleState.value = AuthState.Loading
-        
-        viewModelScope.launch {
-            when (val result = authRepository.bindGoogleAccount(email, googleId)) {
-                is NetworkResult.Success -> {
-                    _bindGoogleState.value = AuthState.Success(null) // Just indicate success, no data needed
-                }
-                is NetworkResult.Error -> {
-                    _bindGoogleState.value = AuthState.Error(result.message)
-                }
-                else -> {}
-            }
-        }
-    }
-    
-    fun bindStudentGoogleAccount(studentId: Long, googleId: String) {
-        _bindStudentGoogleState.value = BindOAuthState.Loading
-        
-        viewModelScope.launch {
-            when (val result = authRepository.bindStudentGoogleAccount(studentId, googleId)) {
-                is NetworkResult.Success -> {
-                    Log.d("AuthViewModel", "Google account bound to student successfully")
-                    _bindStudentGoogleState.value = BindOAuthState.Success
-                }
-                is NetworkResult.Error -> {
-                    Log.e("AuthViewModel", "Failed to bind Google account to student: ${result.message}")
-                    _bindStudentGoogleState.value = BindOAuthState.Error(result.message)
-                }
                 else -> {
-                    Log.e("AuthViewModel", "Unknown result state during student Google account binding")
-                    _bindStudentGoogleState.value = BindOAuthState.Error("Unknown error occurred")
+                    Log.e(TAG, "Unknown error during student registration")
+                    _registerState.value = RegisterState.Error("Unknown error occurred")
                 }
             }
         }
@@ -222,7 +126,6 @@ class AuthViewModel : ViewModel() {
         viewModelScope.launch {
             authRepository.logout()
             _loginState.value = AuthState.Idle
-            _googleSignInState.value = GoogleSignInState.Idle
         }
     }
     
@@ -231,42 +134,51 @@ class AuthViewModel : ViewModel() {
      */
     fun resetStates() {
         _loginState.value = AuthState.Idle
-        _bindGoogleState.value = AuthState.Idle
         _emailCheckState.value = EmailCheckState.Idle
         _registerState.value = RegisterState.Idle
-        _googleSignInState.value = GoogleSignInState.Idle
-        _bindStudentGoogleState.value = BindOAuthState.Idle
         _passwordChangeState.value = PasswordChangeState.Idle
     }
     
     /**
-     * Reset Google binding prompt state
+     * Change the password for a user
      */
-    fun resetBindGooglePrompt() {
-        _showBindGooglePrompt.value = false
-    }
-    
-    /**
-     * Change student password
-     */
-    fun changePassword(studentId: Long, newPassword: String) {
+    fun changePassword(studentPhysicalId: String, newPassword: String) {
         _passwordChangeState.value = PasswordChangeState.Loading
         
         viewModelScope.launch {
-            when (val result = authRepository.changePassword(studentId, newPassword)) {
-                is NetworkResult.Success -> {
-                    Log.d(TAG, "Password changed successfully")
-                    _passwordChangeState.value = PasswordChangeState.Success
-                    _isTemporaryPassword.value = false
+            Log.d(TAG, "Changing password for student ID: $studentPhysicalId")
+            
+            try {
+                // Get the user ID from TokenManager instead of looking up by physical ID
+                val userId = TokenManager.getUserId().first()
+                
+                if (userId == null) {
+                    Log.e(TAG, "User ID not found in TokenManager")
+                    _passwordChangeState.value = PasswordChangeState.Error("User ID not found. Please log in again.")
+                    return@launch
                 }
-                is NetworkResult.Error -> {
-                    Log.e(TAG, "Failed to change password: ${result.message}")
-                    _passwordChangeState.value = PasswordChangeState.Error(result.message)
+                
+                Log.d(TAG, "Using user ID from token: $userId")
+                
+                // Now call the password change with the stored user ID
+                when (val result = authRepository.changePassword(userId, newPassword)) {
+                    is NetworkResult.Success -> {
+                        Log.d(TAG, "Password change successful")
+                        _passwordChangeState.value = PasswordChangeState.Success
+                        _isTemporaryPassword.value = false
+                    }
+                    is NetworkResult.Error -> {
+                        Log.e(TAG, "Password change failed: ${result.message}")
+                        _passwordChangeState.value = PasswordChangeState.Error(result.message)
+                    }
+                    else -> {
+                        Log.e(TAG, "Unknown error during password change")
+                        _passwordChangeState.value = PasswordChangeState.Error("Unknown error occurred")
+                    }
                 }
-                else -> {
-                    Log.e(TAG, "Unknown result state during password change")
-                    _passwordChangeState.value = PasswordChangeState.Error("Unknown error occurred")
-                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Error changing password", e)
+                _passwordChangeState.value = PasswordChangeState.Error("Error: ${e.message}")
             }
         }
     }
@@ -287,7 +199,7 @@ class AuthViewModel : ViewModel() {
 sealed class AuthState {
     object Idle : AuthState()
     object Loading : AuthState()
-    data class Success(val data: JwtResponse?) : AuthState()
+    data class Success(val data: JwtResponse) : AuthState()
     data class Error(val message: String) : AuthState()
 }
 
@@ -303,24 +215,6 @@ sealed class RegisterState {
     object Loading : RegisterState()
     data class Success(val data: Student) : RegisterState()
     data class Error(val message: String) : RegisterState()
-}
-
-// States for Google Sign-In
-sealed class GoogleSignInState {
-    object Idle : GoogleSignInState()
-    object Loading : GoogleSignInState()
-    data class Success(val email: String, val googleId: String) : GoogleSignInState()
-    object AccountBound : GoogleSignInState()
-    object Cancelled : GoogleSignInState()
-    data class Error(val message: String) : GoogleSignInState()
-}
-
-// States for OAuth binding
-sealed class BindOAuthState {
-    object Idle : BindOAuthState()
-    object Loading : BindOAuthState()
-    object Success : BindOAuthState()
-    data class Error(val message: String) : BindOAuthState()
 }
 
 // States for password change

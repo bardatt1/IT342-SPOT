@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { LogOut, User, BookOpen, Users, Calendar, BarChart, Home } from 'lucide-react';
+import { LogOut, User, BookOpen, Users, Calendar, BarChart } from 'lucide-react';
 import { teacherApi } from '../../../lib/api/teacher';
 import { Button } from '../button';
 import { Avatar, AvatarFallback } from '../avatar';
@@ -111,7 +111,7 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           <SidebarHeader>
             <div className="flex h-14 items-center px-4">
               <div className="flex items-center gap-2">
-                <Home className="h-6 w-6 text-primary" />
+                <img src="/spot-logo.png" alt="SPOT Logo" className="h-6 w-6" />
                 <h1 className="text-xl font-semibold">SPOT</h1>
               </div>
             </div>

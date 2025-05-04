@@ -28,8 +28,8 @@ const TeacherDashboard = () => {
   useEffect(() => {
     // Check if this is a temporary account based on email pattern
     const isTemporaryAccount = 
-      // Check if email ends with @temporary.com
-      user?.email?.endsWith('@temporary.com') ||
+      // Check if email ends with @edu-spot.me
+      user?.email?.endsWith('@edu-spot.me') ||
       // Or if the backend explicitly flags it
       user?.hasTemporaryPassword;
     
@@ -187,8 +187,8 @@ const TeacherDashboard = () => {
                         <Calendar className="h-5 w-5 text-[#215f47]" />
                       </div>
                       <div>
-                        <span className="text-xs font-medium text-gray-500">Section ID</span>
-                        <p className="text-sm font-medium text-[#215f47]">{activeSection.id}</p>
+                        <span className="text-xs font-medium text-gray-500">Section Code</span>
+                        <p className="text-sm font-medium text-[#215f47]">{activeSection.course?.courseCode}</p>
                       </div>
                     </div>
                     
@@ -259,9 +259,9 @@ const TeacherDashboard = () => {
                       <p className="text-sm text-gray-500">
                         Show this QR code to students to scan for attendance
                       </p>
-                      <p className="text-xs text-blue-600">
+                      {/* <p className="text-xs text-blue-600">
                         Link: <a href={qrCodeData.url} target="_blank" rel="noopener noreferrer">{qrCodeData.url}</a>
-                      </p>
+                      </p> */}
                       <p className="text-xs text-gray-400">
                         Expires in {Math.floor(qrCodeData.expiresInSeconds / 60)} minutes and {qrCodeData.expiresInSeconds % 60} seconds
                       </p>

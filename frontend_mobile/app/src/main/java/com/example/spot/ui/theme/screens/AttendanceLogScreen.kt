@@ -3,17 +3,23 @@
 package com.example.spot.ui.theme.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.CalendarMonth
+import androidx.compose.material.icons.filled.Error
+import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -64,7 +70,9 @@ fun AttendanceLogScreen(
                             Text(
                                 "${section.course.courseCode} - ${section.sectionName}", 
                                 color = Green700, 
-                                fontWeight = FontWeight.Bold
+                                fontWeight = FontWeight.Bold,
+                                maxLines = 1,
+                                fontSize = 18.sp
                             )
                         }
                         else -> Text("Attendance History", color = Green700, fontWeight = FontWeight.Bold)
@@ -73,13 +81,16 @@ fun AttendanceLogScreen(
                 navigationIcon = {
                     IconButton(onClick = { navController.popBackStack() }) {
                         Icon(
-                            painter = painterResource(android.R.drawable.ic_menu_revert),
+                            imageVector = Icons.Filled.ArrowBack,
                             contentDescription = "Back",
                             tint = Green700
                         )
                     }
                 },
-                colors = TopAppBarDefaults.topAppBarColors(containerColor = Color.White)
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White,
+                    titleContentColor = Green700
+                )
             )
         }
     ) { innerPadding ->
@@ -87,6 +98,15 @@ fun AttendanceLogScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(innerPadding)
+                .background(
+                    brush = Brush.linearGradient(
+                        colors = listOf(
+                            Color(0x0D215F47), // from-[#215f47]/5
+                            Color.White,       // via-white
+                            Color(0x1A215F47)  // to-[#215f47]/10
+                        )
+                    )
+                )
         ) {
             when {
                 sectionState is com.example.spot.viewmodel.SectionState.Loading || 
@@ -146,28 +166,58 @@ fun ErrorContent(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center
     ) {
-        Text(
-            text = "Error Loading Data",
-            style = MaterialTheme.typography.headlineSmall,
-            color = MaterialTheme.colorScheme.error
-        )
-        
-        Spacer(modifier = Modifier.height(8.dp))
-        
-        Text(
-            text = message,
-            style = MaterialTheme.typography.bodyMedium,
-            color = Color.Gray,
-            textAlign = TextAlign.Center
-        )
-        
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        Button(
-            onClick = onRetry,
-            colors = ButtonDefaults.buttonColors(containerColor = Green700)
+        Card(
+            modifier = Modifier
+                .fillMaxWidth(0.9f),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(
+                containerColor = Color.White
+            ),
+            elevation = CardDefaults.cardElevation(
+                defaultElevation = 4.dp
+            )
         ) {
-            Text("Retry")
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(24.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
+            ) {
+                Icon(
+                    imageVector = Icons.Filled.Error,
+                    contentDescription = "Error",
+                    tint = MaterialTheme.colorScheme.error,
+                    modifier = Modifier
+                        .size(64.dp)
+                        .padding(bottom = 16.dp)
+                )
+                
+                Text(
+                    text = "Error Loading Data",
+                    style = MaterialTheme.typography.headlineSmall,
+                    color = MaterialTheme.colorScheme.error,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 8.dp)
+                )
+                
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodyLarge,
+                    textAlign = TextAlign.Center,
+                    color = Color.Gray,
+                    modifier = Modifier.padding(bottom = 16.dp)
+                )
+                
+                Button(
+                    onClick = onRetry,
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = Green700
+                    ),
+                    shape = RoundedCornerShape(8.dp)
+                ) {
+                    Text("Retry")
+                }
+            }
         }
     }
 }
@@ -180,7 +230,8 @@ fun AttendanceContent(
     LazyColumn(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp)
+            .padding(16.dp),
+        verticalArrangement = Arrangement.spacedBy(16.dp)
     ) {
         // Class details
         item {
@@ -194,22 +245,55 @@ fun AttendanceContent(
 
         // Attendance Log title
         item {
-            Text(
-                text = "Attendance Calendar",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Medium,
-                    color = TextDark
+            Card(
+                modifier = Modifier.fillMaxWidth(),
+                colors = CardDefaults.cardColors(
+                    containerColor = Color.White
                 ),
-                modifier = Modifier.padding(vertical = 8.dp)
-            )
-        }
-
-        // Generate monthly attendance grids based on actual data
-        val attendanceByMonth = createMonthlyAttendance(attendanceStats.attendanceByDate)
-        items(attendanceByMonth) { monthlyAttendance ->
-            MonthlyAttendanceGrid(monthlyAttendance)
-            Spacer(modifier = Modifier.height(8.dp))
+                elevation = CardDefaults.cardElevation(
+                    defaultElevation = 2.dp
+                ),
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                ) {
+                    Text(
+                        text = "Attendance Calendar",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontSize = 18.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = Green700
+                        ),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                    
+                    HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    // Create a monthly view of attendance
+                    val monthlyAttendance = createMonthlyAttendance(attendanceStats.attendanceByDate)
+                    if (monthlyAttendance.isEmpty()) {
+                        Text(
+                            text = "No attendance records found for this section",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = Color.Gray,
+                            textAlign = TextAlign.Center,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(16.dp)
+                        )
+                    } else {
+                        for (month in monthlyAttendance) {
+                            MonthlyAttendanceGrid(month)
+                            Spacer(modifier = Modifier.height(16.dp))
+                        }
+                    }
+                }
+            }
         }
     }
 }
@@ -217,59 +301,65 @@ fun AttendanceContent(
 @Composable
 fun SectionInfoCard(section: Section) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        ),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, Color(0x33215F47))
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp)
         ) {
-            Box(
-                modifier = Modifier
-                    .size(60.dp)
-                    .clip(RoundedCornerShape(20.dp))
-                    .background(Green700.copy(alpha = 0.2f)),
-                contentAlignment = Alignment.Center
+            Row(
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                val teacherInitials = section.teacher?.let {
-                    val firstName = it.firstName.firstOrNull() ?: ""
-                    val lastName = it.lastName.firstOrNull() ?: ""
-                    "$firstName$lastName"
-                } ?: "NA"
+                Icon(
+                    imageVector = Icons.Filled.CalendarMonth,
+                    contentDescription = null,
+                    tint = Green700,
+                    modifier = Modifier.size(24.dp)
+                )
+                
+                Spacer(modifier = Modifier.width(8.dp))
                 
                 Text(
-                    text = teacherInitials,
-                    style = MaterialTheme.typography.titleLarge,
+                    text = "${section.course.courseCode} - ${section.sectionName}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold,
                     color = Green700
                 )
             }
             
-            Spacer(modifier = Modifier.width(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
             
-            Column {
+            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Display dynamically fetched schedule information
+            val scheduleText = section.getScheduleDisplay()
+            scheduleText.split("\n").forEach { scheduleLine ->
                 Text(
-                    text = section.schedule ?: "Schedule not available",
-                    style = MaterialTheme.typography.bodyMedium.copy(color = TextDark)
-                )
-                
-                Text(
-                    text = section.teacher?.name ?: "Instructor not assigned",
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark
-                    )
-                )
-                
-                Text(
-                    text = section.course.courseName,
-                    style = MaterialTheme.typography.bodyMedium.copy(color = TextDark.copy(alpha = 0.7f))
+                    text = "• $scheduleLine",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Color.DarkGray
                 )
             }
+            
+            Spacer(modifier = Modifier.height(8.dp))
+            
+            // Display teacher information
+            Text(
+                text = "Teacher: ${section.teacher?.name ?: "Not Assigned"}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = Color.DarkGray
+            )
         }
     }
 }
@@ -277,11 +367,15 @@ fun SectionInfoCard(section: Section) {
 @Composable
 fun AttendanceSummaryCard(attendanceStats: StudentAttendance) {
     Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Green700),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        modifier = Modifier.fillMaxWidth(),
+        colors = CardDefaults.cardColors(
+            containerColor = Color.White
+        ),
+        elevation = CardDefaults.cardElevation(
+            defaultElevation = 2.dp
+        ),
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, Color(0x33215F47))
     ) {
         Column(
             modifier = Modifier
@@ -290,11 +384,13 @@ fun AttendanceSummaryCard(attendanceStats: StudentAttendance) {
         ) {
             Text(
                 text = "Attendance Summary",
-                style = MaterialTheme.typography.titleMedium.copy(
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold
-                )
+                style = MaterialTheme.typography.titleMedium,
+                fontWeight = FontWeight.Bold,
+                color = Green700,
+                modifier = Modifier.padding(bottom = 8.dp)
             )
+            
+            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.5f))
             
             Spacer(modifier = Modifier.height(16.dp))
             
@@ -302,22 +398,25 @@ fun AttendanceSummaryCard(attendanceStats: StudentAttendance) {
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                StatItem(
-                    label = "Total Classes",
-                    value = attendanceStats.totalClassDays.toString(),
-                    textColor = Color.White
-                )
-                
+                // Present count
                 StatItem(
                     label = "Present",
-                    value = attendanceStats.daysPresent.toString(),
-                    textColor = Color.White
+                    value = "${attendanceStats.presentCountForUI}",
+                    textColor = Color(0xFF4CAF50) // Green
                 )
                 
+                // Absent count
                 StatItem(
-                    label = "Attendance Rate",
-                    value = String.format("%.1f%%", attendanceStats.attendanceRate * 100),
-                    textColor = Color.White
+                    label = "Absent",
+                    value = "${attendanceStats.absentCountForUI}",
+                    textColor = Color(0xFFF44336) // Red
+                )
+                
+                // Attendance rate
+                StatItem(
+                    label = "Rate",
+                    value = "${attendanceStats.attendanceRateForUI}%",
+                    textColor = Green700
                 )
             }
         }
@@ -326,148 +425,131 @@ fun AttendanceSummaryCard(attendanceStats: StudentAttendance) {
 
 @Composable
 fun StatItem(label: String, value: String, textColor: Color) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = Modifier.padding(horizontal = 8.dp)
+    ) {
         Text(
             text = value,
-            style = MaterialTheme.typography.headlineSmall.copy(
-                fontWeight = FontWeight.Bold,
-                color = textColor
-            )
+            style = MaterialTheme.typography.headlineSmall,
+            fontWeight = FontWeight.Bold,
+            color = textColor
         )
         
         Text(
             text = label,
-            style = MaterialTheme.typography.bodySmall.copy(
-                color = textColor.copy(alpha = 0.8f)
-            )
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color.Gray
         )
     }
 }
 
 @Composable
-fun MonthlyAttendanceGrid(monthlyAttendance: MonthlyAttendance) {
-    Column {
+fun MonthlyAttendanceGrid(monthlyAttendance: AttendanceMonthlyDisplay) {
+    val yearMonth = monthlyAttendance.yearMonth
+    
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
         // Month header
-        Box(
+        Text(
+            text = yearMonth.format(DateTimeFormatter.ofPattern("MMMM yyyy")),
+            style = MaterialTheme.typography.titleMedium,
+            fontWeight = FontWeight.Bold,
+            color = Green700,
+            modifier = Modifier.padding(bottom = 8.dp)
+        )
+        
+        // Days table
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Green700)
-                .padding(vertical = 8.dp),
-            contentAlignment = Alignment.Center
+                .clip(RoundedCornerShape(8.dp))
+                .background(Color.White.copy(alpha = 0.7f))
+                .padding(8.dp)
         ) {
-            Text(
-                text = monthlyAttendance.month.uppercase(),
-                color = Color.White,
-                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-            )
-        }
-
-        // Day headers (M, W, F)
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 4.dp),
-            horizontalArrangement = Arrangement.SpaceEvenly
-        ) {
-            listOf("M", "T", "W", "T", "F", "S", "S").forEach { day ->
-                Text(
-                    text = day,
-                    style = MaterialTheme.typography.bodyMedium.copy(color = TextDark),
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center
-                )
-            }
-        }
-
-        // Attendance grid
-        val entries = monthlyAttendance.entries
-        if (entries.isEmpty()) {
-            Text(
-                text = "No attendance data available",
-                style = MaterialTheme.typography.bodyMedium.copy(color = TextDark),
-                modifier = Modifier.padding(8.dp)
-            )
-            return@Column
-        }
-
-        val rows = (entries.size + 6) / 7 // Ceiling division to determine number of rows
-        for (row in 0 until rows) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(vertical = 2.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                for (col in 0 until 7) {
-                    val index = row * 7 + col
-                    if (index < entries.size) {
-                        val entry = entries[index]
-                        Box(
-                            modifier = Modifier
-                                .weight(1f)
-                                .aspectRatio(1f)
-                                .clip(RoundedCornerShape(8.dp))
-                                .background(
-                                    when (entry.status) {
-                                        AttendanceStatus.PRESENT -> Green500
-                                        AttendanceStatus.ABSENT -> Color.Red
-                                        AttendanceStatus.LATE -> Color(0xFFFFB300) // Amber
-                                        AttendanceStatus.NO_CLASS -> Color.Gray
-                                    }
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Text(
-                                text = entry.date,
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = if (entry.status == AttendanceStatus.NO_CLASS) 
-                                        Color.White.copy(alpha = 0.7f) else Color.White
-                                )
+            // Loop through the days in this month
+            for (day in monthlyAttendance.attendanceDays) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(vertical = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // Date
+                    Text(
+                        text = day.formattedDate,
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        modifier = Modifier.width(100.dp)
+                    )
+                    
+                    // Status indicator
+                    Box(
+                        modifier = Modifier
+                            .size(16.dp)
+                            .background(
+                                color = if (day.present) Color(0xFF4CAF50) else Color(0xFFF44336),
+                                shape = CircleShape
                             )
-                        }
-                    } else {
-                        Spacer(modifier = Modifier.weight(1f))
-                    }
+                    )
+                    
+                    Spacer(modifier = Modifier.width(8.dp))
+                    
+                    // Status text
+                    Text(
+                        text = if (day.present) "Present" else "Absent",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = if (day.present) Color(0xFF4CAF50) else Color(0xFFF44336)
+                    )
                 }
             }
         }
     }
 }
 
+// Data class for monthly attendance display
+data class AttendanceMonthlyDisplay(
+    val yearMonth: YearMonth,
+    val attendanceDays: List<AttendanceDay>
+)
+
+// Data class for individual attendance day
+data class AttendanceDay(
+    val date: LocalDate,
+    val present: Boolean,
+    val formattedDate: String = date.format(DateTimeFormatter.ofPattern("EEE, MMM d"))
+)
+
 // Helper function to create monthly attendance from attendanceByDate map
-private fun createMonthlyAttendance(attendanceByDate: Map<String, Boolean>): List<MonthlyAttendance> {
+fun createMonthlyAttendance(attendanceByDate: Map<String, Boolean>): List<AttendanceMonthlyDisplay> {
+    val result = mutableListOf<AttendanceMonthlyDisplay>()
+    
+    if (attendanceByDate.isEmpty()) {
+        return result
+    }
+    
+    // Group attendance data by month
     val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
-    val monthFormatter = DateTimeFormatter.ofPattern("MMMM yyyy")
-    val dayFormatter = DateTimeFormatter.ofPattern("dd")
+    val attendanceDays = attendanceByDate.map { (dateStr, present) ->
+        val date = LocalDate.parse(dateStr, dateFormatter)
+        AttendanceDay(date = date, present = present)
+    }.sortedBy { it.date }
     
-    // Group dates by month-year
-    val attendanceByMonth = attendanceByDate.keys
-        .mapNotNull { dateStr ->
-            try {
-                dateStr to LocalDate.parse(dateStr, dateFormatter)
-            } catch (e: Exception) {
-                null
-            }
-        }
-        .groupBy { (_, date) -> 
-            YearMonth.from(date).format(monthFormatter)
-        }
+    // Group by year-month
+    val groupedByMonth = attendanceDays.groupBy { YearMonth.from(it.date) }
     
-    return attendanceByMonth.map { (month, dates) ->
-        val entries = dates.map { (dateStr, date) ->
-            val status = if (attendanceByDate[dateStr] == true) {
-                AttendanceStatus.PRESENT
-            } else {
-                AttendanceStatus.ABSENT
-            }
-            
-            AttendanceEntry(
-                date = date.format(dayFormatter),
-                dayOfWeek = date.dayOfWeek.toString().take(1),
-                status = status
+    // Create monthly attendance objects
+    for ((yearMonth, days) in groupedByMonth) {
+        result.add(
+            AttendanceMonthlyDisplay(
+                yearMonth = yearMonth,
+                attendanceDays = days
             )
-        }.sortedBy { it.date }
-        
-        MonthlyAttendance(month = month, entries = entries)
-    }.sortedBy { it.month }
+        )
+    }
+    
+    return result.sortedByDescending { it.yearMonth }
 }

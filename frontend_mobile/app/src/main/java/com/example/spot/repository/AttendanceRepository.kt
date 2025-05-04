@@ -29,21 +29,54 @@ class AttendanceRepository {
         return withContext(Dispatchers.IO) {
             try {
                 val userId = TokenManager.getUserId().first() ?: throw IllegalStateException("User ID not found")
+                Log.d(TAG, "Fetching attendance stats for user ID: $userId in section: $sectionId")
+                
                 val response = apiService.getStudentAttendanceStatsInSection(sectionId, userId)
                 
-                // Add debug logging to see what the API is returning
-                Log.d(TAG, "Student attendance API response: result=${response.result}, message=${response.message}, data=${response.data}")
+                // Enhanced logging to debug the API response
+                Log.d(TAG, "Student attendance API response: result=${response.result}, message=${response.message}")
+                Log.d(TAG, "Attendance data received: ${response.data?.attendanceByDate?.size ?: 0} dates")
                 
                 if (response.result.equals("SUCCESS", ignoreCase = true) && response.data != null) {
-                    Log.d(TAG, "Returning success result with data: ${response.data}")
-                    NetworkResult.Success(response.data)
+                    val attendanceData = response.data
+                    
+                    // Validate the received data before returning
+                    if (attendanceData.attendanceByDate.isEmpty()) {
+                        Log.w(TAG, "Received empty attendance data from server")
+                    } else {
+                        Log.d(TAG, "Attendance dates: ${attendanceData.attendanceByDate.keys.joinToString(", ")}")
+                    }
+                    
+                    NetworkResult.Success(attendanceData)
                 } else {
                     Log.d(TAG, "Returning error result with message: ${response.message}")
                     NetworkResult.Error(response.message)
                 }
+            } catch (e: HttpException) {
+                when (e.code()) {
+                    401 -> {
+                        Log.e(TAG, "Authentication error: Unauthorized", e)
+                        NetworkResult.Error("Authentication error: Please log out and log back in")
+                    }
+                    403 -> {
+                        Log.e(TAG, "Access denied when fetching attendance", e)
+                        NetworkResult.Error("Access denied: You don't have permission to view this attendance data")
+                    }
+                    500 -> {
+                        Log.e(TAG, "Server error when fetching attendance", e)
+                        NetworkResult.Error("Server error: Please try again later")
+                    }
+                    else -> {
+                        Log.e(TAG, "HTTP error ${e.code()} when fetching attendance", e)
+                        NetworkResult.Error("Network error: ${e.localizedMessage ?: "Unknown error"}")
+                    }
+                }
+            } catch (e: IOException) {
+                Log.e(TAG, "Network connection error", e)
+                NetworkResult.Error("Network error: Unable to connect to server")
             } catch (e: Exception) {
                 Log.e(TAG, "Error getting attendance stats", e)
-                NetworkResult.Error("Network error: ${e.localizedMessage ?: "Unknown error"}")
+                NetworkResult.Error("Error: ${e.localizedMessage ?: "Unknown error"}")
             }
         }
     }

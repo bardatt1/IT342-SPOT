@@ -47,6 +47,7 @@ public class AttendanceServiceImpl implements AttendanceService {
     private static final long QR_CODE_EXPIRATION_SECONDS = 300; // 5 minutes
     private static final int QR_CODE_WIDTH = 300;
     private static final int QR_CODE_HEIGHT = 300;
+    private static final String QR_ATTENDANCE_PREFIX = "attend:"; // Match mobile app's expected format
 
     @Autowired
     private AttendanceRepository attendanceRepository;
@@ -145,13 +146,16 @@ public class AttendanceServiceImpl implements AttendanceService {
             throw new IllegalArgumentException("You are not assigned to this section");
         }
         
-        // Generate QR code URL that links to frontend attendance page
+        // Generate QR code with simple format for mobile app
+        String qrCodeData = QR_ATTENDANCE_PREFIX + sectionId;
+        
+        // Also keep the URL for web frontend reference
         String qrCodeUrl = String.format("%s/attendance/log/%d", frontendUrl, sectionId);
         
-        // Generate QR code image with the URL
+        // Generate QR code image with the format expected by mobile app
         String qrCodeImageBase64;
         try {
-            qrCodeImageBase64 = generateQRCodeImage(qrCodeUrl);
+            qrCodeImageBase64 = generateQRCodeImage(qrCodeData);
         } catch (Exception e) {
             logger.error("Failed to generate QR code", e);
             throw new RuntimeException("Failed to generate QR code", e);

@@ -44,7 +44,7 @@ public class SwaggerConfig {
                     .name("Apache 2.0")
                     .url("https://www.apache.org/licenses/LICENSE-2.0")))
             .servers(Arrays.asList(
-                new Server().url("http://localhost:8080").description("SPOT Development Server")
+                new Server().url("https://spot-edu.me:8080").description("SPOT Development Server")
             ))
             // Add security scheme definition
             .components(new Components()

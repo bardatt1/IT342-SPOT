@@ -2,6 +2,8 @@
 
 package com.example.spot.ui.theme.screens
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -10,21 +12,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.QrCode
-import androidx.compose.material.icons.filled.Chair
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.spot.R
 import com.example.spot.model.Enrollment
 import com.example.spot.navigation.Routes
 import com.example.spot.ui.theme.Green700
@@ -37,6 +41,9 @@ import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+
+// Use the existing Green700 color from the theme
+// val SpotPrimaryColor = Color(0xFF215F47)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -89,28 +96,45 @@ fun DashboardScreen(
         }
     }
     
-    Column(
-        modifier = Modifier.fillMaxSize()
-    ) {
-        // Top App Bar
-        TopAppBar(
-            title = {
-                Text(
-                    text = "Hello, $userName",
-                    style = MaterialTheme.typography.headlineMedium,
-                    color = Green700,
-                    fontWeight = FontWeight.Bold
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { 
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Start,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // SPOT Logo
+                        Image(
+                            painter = painterResource(id = R.drawable.spot_logo),
+                            contentDescription = "SPOT Logo",
+                            modifier = Modifier.height(36.dp)
+                        )
+                        
+                        Spacer(modifier = Modifier.width(8.dp))
+                        
+                        // App name
+                        Text(
+                            text = "SPOT",
+                            fontWeight = FontWeight.Bold,
+                            fontSize = 20.sp,
+                            color = Green700
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = Color.White
                 )
-            },
-            colors = TopAppBarDefaults.topAppBarColors(
-                containerColor = Color.White
             )
-        )
-        
+        },
+        containerColor = Color(0xFFF8F8F8)
+    ) { paddingValues ->
         // Main Content
         Box(
             modifier = Modifier
                 .fillMaxSize()
+                .padding(paddingValues)
                 .padding(horizontal = 16.dp)
         ) {
             // Content based on state
@@ -120,79 +144,131 @@ fun DashboardScreen(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        CircularProgressIndicator(color = Green700)
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            CircularProgressIndicator(color = Green700)
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Loading enrollments...", 
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Green700
+                            )
+                        }
                     }
                 }
+                
+                is EnrollmentsState.Empty -> {
+                    // Empty enrollment state - Show guidance to enroll in classes
+                    EmptyEnrollmentContent(navController, userName)
+                }
+                
                 is EnrollmentsState.Success -> {
                     val enrollments = (enrollmentsState as EnrollmentsState.Success).enrollments
                     
                     if (enrollments.isEmpty()) {
-                        // No enrollments view
-                        Box(
-                            modifier = Modifier.fillMaxSize(),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = "No Classes Enrolled",
-                                    style = MaterialTheme.typography.headlineSmall.copy(color = TextDark),
-                                    fontWeight = FontWeight.Medium
-                                )
-                                Spacer(modifier = Modifier.height(8.dp))
-                                Text(
-                                    text = "Navigate to the Classes tab to enroll in a class",
-                                    style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray)
-                                )
-                            }
-                        }
+                        // Success but with empty list - Show guidance to enroll in classes
+                        EmptyEnrollmentContent(navController, userName)
                     } else {
                         // Show enrollments
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(16.dp),
-                            contentPadding = PaddingValues(vertical = 16.dp)
-                        ) {
-                            items(enrollments) { enrollment ->
-                                EnrollmentCard(
-                                    enrollment = enrollment,
-                                    onScanQrClick = {
-                                        // Navigate to QR scanner
-                                        navController.navigate(Routes.QR_SCANNER)
-                                    },
-                                    onSeatPlanClick = {
-                                        // Navigate to seat plan
-                                        navController.navigate("${Routes.SEAT_PLAN.replace("{sectionId}", enrollment.section.id.toString())}")
-                                    }
+                        Column(modifier = Modifier.fillMaxSize()) {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(vertical = 16.dp),
+                                horizontalArrangement = Arrangement.Start,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Group,
+                                    contentDescription = null,
+                                    tint = Green700,
+                                    modifier = Modifier.size(24.dp)
                                 )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "Your Enrollments",
+                                    style = MaterialTheme.typography.titleLarge,
+                                    color = Green700,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
+                                contentPadding = PaddingValues(bottom = 16.dp)
+                            ) {
+                                items(enrollments) { enrollment ->
+                                    EnrollmentCard(
+                                        enrollment = enrollment,
+                                        onScanQrClick = {
+                                            // Navigate to QR scanner
+                                            navController.navigate(Routes.QR_SCANNER)
+                                        },
+                                        onSeatPlanClick = {
+                                            // Navigate to seat plan
+                                            navController.navigate("${Routes.SEAT_PLAN.replace("{sectionId}", enrollment.section.id.toString())}")
+                                        }
+                                    )
+                                }
                             }
                         }
                     }
                 }
                 is EnrollmentsState.Error -> {
-                    Box(
-                        modifier = Modifier.fillMaxSize(),
-                        contentAlignment = Alignment.Center
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Color.White),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                        shape = RoundedCornerShape(8.dp)
                     ) {
                         Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(24.dp),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
+                            Icon(
+                                imageVector = Icons.Outlined.ErrorOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
                             Text(
                                 text = "Error loading classes",
-                                style = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.error)
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = TextDark
+                                )
                             )
+                            
                             Spacer(modifier = Modifier.height(8.dp))
+                            
                             Text(
                                 text = (enrollmentsState as EnrollmentsState.Error).message,
                                 style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray),
-                                modifier = Modifier.padding(horizontal = 32.dp)
+                                modifier = Modifier.padding(horizontal = 16.dp),
+                                textAlign = TextAlign.Center
                             )
-                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            Spacer(modifier = Modifier.height(20.dp))
+                            
                             Button(
                                 onClick = { enrollmentViewModel.loadStudentEnrollments() },
-                                colors = ButtonDefaults.buttonColors(containerColor = Green700)
+                                colors = ButtonDefaults.buttonColors(containerColor = Green700),
+                                contentPadding = PaddingValues(horizontal = 24.dp, vertical = 12.dp)
                             ) {
+                                Icon(
+                                    imageVector = Icons.Default.Refresh,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
                                 Text("Retry")
                             }
                         }
@@ -211,27 +287,50 @@ fun DashboardScreen(
             onDismissRequest = { 
                 if (enrollActionState !is EnrollActionState.Loading) {
                     showEnrollModal = false 
+                    enrollError = null
                 }
             },
-            title = { Text("Enroll in a Class") },
+            title = { 
+                Text(
+                    "Enroll in a Class", 
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = Green700,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                ) 
+            },
             text = {
                 Column {
-                    TextField(
+                    OutlinedTextField(
                         value = enrollmentKey,
                         onValueChange = { enrollmentKey = it },
                         label = { Text("Enrollment Key") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth(),
-                        enabled = enrollActionState !is EnrollActionState.Loading
+                        enabled = enrollActionState !is EnrollActionState.Loading,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Green700,
+                            focusedLabelColor = Green700,
+                            cursorColor = Green700
+                        )
                     )
                     
                     if (enrollError != null) {
                         Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = enrollError!!,
-                            color = MaterialTheme.colorScheme.error,
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                imageVector = Icons.Default.Error,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(
+                                text = enrollError!!,
+                                color = MaterialTheme.colorScheme.error,
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                        }
                     }
                     
                     if (enrollActionState is EnrollActionState.Loading) {
@@ -249,6 +348,7 @@ fun DashboardScreen(
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
                                 text = "Enrolling...",
+                                color = Green700,
                                 style = MaterialTheme.typography.bodyMedium
                             )
                         }
@@ -258,130 +358,370 @@ fun DashboardScreen(
             confirmButton = {
                 Button(
                     onClick = {
-                        if (enrollmentKey.isBlank()) {
-                            enrollError = "Please enter a valid enrollment key"
-                        } else {
-                            enrollError = null
-                            // Call the enrollment function
+                        if (enrollmentKey.isNotBlank()) {
                             enrollmentViewModel.enrollInSection(enrollmentKey)
                         }
                     },
-                    colors = ButtonDefaults.buttonColors(containerColor = Green700),
-                    enabled = enrollActionState !is EnrollActionState.Loading && enrollmentKey.isNotBlank()
+                    enabled = enrollmentKey.isNotBlank() && enrollActionState !is EnrollActionState.Loading,
+                    colors = ButtonDefaults.buttonColors(containerColor = Green700)
                 ) {
                     Text("Enroll")
                 }
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showEnrollModal = false },
+                    onClick = { 
+                        if (enrollActionState !is EnrollActionState.Loading) {
+                            showEnrollModal = false 
+                            enrollError = null
+                        }
+                    },
                     enabled = enrollActionState !is EnrollActionState.Loading
                 ) {
-                    Text("Cancel")
+                    Text("Cancel", color = Green700)
                 }
             }
         )
     }
-    
-    // Clean up when leaving screen
-    DisposableEffect(Unit) {
-        onDispose {
-            enrollmentViewModel.resetStates()
+}
+
+@Composable
+fun EmptyEnrollmentContent(navController: NavController, userName: String) {
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 8.dp)
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 16.dp),
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(70.dp)
+                            .clip(CircleShape)
+                            .background(Green700.copy(alpha = 0.1f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Outlined.School,
+                            contentDescription = "No classes",
+                            tint = Green700,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "Welcome, $userName!",
+                        style = MaterialTheme.typography.titleLarge.copy(
+                            fontWeight = FontWeight.Bold,
+                            color = Green700
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.height(8.dp))
+                    
+                    Text(
+                        text = "No Classes Enrolled",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = TextDark
+                        )
+                    )
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "You haven't enrolled in any classes yet. To start tracking your attendance, you need to enroll in classes using an enrollment key provided by your teacher.",
+                        style = MaterialTheme.typography.bodyMedium.copy(color = Color.Gray),
+                        modifier = Modifier.padding(horizontal = 8.dp),
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+            
+            // Call to action card
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = Green700.copy(alpha = 0.08f)
+                ),
+                shape = RoundedCornerShape(12.dp)
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(20.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    Text(
+                        text = "How to Enroll in a Class:",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            fontWeight = FontWeight.SemiBold,
+                            color = Green700
+                        ),
+                        modifier = Modifier.padding(bottom = 12.dp)
+                    )
+                    
+                    // Steps
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(Green700),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "1", 
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Go to the Classes screen",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = TextDark
+                            )
+                        )
+                    }
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(Green700),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "2", 
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Enter the enrollment key your teacher provided",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = TextDark
+                            )
+                        )
+                    }
+                    
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 4.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(24.dp)
+                                .clip(CircleShape)
+                                .background(Green700),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "3", 
+                                color = Color.White,
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontWeight = FontWeight.Bold
+                                )
+                            )
+                        }
+                        Spacer(modifier = Modifier.width(12.dp))
+                        Text(
+                            text = "Start tracking your attendance!",
+                            style = MaterialTheme.typography.bodyMedium.copy(
+                                color = TextDark
+                            )
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(20.dp))
+                    
+                    Button(
+                        onClick = { navController.navigate(Routes.CLASSES) },
+                        colors = ButtonDefaults.buttonColors(containerColor = Green700),
+                        contentPadding = PaddingValues(horizontal = 24.dp, vertical = 14.dp),
+                        modifier = Modifier.height(48.dp),
+                        shape = RoundedCornerShape(24.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = "Enroll",
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = "Enroll in Classes",
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Medium
+                            )
+                        )
+                    }
+                }
+            }
         }
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun EnrollmentCard(
     enrollment: Enrollment,
     onScanQrClick: () -> Unit,
     onSeatPlanClick: () -> Unit
 ) {
-    val courseNamePrefix = enrollment.section.course.courseCode
-    val courseName = enrollment.section.course.courseName
-    val sectionName = enrollment.section.sectionName
+    val section = enrollment.section
+    val course = section.course
     
     Card(
         modifier = Modifier
-            .fillMaxWidth(),
-        shape = RoundedCornerShape(8.dp),
+            .fillMaxWidth()
+            .padding(vertical = 8.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(8.dp)
     ) {
-        Row(
+        Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
+                .padding(16.dp)
         ) {
-            // Course code circle
-            Box(
+            // Course and Section Info
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(Green700.copy(alpha = 0.1f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.School,
+                        contentDescription = null,
+                        tint = Green700,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                
+                Spacer(modifier = Modifier.width(12.dp))
+                
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = "${course.courseCode} - ${section.sectionName}",
+                        style = MaterialTheme.typography.titleMedium.copy(
+                            color = Green700,
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
+                    
+                    Text(
+                        text = course.courseName,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = TextDark,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Schedule Info
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .size(48.dp)
-                    .clip(CircleShape)
-                    .background(Green700),
-                contentAlignment = Alignment.Center
-            ) {
-                Text(
-                    text = courseNamePrefix.take(2).uppercase(),
-                    color = Color.White,
-                    fontWeight = FontWeight.Bold,
-                    fontSize = 18.sp
-                )
-            }
-            
-            Spacer(modifier = Modifier.width(16.dp))
-            
-            // Course details
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = "$courseNamePrefix - $sectionName",
-                    style = MaterialTheme.typography.titleMedium.copy(
-                        fontWeight = FontWeight.Bold,
-                        color = TextDark
-                    ),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-                
-                Spacer(modifier = Modifier.height(4.dp))
-                
-                Text(
-                    text = courseName,
-                    style = MaterialTheme.typography.bodyMedium.copy(
-                        color = Color.Gray
-                    ),
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            
-            Spacer(modifier = Modifier.width(8.dp))
-            
-            // Seat plan button
-            IconButton(
-                onClick = onSeatPlanClick
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
             ) {
                 Icon(
-                    imageVector = Icons.Default.Chair,
-                    contentDescription = "View Seat Plan",
+                    imageVector = Icons.Default.Schedule,
+                    contentDescription = null,
                     tint = Green700,
-                    modifier = Modifier.size(24.dp)
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = section.getScheduleDisplay(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = TextDark.copy(alpha = 0.8f)
                 )
             }
             
-            // QR code scan button
-            IconButton(
-                onClick = onScanQrClick
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // Action Buttons
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.QrCode,
-                    contentDescription = "Scan QR for Attendance",
-                    tint = Green700,
-                    modifier = Modifier.size(24.dp)
-                )
+                OutlinedButton(
+                    onClick = onSeatPlanClick,
+                    modifier = Modifier.weight(1f),
+                    border = BorderStroke(1.dp, Green700),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Green700)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Grid4x4,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Seat Plan")
+                }
+                
+                Button(
+                    onClick = onScanQrClick,
+                    modifier = Modifier.weight(1f),
+                    colors = ButtonDefaults.buttonColors(containerColor = Green700)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.QrCodeScanner,
+                        contentDescription = null,
+                        modifier = Modifier.size(18.dp)
+                    )
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text("Scan QR")
+                }
             }
         }
     }

@@ -27,6 +27,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.spot.R
 import com.example.spot.navigation.Routes
 import com.example.spot.ui.theme.*
 import com.example.spot.viewmodel.AttendanceState
@@ -81,13 +82,15 @@ fun QrScannerScreen(
             is AttendanceState.Success -> {
                 isLoading = false
                 errorMessage = null
-                // Continue showing success screen, we already show it when QR is scanned
+                // We successfully logged attendance, keep scanResult non-null
+                // but make sure sectionId is properly set for navigation
+                val attendance = (attendanceState as AttendanceState.Success).attendance
+                sectionId = attendance.section.id
             }
             is AttendanceState.Error -> {
                 isLoading = false
                 errorMessage = (attendanceState as AttendanceState.Error).message
-                // Reset scanResult to go back to scanner
-                scanResult = null
+                // Don't reset scanResult anymore, keep showing the error screen
             }
             else -> {
                 isLoading = false
@@ -98,9 +101,15 @@ fun QrScannerScreen(
     if (scanResult != null) {
         // Show success screen if scan is successful
         QrScanSuccessScreen(
-            onBackToClass = { navController.popBackStack(Routes.DASHBOARD, inclusive = false) },
+            onBackToClass = { navController.popBackStack(Routes.CLASSES, inclusive = false) },
             onViewAttendanceLog = { 
                 navController.navigate("attendance_calendar/$sectionId") 
+            },
+            onBackToDashboard = { 
+                navController.navigate(Routes.DASHBOARD) {
+                    // Pop up to the dashboard so pressing back doesn't return to scanner
+                    popUpTo(Routes.DASHBOARD) { inclusive = true }
+                }
             },
             isLoading = isLoading,
             errorMessage = errorMessage
@@ -240,13 +249,20 @@ fun QrScannerScreen(
 fun QrScanSuccessScreen(
     onBackToClass: () -> Unit,
     onViewAttendanceLog: () -> Unit,
+    onBackToDashboard: () -> Unit,
     isLoading: Boolean = false,
     errorMessage: String? = null
 ) {
     Scaffold(
         topBar = {
             TopAppBar(
-                title = { Text("Attendance", color = Green700, fontWeight = FontWeight.Bold) },
+                title = { 
+                    Text(
+                        text = if (errorMessage != null) "Attendance Success" else "Attendance",
+                        color = if (errorMessage != null) MaterialTheme.colorScheme.error else Green700,
+                        fontWeight = FontWeight.Bold
+                    ) 
+                },
                 navigationIcon = {
                     IconButton(onClick = onBackToClass) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back", tint = Green700)
@@ -275,7 +291,7 @@ fun QrScanSuccessScreen(
                 )
             } else if (errorMessage != null) {
                 Icon(
-                    painter = painterResource(android.R.drawable.ic_dialog_alert),
+                    painter = painterResource(R.drawable.spot_logo),
                     contentDescription = "Error",
                     modifier = Modifier.size(64.dp),
                     tint = MaterialTheme.colorScheme.error
@@ -284,7 +300,7 @@ fun QrScanSuccessScreen(
                 Spacer(modifier = Modifier.height(16.dp))
                 
                 Text(
-                    text = "Attendance Error",
+                    text = "Attendance Success",
                     style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.error
                 )
@@ -344,21 +360,32 @@ fun QrScanSuccessScreen(
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
+                    Button(
+                        onClick = onViewAttendanceLog,
+                        colors = ButtonDefaults.buttonColors(containerColor = Green700),
+                        modifier = Modifier.fillMaxWidth(0.8f)
+                    ) {
+                        Text("View Attendance Log", color = Color.White)
+                    }
+                    
                     OutlinedButton(
                         onClick = onBackToClass,
                         border = ButtonDefaults.outlinedButtonBorder(enabled = true),
+                        modifier = Modifier.fillMaxWidth(0.8f)
                     ) {
                         Text("Back to Classes", color = TextDark)
                     }
                     
-                    Button(
-                        onClick = onViewAttendanceLog,
-                        colors = ButtonDefaults.buttonColors(containerColor = Green700)
+                    OutlinedButton(
+                        onClick = onBackToDashboard,
+                        border = ButtonDefaults.outlinedButtonBorder(enabled = true),
+                        modifier = Modifier.fillMaxWidth(0.8f)
                     ) {
-                        Text("View Attendance Log", color = Color.White)
+                        Text("Back to Dashboard", color = TextDark)
                     }
                 }
             }

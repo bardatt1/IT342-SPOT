@@ -175,9 +175,13 @@ export const attendanceApi = {
       // Properly handle the nested response structure
       if (response.data && response.data.data) {
         const qrData = response.data.data;
+        
+        // Use new URL format for attendance logging
+        const newUrl = `https://spot-edu.me/attendance/log/${sectionId}`;
+        
         return {
           imageBase64: qrData.qrCodeImageBase64,
-          url: qrData.qrCodeUrl,
+          url: newUrl, // Use the new URL format instead of qrData.qrCodeUrl
           expiresInSeconds: qrData.expiresInSeconds || 300 // Default 5 minutes if not provided
         };
       } else {

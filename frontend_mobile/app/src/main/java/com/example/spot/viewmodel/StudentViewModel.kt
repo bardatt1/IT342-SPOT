@@ -56,15 +56,16 @@ class StudentViewModel : ViewModel() {
      * Update student profile information
      */
     fun updateProfile(
-        id: Long,
+        studentId: Long,
         firstName: String,
         middleName: String?,
         lastName: String,
-        year: String,
-        program: String,
-        email: String,
+        studentYear: String,
+        studentProgram: String,
+        studentEmail: String,
         studentPhysicalId: String,
-        password: String?
+        newPassword: String? = null,
+        currentPassword: String? = null
     ) {
         _profileUpdateState.value = ProfileUpdateState.Loading
         viewModelScope.launch {
@@ -72,14 +73,15 @@ class StudentViewModel : ViewModel() {
                 firstName = firstName,
                 middleName = middleName,
                 lastName = lastName,
-                year = year,
-                program = program,
-                email = email,
+                year = studentYear,
+                program = studentProgram,
+                email = studentEmail,
                 studentPhysicalId = studentPhysicalId,
-                password = password
+                password = newPassword,
+                currentPassword = currentPassword
             )
             
-            when (val result = studentRepository.updateStudent(id, studentUpdateRequest)) {
+            when (val result = studentRepository.updateStudent(studentId, studentUpdateRequest)) {
                 is NetworkResult.Success -> {
                     _profileUpdateState.value = ProfileUpdateState.Success(result.data)
                     // Refresh the student state with updated data

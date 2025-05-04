@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import DashboardLayout from '../../components/ui/layout/DashboardLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { sectionApi, type Section } from '../../lib/api/section';
@@ -14,7 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../..
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
-import { Select, SelectContent, SelectGroup, SelectItem, SelectLabel, SelectTrigger, SelectValue } from '../../components/ui/select';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../../components/ui/select';
 import { Badge } from '../../components/ui/badge';
 
 // Icons
@@ -31,12 +32,13 @@ import {
   ListFilter, 
   AlertTriangle, 
   FilterX,
-  RefreshCw 
+  RefreshCw
 } from 'lucide-react';
 import FirstLoginModal from '../../components/ui/FirstLoginModal';
 
 const AttendanceTracking = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   const [sections, setSections] = useState<Section[]>([]);
   const [selectedSectionId, setSelectedSectionId] = useState<number | null>(null);
   const [attendanceRecords, setAttendanceRecords] = useState<Attendance[]>([]);
@@ -57,8 +59,8 @@ const AttendanceTracking = () => {
     
     // Check if this is a temporary account based on email pattern
     const isTemporaryAccount = 
-      // Check if email ends with @temporary.com
-      user?.email?.endsWith('@temporary.com') ||
+      // Check if email ends with @edu-spot.me
+      user?.email?.endsWith('@edu-spot.me') ||
       // Or if the backend explicitly flags it
       user?.hasTemporaryPassword;
     
@@ -70,6 +72,19 @@ const AttendanceTracking = () => {
       localStorage.setItem('firstTimeLogin', 'false');
     }
   }, [user]);
+  
+  // Get section ID from URL if present
+  useEffect(() => {
+    const sectionIdParam = searchParams.get('sectionId');
+    if (sectionIdParam && sections.length > 0) {
+      const parsedId = parseInt(sectionIdParam, 10);
+      // Check if the section exists and belongs to this teacher
+      const sectionExists = sections.some(s => s.id === parsedId);
+      if (sectionExists) {
+        setSelectedSectionId(parsedId);
+      }
+    }
+  }, [sections, searchParams]);
 
   useEffect(() => {
     fetchTeacherSections();
@@ -647,40 +662,36 @@ const AttendanceTracking = () => {
       {showFirstLoginModal && (
         <FirstLoginModal onClose={() => setShowFirstLoginModal(false)} />
       )}
-      <div className="space-y-6">
-        <Card className="border-[#215f47]/20">
-          <CardHeader className="pb-3">
-            <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-              <div>
-                <CardTitle className="text-2xl font-bold text-[#215f47]">Attendance Tracking</CardTitle>
-                <CardDescription className="mt-1">Manage and analyze student attendance records</CardDescription>
-              </div>
-
-              {sections.length > 0 && (
-                <div className="flex-shrink-0">
-                  <Select
-                    value={selectedSectionId?.toString() || ''}
-                    onValueChange={(value) => handleSectionChange({ target: { value } } as any)}
-                  >
-                    <SelectTrigger className="w-[240px] border-[#215f47]/20 bg-white/50 focus:ring-[#215f47]/30">
-                      <SelectValue placeholder="Select a section" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectGroup>
-                        <SelectLabel>Available Sections</SelectLabel>
-                        {sections.map(section => (
-                          <SelectItem key={section.id} value={section.id.toString()}>
-                            Section ID: {section.id} ({section.sectionName})
-                          </SelectItem>
-                        ))}
-                      </SelectGroup>
-                    </SelectContent>
-                  </Select>
-                </div>
-              )}
+      <div className="space-y-6 p-6">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
+          <div>
+            <h2 className="text-2xl font-bold text-[#215f47] flex items-center gap-2">
+              <ClipboardCheck className="h-6 w-6" />
+              Attendance Tracking
+            </h2>
+            <p className="text-gray-500 mt-1">Manage and analyze student attendance records</p>
+          </div>
+          
+          {sections.length > 0 && (
+            <div className="mt-4 sm:mt-0 min-w-[200px]">
+              <Select
+                value={selectedSectionId?.toString() || ''}
+                onValueChange={(value) => handleSectionChange({ target: { value } } as any)}
+              >
+                <SelectTrigger className="border-[#215f47]/20 focus:ring-[#215f47]/20 focus:border-[#215f47]">
+                  <SelectValue placeholder="Select a section" />
+                </SelectTrigger>
+                <SelectContent>
+                  {sections.map((section) => (
+                    <SelectItem key={section.id} value={section.id.toString()}>
+                      {section.course?.courseCode || 'Course'} - {section.sectionName}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          </CardHeader>
-        </Card>
+          )}
+        </div>
         
         {error && (
           <Alert variant="destructive">
@@ -774,7 +785,9 @@ const AttendanceTracking = () => {
                     <CardTitle className="text-lg font-medium text-[#215f47]">
                       <div className="flex items-center">
                         <ClipboardCheck className="mr-2 h-5 w-5" />
-                        Attendance Records {selectedSectionId && `for Section ${selectedSectionId}`}
+                        Attendance Records {selectedSectionId && sections.find(s => s.id === selectedSectionId) ? 
+                          `(${sections.find(s => s.id === selectedSectionId)?.course?.courseCode} - ${sections.find(s => s.id === selectedSectionId)?.sectionName || ''})` : 
+                        ''}
                       </div>
                     </CardTitle>
                     <CardDescription className="mt-1">

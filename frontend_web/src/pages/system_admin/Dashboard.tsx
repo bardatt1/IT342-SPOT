@@ -5,12 +5,14 @@ import { sectionApi } from '../../lib/api/section';
 import { teacherApi, type Teacher } from '../../lib/api/teacher';
 import { studentApi, type Student } from '../../lib/api/student';
 import { adminApi, type Admin } from '../../lib/api/admin';
-import { Shield, Users, BookOpen, AlertTriangle, UserCog, School } from 'lucide-react';
+import { Shield, Users, BookOpen, AlertTriangle, UserCog, School, UserPlus } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
+import { Button } from '../../components/ui/button';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
+import { useNavigate } from 'react-router-dom';
 
 const SystemAdminDashboard = () => {
   const [courses, setCourses] = useState<Course[]>([]);
@@ -21,6 +23,7 @@ const SystemAdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState('overview');
+  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -115,9 +118,18 @@ const SystemAdminDashboard = () => {
             </h2>
             <p className="text-sm text-gray-500 mt-1">Comprehensive system overview and management</p>
           </div>
-          <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-3 py-1">
-            System Admin
-          </Badge>
+          <div className="flex items-center gap-2">
+            <Button 
+              onClick={() => navigate('/system-admin/admin-management')} 
+              className="bg-[#215f47] hover:bg-[#215f47]/90 text-white gap-2 py-2"
+            >
+              <UserPlus className="h-4 w-4" />
+              Manage Admins
+            </Button>
+            <Badge variant="outline" className="bg-red-50 text-red-700 border-red-200 px-3 py-1">
+              System Admin
+            </Badge>
+          </div>
         </div>
         
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">

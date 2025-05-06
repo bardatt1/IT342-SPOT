@@ -15,6 +15,7 @@ import ScheduleManagement from './pages/admin/ScheduleManagement';
 
 // SystemAdmin Pages
 import SystemAdminDashboard from './pages/system_admin/Dashboard';
+import AdminManagement from './pages/system_admin/AdminManagement';
 
 // Teacher Pages
 import TeacherDashboard from './pages/teacher/Dashboard';
@@ -149,6 +150,14 @@ function App() {
                 element={
                   <ProtectedRoute allowedRoles={['SYSTEMADMIN']}>
                     <SystemAdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              <Route 
+                path="/system-admin/admin-management" 
+                element={
+                  <ProtectedRoute allowedRoles={['SYSTEMADMIN']}>
+                    <AdminManagement />
                   </ProtectedRoute>
                 } 
               />

@@ -1,18 +1,24 @@
 import { useState, useEffect } from 'react';
 import DashboardLayout from '../../components/ui/layout/DashboardLayout';
 import { courseApi, type Course, type CourseCreateDto, type CourseUpdateDto } from '../../lib/api/course';
+import { sectionApi, type Section } from '../../lib/api/section';
+import { scheduleApi, type Schedule } from '../../lib/api/schedule';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Textarea } from '../../components/ui/textarea';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../../components/ui/card';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle} from '../../components/ui/card';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Badge } from '../../components/ui/badge';
-import { Plus, Pencil, Trash2, BookOpen, AlertTriangle, X, FileText, Code, Bookmark } from 'lucide-react';
+
+import AppModal from '../../components/ui/modal/AppModal';
+import { Plus, Pencil, Trash2, BookOpen, AlertTriangle, X, FileText, Code, Bookmark, Calendar, Clock, ChevronRight, Layers, Building2 } from 'lucide-react';
 
 const CourseManagement = () => {
   const [courses, setCourses] = useState<Course[]>([]);
+  const [sections, setSections] = useState<Section[]>([]);
+  const [schedules, setSchedules] = useState<Schedule[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
@@ -21,6 +27,13 @@ const CourseManagement = () => {
   const [formType, setFormType] = useState<'add' | 'edit'>('add');
   const [selectedCourseId, setSelectedCourseId] = useState<number | null>(null);
   
+  // Modal states for the section-schedule flow
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [isSectionModalOpen, setIsSectionModalOpen] = useState(false);
+  
+  const [selectedSection, setSelectedSection] = useState<Section | null>(null);
+  const [isScheduleModalOpen, setIsScheduleModalOpen] = useState(false);
+  
   const [formData, setFormData] = useState({
     courseName: '',
     courseDescription: '',
@@ -28,19 +41,42 @@ const CourseManagement = () => {
   });
 
   useEffect(() => {
-    fetchCourses();
+    const fetchData = async () => {
+      try {
+        setIsLoading(true);
+        setError(null);
+        
+        // Fetch courses
+        const coursesData = await courseApi.getAll();
+        setCourses(coursesData);
+        
+        // Fetch sections
+        const sectionsData = await sectionApi.getAll();
+        setSections(sectionsData);
+        
+        // We'll fetch schedules only when a specific section is selected
+      } catch (err) {
+        setError('Failed to fetch data. Please try again later.');
+        console.error('Error fetching data:', err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchData();
   }, []);
 
-  const fetchCourses = async () => {
+  // This function is no longer needed as we're using the section.enrollmentCount property directly
+  
+  // Function to fetch schedules for a specific section
+  const fetchSchedulesForSection = async (sectionId: number) => {
     try {
-      setIsLoading(true);
-      const data = await courseApi.getAll();
-      setCourses(data);
-    } catch (error) {
-      console.error('Error fetching courses:', error);
-      setError('Failed to load courses. Please try again later.');
-    } finally {
-      setIsLoading(false);
+      const data = await scheduleApi.getBySectionId(sectionId);
+      setSchedules(data);
+      return data;
+    } catch (err) {
+      console.error('Error fetching schedules for section:', err);
+      return [];
     }
   };
 
@@ -145,6 +181,20 @@ const CourseManagement = () => {
       </DashboardLayout>
     );
   }
+
+  // Function to handle opening the sections modal when a course is clicked
+  const handleCourseClick = (course: Course) => {
+    setSelectedCourse(course);
+    setIsSectionModalOpen(true);
+  };
+
+  // Function to handle opening the schedules modal when a section is clicked
+  const handleSectionClick = async (section: Section) => {
+    setSelectedSection(section);
+    // Fetch schedules for this section
+    await fetchSchedulesForSection(section.id);
+    setIsScheduleModalOpen(true);
+  };
 
   return (
     <DashboardLayout>
@@ -279,72 +329,62 @@ const CourseManagement = () => {
             <CardTitle className="text-base text-[#215f47]">Course List</CardTitle>
             <CardDescription>All available courses in the system</CardDescription>
           </CardHeader>
-
           <CardContent>
             {courses.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-12 text-center">
-                <AlertTriangle className="h-12 w-12 text-amber-500/70 mb-4" />
-                <h3 className="text-lg font-medium text-gray-700 mb-1">No Courses Found</h3>
-                <p className="text-gray-500 max-w-sm mb-6">
-                  There are no courses in the system yet. Click the "Add New Course" button to create one.
-                </p>
-                <Button 
-                  onClick={handleAddNew} 
-                  className="bg-[#215f47] hover:bg-[#215f47]/90 flex items-center"
-                >
-                  <Plus className="mr-2 h-4 w-4" />
-                  Add New Course
-                </Button>
+              <div className="text-center py-8 border border-dashed border-[#215f47]/20 rounded-md bg-[#215f47]/5">
+                <BookOpen className="w-12 h-12 text-[#215f47]/40 mx-auto mb-3" />
+                <p className="text-sm text-gray-600">No courses found</p>
+                <p className="text-xs text-gray-500 mt-1">Click "Add New Course" to create one</p>
               </div>
             ) : (
-              <div className="overflow-x-auto">
+              <div className="rounded-md overflow-hidden border border-[#215f47]/20">
                 <Table>
                   <TableHeader className="bg-[#215f47]/5">
                     <TableRow>
-                      <TableHead className="text-[#215f47] font-medium w-[15%]">
-                        Course Code
-                      </TableHead>
-                      <TableHead className="text-[#215f47] font-medium w-[25%]">
-                        Name
-                      </TableHead>
-                      <TableHead className="text-[#215f47] font-medium">
-                        Description
-                      </TableHead>
-                      <TableHead className="text-[#215f47] font-medium text-right w-[15%]">
-                        Actions
-                      </TableHead>
+                      <TableHead className="text-[#215f47] font-medium">Code</TableHead>
+                      <TableHead className="text-[#215f47] font-medium">Course Name</TableHead>
+                      <TableHead className="text-[#215f47] font-medium hidden md:table-cell">Description</TableHead>
+                      <TableHead className="text-[#215f47] font-medium text-right">Actions</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {courses.map((course) => (
-                      <TableRow key={course.id} className="hover:bg-[#215f47]/5">
-                        <TableCell className="font-medium">
-                          <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47] border-[#215f47]/20 font-mono">
+                    {courses.map(course => (
+                      <TableRow 
+                        key={course.id} 
+                        className="hover:bg-[#215f47]/5 transition-colors cursor-pointer"
+                        onClick={() => handleCourseClick(course)}
+                      >
+                        <TableCell>
+                          <Badge variant="outline" className="bg-[#215f47]/5 border-[#215f47]/20 text-[#215f47] font-medium">
                             {course.courseCode}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-medium">
-                          {course.courseName}
+                        <TableCell className="font-medium text-gray-800">{course.courseName}</TableCell>
+                        <TableCell className="text-sm text-gray-500 hidden md:table-cell">
+                          {course.courseDescription.length > 80
+                            ? `${course.courseDescription.substring(0, 80)}...`
+                            : course.courseDescription}
                         </TableCell>
-                        <TableCell className="text-gray-600">
-                          {course.courseDescription.length > 100
-                            ? `${course.courseDescription.substring(0, 100)}...`
-                            : course.courseDescription || 'No description provided'}
-                        </TableCell>
-                        <TableCell className="text-right space-x-1">
+                        <TableCell className="text-right">
                           <Button
                             variant="ghost"
-                            size="icon"
-                            onClick={() => handleEdit(course.id)}
-                            className="h-8 w-8 text-[#215f47] hover:bg-[#215f47]/10 hover:text-[#215f47]"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent opening the modal
+                              handleEdit(course.id);
+                            }}
+                            className="h-8 w-8 p-0 text-[#215f47] hover:bg-[#215f47]/5"
                           >
                             <Pencil className="h-4 w-4" />
                           </Button>
                           <Button
                             variant="ghost"
-                            size="icon"
-                            onClick={() => handleDelete(course.id)}
-                            className="h-8 w-8 text-red-500 hover:bg-red-50 hover:text-red-600"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation(); // Prevent opening the modal
+                              handleDelete(course.id);
+                            }}
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                           >
                             <Trash2 className="h-4 w-4" />
                           </Button>
@@ -358,6 +398,253 @@ const CourseManagement = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Section Modal */}
+      <AppModal
+        isOpen={isSectionModalOpen}
+        onClose={() => setIsSectionModalOpen(false)}
+        title={`Sections for ${selectedCourse?.courseName || 'Course'}`}
+        description="View and manage sections for this course"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h3 className="text-lg font-medium text-[#215f47] flex items-center gap-2">
+                <Badge variant="outline" className="bg-[#215f47]/5 border-[#215f47]/20 text-[#215f47] font-medium">
+                  {selectedCourse?.courseCode}
+                </Badge>
+                <span>{selectedCourse?.courseName}</span>
+              </h3>
+              <p className="text-sm text-gray-500 mt-1">{selectedCourse?.courseDescription}</p>
+            </div>
+            <Button
+              onClick={() => {
+                // Here you could navigate to section management with course ID pre-selected
+                // or implement an add section modal
+                setIsSectionModalOpen(false);
+              }}
+              className="bg-[#215f47] hover:bg-[#215f47]/90 flex items-center"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Section
+            </Button>
+          </div>
+
+          {selectedCourse && (
+            <div className="border rounded-md overflow-hidden border-[#215f47]/20">
+              <Table>
+                <TableHeader className="bg-[#215f47]/5">
+                  <TableRow>
+                    <TableHead className="text-[#215f47] font-medium">Section Name</TableHead>
+                    <TableHead className="text-[#215f47] font-medium">Teacher</TableHead>
+                    <TableHead className="text-[#215f47] font-medium">Enrollment</TableHead>
+                    <TableHead className="text-[#215f47] font-medium text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {sections.filter(section => section.courseId === selectedCourse.id).length > 0 ? (
+                    sections.filter(section => section.courseId === selectedCourse.id).map(section => (
+                      <TableRow 
+                        key={section.id} 
+                        className="hover:bg-[#215f47]/5 transition-colors cursor-pointer"
+                        onClick={() => handleSectionClick(section)}
+                      >
+                        <TableCell className="font-medium">{section.sectionName}</TableCell>
+                        <TableCell>
+                          {section.teacherId ? (
+                            <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47]">
+                              {section.teacher?.firstName} {section.teacher?.lastName || ''}
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline" className="bg-gray-100 text-gray-500">
+                              Not Assigned
+                            </Badge>
+                          )}
+                        </TableCell>
+                        <TableCell>
+                          <Badge className="bg-[#215f47]/10 text-[#215f47] border-[#215f47]/10">
+                            {section.enrollmentCount || 0} students
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Implement edit section logic
+                            }}
+                            className="h-8 w-8 p-0 text-[#215f47] hover:bg-[#215f47]/5"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              // Implement delete section logic
+                            }}
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={4} className="h-32 text-center">
+                        <div className="flex flex-col items-center justify-center text-center p-4">
+                          <Layers className="h-10 w-10 text-[#215f47]/40 mb-2" />
+                          <h3 className="text-sm font-medium text-gray-600 mb-1">No Sections Found</h3>
+                          <p className="text-xs text-gray-500 max-w-xs">
+                            This course doesn't have any sections yet. Click the "Add Section" button to create one.
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      </AppModal>
+
+      {/* Schedule Modal */}
+      <AppModal
+        isOpen={isScheduleModalOpen}
+        onClose={() => setIsScheduleModalOpen(false)}
+        title={`Schedules for ${selectedSection?.sectionName || 'Section'}`}
+        description="View and manage class schedules for this section"
+        size="lg"
+      >
+        <div className="space-y-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <div className="flex items-center gap-2 mb-1">
+                <Badge variant="outline" className="bg-[#215f47]/5 border-[#215f47]/20 text-[#215f47] font-medium">
+                  {selectedCourse?.courseCode}
+                </Badge>
+                <ChevronRight className="h-4 w-4 text-gray-400" />
+                <span className="font-medium text-[#215f47]">{selectedSection?.sectionName}</span>
+              </div>
+              <p className="text-sm text-gray-500">
+                {selectedSection?.teacherId ? (
+                  <span>Teacher: <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47]">{selectedSection?.teacher?.firstName} {selectedSection?.teacher?.lastName}</Badge></span>
+                ) : (
+                  <span>No teacher assigned</span>
+                )}
+              </p>
+            </div>
+            <Button
+              onClick={() => {
+                // Here you could implement add schedule logic
+                setIsScheduleModalOpen(false);
+              }}
+              className="bg-[#215f47] hover:bg-[#215f47]/90 flex items-center"
+            >
+              <Plus className="mr-2 h-4 w-4" />
+              Add Schedule
+            </Button>
+          </div>
+
+          {selectedSection && (
+            <div className="border rounded-md overflow-hidden border-[#215f47]/20">
+              <Table>
+                <TableHeader className="bg-[#215f47]/5">
+                  <TableRow>
+                    <TableHead className="text-[#215f47] font-medium">Day</TableHead>
+                    <TableHead className="text-[#215f47] font-medium">Time</TableHead>
+                    <TableHead className="text-[#215f47] font-medium">Room</TableHead>
+                    <TableHead className="text-[#215f47] font-medium">Type</TableHead>
+                    <TableHead className="text-[#215f47] font-medium text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {schedules.length > 0 ? (
+                    schedules.map(schedule => (
+                      <TableRow key={schedule.id} className="hover:bg-[#215f47]/5 transition-colors">
+                        <TableCell>
+                          {schedule.dayOfWeek === 1 && 'Monday'}
+                          {schedule.dayOfWeek === 2 && 'Tuesday'}
+                          {schedule.dayOfWeek === 3 && 'Wednesday'}
+                          {schedule.dayOfWeek === 4 && 'Thursday'}
+                          {schedule.dayOfWeek === 5 && 'Friday'}
+                          {schedule.dayOfWeek === 6 && 'Saturday'}
+                          {schedule.dayOfWeek === 7 && 'Sunday'}
+                        </TableCell>
+                        <TableCell className="font-mono">
+                          <div className="flex items-center gap-1">
+                            <Clock className="h-3.5 w-3.5 text-[#215f47]" />
+                            {schedule.timeStart} - {schedule.timeEnd}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1">
+                            <Building2 className="h-3.5 w-3.5 text-[#215f47]" />
+                            {schedule.room}
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge 
+                            variant="outline" 
+                            className={`
+                              ${schedule.scheduleType === 'LEC' ? 'bg-blue-50 text-blue-600 border-blue-200' : ''}
+                              ${schedule.scheduleType === 'LAB' ? 'bg-purple-50 text-purple-600 border-purple-200' : ''}
+                              ${schedule.scheduleType === 'REC' ? 'bg-amber-50 text-amber-600 border-amber-200' : ''}
+                            `}
+                          >
+                            {schedule.scheduleType === 'LEC' && 'Lecture'}
+                            {schedule.scheduleType === 'LAB' && 'Laboratory'}
+                            {schedule.scheduleType === 'REC' && 'Recitation'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              // Implement edit schedule logic
+                            }}
+                            className="h-8 w-8 p-0 text-[#215f47] hover:bg-[#215f47]/5"
+                          >
+                            <Pencil className="h-4 w-4" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => {
+                              // Implement delete schedule logic
+                            }}
+                            className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-32 text-center">
+                        <div className="flex flex-col items-center justify-center text-center p-4">
+                          <Calendar className="h-10 w-10 text-[#215f47]/40 mb-2" />
+                          <h3 className="text-sm font-medium text-gray-600 mb-1">No Schedules Found</h3>
+                          <p className="text-xs text-gray-500 max-w-xs">
+                            This section doesn't have any schedules yet. Click the "Add Schedule" button to create one.
+                          </p>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </div>
+      </AppModal>
     </DashboardLayout>
   );
 };

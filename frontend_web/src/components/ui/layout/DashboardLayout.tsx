@@ -1,10 +1,11 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { LogOut, User, BookOpen, Users, Calendar, BarChart, Shield, UserCog } from 'lucide-react';
+import { LogOut, User, BookOpen, Users, Calendar, Clock, BarChart, Shield, UserCog, ChevronDown, ChevronRight } from 'lucide-react';
 import { teacherApi } from '../../../lib/api/teacher';
 import { Button } from '../button';
 import { Avatar, AvatarFallback } from '../avatar';
+import { Separator } from '../separator';
 import {
   Sidebar,
   SidebarContent,
@@ -17,6 +18,38 @@ import {
   SidebarTrigger,
   SidebarInset,
 } from '../sidebar';
+
+// Define interfaces for navigation item types
+interface NavItemBase {
+  type: string;
+}
+
+interface NavItem extends NavItemBase {
+  type: 'item';
+  name: string;
+  href: string;
+  icon: React.ReactNode;
+}
+
+interface NavSeparator extends NavItemBase {
+  type: 'separator';
+}
+
+interface NavDropdownChild {
+  name: string;
+  href: string;
+  icon: React.ReactNode;
+}
+
+interface NavDropdown extends NavItemBase {
+  type: 'dropdown';
+  name: string;
+  href: string;
+  icon: React.ReactNode;
+  children: NavDropdownChild[];
+}
+
+type NavItemType = NavItem | NavSeparator | NavDropdown;
 
 interface DashboardLayoutProps {
   children: ReactNode;
@@ -65,28 +98,104 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     navigate('/login');
   };
 
-  const systemAdminNavItems = [
-    { name: 'Dashboard', href: '/system-admin/dashboard', icon: <Shield className="w-5 h-5" /> },
-    { name: 'Admins', href: '/system-admin/admins', icon: <UserCog className="w-5 h-5" /> },
-    { name: 'Users', href: '/admin/users', icon: <Users className="w-5 h-5" /> },
-    { name: 'Courses', href: '/admin/courses', icon: <BookOpen className="w-5 h-5" /> },
-    { name: 'Sections & Schedules', href: '/admin/sections', icon: <Calendar className="w-5 h-5" /> },
+  // System Admin navigation items with separators and nested items
+  const systemAdminNavItems: NavItemType[] = [
+    { 
+      type: 'dropdown', 
+      name: 'Dashboard', 
+      icon: <Shield className="w-5 h-5" />,
+      href: '/system-admin/dashboard',
+      children: []
+    },
+    { type: 'separator' },
+    { 
+      type: 'dropdown', 
+      name: 'Admins', 
+      icon: <UserCog className="w-5 h-5" />,
+      href: '/system-admin/admins',
+      children: []
+    },
+    { 
+      type: 'dropdown', 
+      name: 'Users', 
+      icon: <Users className="w-5 h-5" />,
+      href: '/admin/users',
+      children: []
+    },
+    { type: 'separator' },
+    { 
+      type: 'dropdown', 
+      name: 'Courses', 
+      icon: <BookOpen className="w-5 h-5" />,
+      href: '/admin/courses',
+      children: [
+        { name: 'Sections', href: '/admin/sections', icon: <Calendar className="w-5 h-5" /> },
+        { name: 'Schedules', href: '/admin/schedules', icon: <Clock className="w-5 h-5" /> }
+      ]
+    },
   ];
   
-  const adminNavItems = [
-    { name: 'Dashboard', href: '/admin/dashboard', icon: <BarChart className="w-5 h-5" /> },
-    { name: 'Users', href: '/admin/users', icon: <Users className="w-5 h-5" /> },
-    { name: 'Courses', href: '/admin/courses', icon: <BookOpen className="w-5 h-5" /> },
-    { name: 'Sections & Schedules', href: '/admin/sections', icon: <Calendar className="w-5 h-5" /> },
-    //{ name: 'Schedules', href: '/admin/schedules', icon: <Calendar className="w-5 h-5" /> },
+  // Admin navigation items with separators and nested items
+  const adminNavItems: NavItemType[] = [
+    { 
+      type: 'dropdown', 
+      name: 'Dashboard', 
+      icon: <BarChart className="w-5 h-5" />,
+      href: '/admin/dashboard',
+      children: []
+    },
+    { type: 'separator' },
+    { 
+      type: 'dropdown', 
+      name: 'User Management', 
+      icon: <Users className="w-5 h-5" />,
+      href: '/admin/users',
+      children: []
+    },
+    { type: 'separator' },
+    { 
+      type: 'dropdown', 
+      name: 'Courses', 
+      icon: <BookOpen className="w-5 h-5" />,
+      href: '/admin/courses',
+      children: [
+        { name: 'Sections', href: '/admin/sections', icon: <Calendar className="w-5 h-5" /> },
+        { name: 'Schedules', href: '/admin/schedules', icon: <Clock className="w-5 h-5" /> }
+      ]
+    },
   ];
 
-  const teacherNavItems = [
-    { name: 'Dashboard', href: '/teacher/dashboard', icon: <BarChart className="w-5 h-5" /> },
-    { name: 'My Sections', href: '/teacher/sections', icon: <Calendar className="w-5 h-5" /> },
-    { name: 'Attendance & Analytics', href: '/teacher/attendance', icon: <Users className="w-5 h-5" /> },
-    // { name: 'Analytics', href: '/teacher/analytics', icon: <BarChart className="w-5 h-5" /> },
-    { name: 'Seat Management', href: '/teacher/seats', icon: <User className="w-5 h-5" /> },
+  // Teacher navigation items
+  const teacherNavItems: NavItemType[] = [
+    { 
+      type: 'dropdown', 
+      name: 'Dashboard', 
+      icon: <BarChart className="w-5 h-5" />,
+      href: '/teacher/dashboard',
+      children: []
+    },
+    { type: 'separator' },
+    { 
+      type: 'dropdown', 
+      name: 'My Sections', 
+      icon: <Calendar className="w-5 h-5" />,
+      href: '/teacher/sections',
+      children: []
+    },
+    { 
+      type: 'dropdown', 
+      name: 'Attendance & Analytics', 
+      icon: <Users className="w-5 h-5" />,
+      href: '/teacher/attendance',
+      children: []
+    },
+    { 
+      type: 'dropdown', 
+      name: 'Seat Management', 
+      icon: <User className="w-5 h-5" />,
+      href: '/teacher/seats',
+      children: []
+    },
   ];
 
   let navItems;
@@ -111,12 +220,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     const path = location.pathname;
     if (path.includes('/dashboard')) return 'Dashboard';
     if (path.includes('/users')) return 'User Management';
-    if (path.includes('/courses')) return 'Courses';
-    if (path.includes('/sections')) return 'Sections';
-    if (path.includes('/attendance')) return 'Attendance';
+    if (path.includes('/courses')) return 'Course Management';
+    if (path.includes('/sections')) return 'Section Management';
+    if (path.includes('/attendance')) return 'Attendance Management';
     if (path.includes('/analytics')) return 'Analytics';
     if (path.includes('/seats')) return 'Seat Management';
-    if (path.includes('/schedules')) return 'Schedules';
+    if (path.includes('/schedules')) return 'Schedule Management';
+    if (path.includes('/admins')) return 'Admin Management';
     return '';
   };
 
@@ -135,20 +245,101 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
           
           <SidebarContent>
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton 
-                    asChild 
-                    isActive={location.pathname === item.href}
-                    tooltip={item.name}
-                  >
-                    <Link to={item.href}>
-                      {item.icon}
-                      <span>{item.name}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {navItems.map((item, index) => {
+                // Render a separator
+                if (item.type === 'separator') {
+                  return <Separator key={`separator-${index}`} className="my-2" />;
+                }
+                
+                // Render a dropdown menu item
+                if (item.type === 'dropdown') {
+                  const dropdownItem = item as NavDropdown;
+                  const [isOpen, setIsOpen] = useState(() => {
+                    // Auto-open the dropdown if any of its children is active
+                    return dropdownItem.children.some(child => location.pathname === child.href);
+                  });
+                  
+                  const isActive = location.pathname === dropdownItem.href || 
+                                  dropdownItem.children.some(child => location.pathname === child.href);
+                  
+                  // Handle clicking on any menu item to navigate
+                  // Only toggle dropdown if it has children
+                  const handleItemClick = () => {
+                    navigate(dropdownItem.href);
+                    if (dropdownItem.children.length > 0) {
+                      setIsOpen(!isOpen);
+                    }
+                  };
+                  
+                  return (
+                    <div key={dropdownItem.name} className="space-y-1">
+                      <SidebarMenuItem>
+                        <div 
+                          className={`flex items-center w-full cursor-pointer rounded-md px-3 py-2 text-sm font-medium transition-colors ${isActive ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'}`}
+                          onClick={handleItemClick}
+                        >
+                          <div className="flex items-center w-full">
+                            <div className="flex-shrink-0 w-5 flex justify-center">
+                              {dropdownItem.icon}
+                            </div>
+                            <span className="ml-3">{dropdownItem.name}</span>
+                            {/* Only show chevron if this item has children */}
+                            {dropdownItem.children.length > 0 && (
+                              <div className="ml-auto">
+                                {isOpen ? 
+                                  <ChevronDown className="h-4 w-4 transition-transform duration-200" /> : 
+                                  <ChevronRight className="h-4 w-4 transition-transform duration-200" />}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </SidebarMenuItem>
+                      
+                      {/* Dropdown children with transition - only render if there are children */}
+                      {dropdownItem.children.length > 0 && (
+                        <div 
+                          className={`pl-6 overflow-hidden transition-all duration-300 ease-in-out ${isOpen ? 'max-h-40 opacity-100' : 'max-h-0 opacity-0'}`}
+                        >
+                          {dropdownItem.children.map((child: NavDropdownChild) => (
+                            <SidebarMenuItem key={child.name}>
+                              <SidebarMenuButton 
+                                asChild 
+                                isActive={location.pathname === child.href}
+                                tooltip={child.name}
+                              >
+                                <Link to={child.href} className="flex items-center w-full">
+                                  <div className="flex-shrink-0 w-5 flex justify-center">
+                                    {child.icon}
+                                  </div>
+                                  <span className="ml-3">{child.name}</span>
+                                </Link>
+                              </SidebarMenuButton>
+                            </SidebarMenuItem>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                
+                // This is a fallback case that should not be reached
+                // since all items are now dropdown items
+                const regularItem = item as NavItem;
+                return (
+                  <SidebarMenuItem key={regularItem.name}>
+                    <SidebarMenuButton 
+                      asChild 
+                      isActive={location.pathname === regularItem.href}
+                      tooltip={regularItem.name}
+                    >
+                      <Link to={regularItem.href}>
+                        {regularItem.icon}
+                        <span>{regularItem.name}</span>
+                      </Link>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarContent>
           

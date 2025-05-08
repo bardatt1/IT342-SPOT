@@ -119,6 +119,15 @@ export const studentApi = {
 
   // Delete student
   delete: async (id: number): Promise<void> => {
-    await axiosInstance.delete(`/admin/students/${id}`);
+    console.log(`Attempting to delete student with ID: ${id}`);
+    try {
+      // Since the backend API expects a Long id parameter, we need to ensure proper formatting
+      // Use the standard endpoint with axiosInstance which handles the base URL correctly
+      await axiosInstance.delete(`/admin/students/${id}`);
+      console.log(`Successfully deleted student with ID: ${id}`);
+    } catch (error) {
+      console.error(`Failed to delete student with ID: ${id}`, error);
+      throw error;
+    }
   },
 };

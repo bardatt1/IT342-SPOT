@@ -19,6 +19,8 @@ const UserManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
+  // No need for separate error dialog state, we'll use the existing error state
+  
   // Form state for adding new users
   const [showForm, setShowForm] = useState(false);
   const [formType, setFormType] = useState<'add' | 'edit'>('add');
@@ -35,15 +37,15 @@ const UserManagement = () => {
     password: ''
   });
 
-  // Function to generate a bcrypt-hashed password based on physical ID
-  const generateHashedPassword = (physicalId: string): string => {
-    //Create temporary password using first 5 digits of physical ID + "TEMP"
-    const plainPassword = physicalId.substring(0, 5).toUpperCase() + 'TEMP';
-    console.log(`Creating temporary password pattern for ID: ${physicalId} -> ${plainPassword}`);
+  // Function to generate a secure temporary password based on physical ID
+  const generateSecurePassword = (physicalId: string): string => {
+    // Create temporary password using first 5 digits of physical ID + "TEMP"
+    // Plus a random 3-digit number for added security
+    const randomDigits = Math.floor(Math.random() * 900 + 100).toString();
+    const plainPassword = physicalId.substring(0, 5).toUpperCase() + 'TEMP' + randomDigits;
+    console.log(`Creating temporary password for ID: ${physicalId}`);
     
-    // In a real implementation, we would hash this plainPassword with bcrypt
-    // For now, we'll use the known bcrypt hash that corresponds to 'test'
-    // In production, this would call a backend API to generate the proper hash
+    // Note: The actual password hashing happens on the backend for security
     return plainPassword;
   };
 
@@ -145,13 +147,34 @@ const UserManagement = () => {
         await teacherApi.delete(id);
         setTeachers(teachers.filter(t => t.id !== id));
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error(`Error deleting ${activeTab === 'students' ? 'student' : 'teacher'}:`, error);
-      setError(`Failed to delete. Please try again later.`);
+      
+      // Check for database constraint error
+      if (error?.response?.data?.message && error.response.data.message.includes('constraint')) {
+        const userType = activeTab === 'students' ? 'student' : 'teacher';
+        
+        // Create a more user-friendly error message
+        let friendlyMessage = `Cannot delete this ${userType}. They have existing records in the system.`;
+        
+        if (activeTab === 'students') {
+          friendlyMessage += ' The student may be enrolled in one or more courses or have attendance records.';
+        } else {
+          friendlyMessage += ' The teacher may be assigned to one or more sections or courses.';
+        }
+        
+        friendlyMessage += ' Please remove these associations before attempting to delete this record.';
+        
+        // Use the existing error alert component
+        setError(friendlyMessage);
+      } else {
+        // Generic error message for other types of errors
+        setError(`Failed to delete. Please try again later.`);
+      }
     }
   };
 
-  // Password validation helper function
+  // Validation helper functions
   const validatePassword = (password: string): { valid: boolean; message: string } => {
     if (!password) {
       return { valid: false, message: 'Password is required' };
@@ -162,11 +185,29 @@ const UserManagement = () => {
     // Add more password requirements as needed
     return { valid: true, message: '' };
   };
+  
+  const validatePhysicalId = (physicalId: string): { valid: boolean; message: string } => {
+    if (!physicalId) {
+      return { valid: false, message: 'Physical ID is required' };
+    }
+    if (physicalId.length < 5) {
+      return { valid: false, message: 'Physical ID must be at least 5 characters long' };
+    }
+    return { valid: true, message: '' };
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError(null); // Clear any previous errors
     
-    // Validate password for new user creation
+    // Validate physical ID for all submissions
+    const physicalIdValidation = validatePhysicalId(formData.physicalId);
+    if (!physicalIdValidation.valid) {
+      setError(physicalIdValidation.message);
+      return;
+    }
+    
+    // Validate password for new user creation with custom password
     if (formType === 'add' && formData.password) {
       const passwordValidation = validatePassword(formData.password);
       if (!passwordValidation.valid) {
@@ -204,7 +245,7 @@ const UserManagement = () => {
             year: formData.year || '1',
             program: formData.program || 'Temporary Program',
             // Generate a hashed password based on the physical ID
-            password: formData.password || generateHashedPassword(formData.physicalId)
+            password: formData.password || generateSecurePassword(formData.physicalId)
           };
           
           // Call the create student API function
@@ -235,7 +276,7 @@ const UserManagement = () => {
             email: formData.email || `${formData.physicalId}@edu-spot.me`, // Generate temporary email if not provided
             teacherPhysicalId: formData.physicalId, // This is the only required field
             // Generate a hashed password based on the physical ID
-            password: formData.password || generateHashedPassword(formData.physicalId)
+            password: formData.password || generateSecurePassword(formData.physicalId)
           };
           
           // Call the create teacher API function
@@ -273,32 +314,43 @@ const UserManagement = () => {
   return (
     <DashboardLayout>
       <div className="space-y-6 p-6">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
-          <div>
-            <h2 className="text-2xl font-bold text-[#215f47] flex items-center gap-2">
-              <UserCog className="h-6 w-6" />
-              User Management
-            </h2>
-            <p className="text-sm text-gray-500 mt-1">Manage student and teacher accounts</p>
-          </div>
-          
-          <div className="mt-4 flex space-x-3 sm:mt-0">
-            <Button 
-              onClick={handleAddNew} 
-              className="bg-[#215f47] hover:bg-[#215f47]/90 text-white gap-2 py-2"
-            >
-              <Plus className="h-4 w-4" />
-              Add New {activeTab === 'students' ? 'Student' : 'Teacher'}
-            </Button>
-          </div>
-        </div>
-        
+        {/* Error alert component */}
         {error && (
-          <Alert variant="destructive" className="border-red-300 bg-red-50 my-4">
-            <AlertTriangle className="h-5 w-5 text-red-600" />
-            <AlertDescription className="text-red-700">{error}</AlertDescription>
+          <Alert variant="destructive" className="mb-4 border-red-600 text-red-600 bg-red-50">
+            <AlertTriangle className="h-4 w-4" />
+            <AlertDescription>{error}</AlertDescription>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={() => setError(null)} 
+              className="h-6 w-6 ml-auto"
+            >
+              <X className="h-3 w-3" />
+            </Button>
           </Alert>
         )}
+        
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
+          <div>
+          <h2 className="text-2xl font-bold text-[#215f47] flex items-center gap-2">
+            <UserCog className="h-6 w-6" />
+            User Management
+          </h2>
+          <p className="text-sm text-gray-500 mt-1">Manage student and teacher accounts</p>
+        </div>
+        
+        <div className="mt-4 flex space-x-3 sm:mt-0">
+          <Button 
+            onClick={handleAddNew} 
+            className="bg-[#215f47] hover:bg-[#215f47]/90 text-white gap-2 py-2"
+          >
+            <Plus className="h-4 w-4" />
+            Add New {activeTab === 'students' ? 'Student' : 'Teacher'}
+          </Button>
+          </div>
+        </div>
+      
+
         
         {showForm && (
           <Card className="border-[#215f47]/20 shadow-sm mb-6">
@@ -306,19 +358,19 @@ const UserManagement = () => {
               <div className="flex justify-between items-center">
                 <div>
                   <CardTitle className="text-[#215f47]">
-                    {formType === 'add' ? 'Add New' : 'Edit'} {activeTab === 'students' ? 'Student' : 'Teacher'}
+                    {formType === 'add' ? `Add New ${activeTab === 'students' ? 'Student' : 'Teacher'}` : `Edit ${activeTab === 'students' ? 'Student' : 'Teacher'}`}
                   </CardTitle>
                   <CardDescription>
                     {formType === 'add' 
-                      ? `Create a new ${activeTab === 'students' ? 'student' : 'teacher'} account` 
-                      : `Update ${activeTab === 'students' ? 'student' : 'teacher'} information`}
+                      ? `Add a new ${activeTab === 'students' ? 'student' : 'teacher'} to the system` 
+                      : `Update existing ${activeTab === 'students' ? 'student' : 'teacher'} information`}
                   </CardDescription>
                 </div>
                 <Button 
                   variant="ghost" 
-                  size="sm" 
-                  className="h-8 w-8 p-0 text-gray-500" 
-                  onClick={resetForm}
+                  size="icon" 
+                  onClick={resetForm} 
+                  className="h-8 w-8 rounded-full"
                 >
                   <X className="h-4 w-4" />
                 </Button>

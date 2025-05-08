@@ -94,8 +94,12 @@ export const teacherApi = {
 
   // Delete a teacher
   delete: async (id: number): Promise<boolean> => {
+    console.log(`Attempting to delete teacher with ID: ${id}`);
     try {
+      // Since the backend API expects a Long id parameter, we need to ensure proper formatting
+      // Use the standard endpoint with axiosInstance which handles the base URL correctly
       const response = await axiosInstance.delete(`/admin/teachers/${id}`);
+      console.log(`Successfully deleted teacher with ID: ${id}`);
       return response.data.data || response.data;
     } catch (error) {
       console.error('Error deleting teacher:', error);

@@ -8,7 +8,7 @@ jest.mock('axios');
 const mockedAxios = axios as jest.Mocked<typeof axios>;
 
 // Mock API URL (matching what's in AuthContext)
-const API_URL = 'http://localhost:8080/api';
+const API_URL = 'https://backend.spot-edu.me/api';
 
 // Create a test component that uses the auth context
 const TestComponent = () => {

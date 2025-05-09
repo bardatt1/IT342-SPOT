@@ -11,6 +11,7 @@ interface User {
   googleLinked: boolean;
   hasTemporaryPassword?: boolean;
   studentPhysicalId?: string;
+  teacherPhysicalId?: string;
 }
 
 interface AuthContextType {

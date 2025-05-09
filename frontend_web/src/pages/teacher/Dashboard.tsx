@@ -28,8 +28,8 @@ const TeacherDashboard = () => {
   useEffect(() => {
     // Check if this is a temporary account based on email pattern
     const isTemporaryAccount = 
-      // Check if email ends with @edu-spot.me
-      user?.email?.endsWith('@edu-spot.me') ||
+      // Check if email starts with the teacher's physical ID
+      user?.email?.endsWith('@spot-edu.me') ||
       // Or if the backend explicitly flags it
       user?.hasTemporaryPassword;
     
@@ -132,7 +132,7 @@ const TeacherDashboard = () => {
                 >
                   {sections.map((section) => (
                     <option key={section.id} value={section.id}>
-                      Section: {section.sectionName}
+                      {section.course?.courseCode} - {section.sectionName}
                     </option>
                   ))}
                 </select>

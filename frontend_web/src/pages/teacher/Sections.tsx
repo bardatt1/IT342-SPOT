@@ -40,7 +40,7 @@ const TeacherSections = () => {
     // Check if this is a temporary account based on email pattern
     const isTemporaryAccount = 
       // Check if email ends with @edu-spot.me
-      user?.email?.endsWith('@edu-spot.me') ||
+      user?.email?.endsWith('@spot-edu.me') ||
       // Or if the backend explicitly flags it
       user?.hasTemporaryPassword;
     

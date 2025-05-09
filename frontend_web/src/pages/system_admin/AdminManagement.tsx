@@ -20,6 +20,7 @@ import {
   ArrowUp, 
   ArrowDown 
 } from 'lucide-react';
+import DeleteConfirmationModal from '../../components/ui/modal/DeleteConfirmationModal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 import { Checkbox } from '../../components/ui/checkbox';
 
@@ -32,6 +33,16 @@ const AdminManagement = () => {
   const [systemAdmins, setSystemAdmins] = useState<Admin[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // State for delete confirmation modal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [adminToDelete, setAdminToDelete] = useState<{id: number; name: string} | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
+  
+  // State for promote confirmation modal
+  const [isPromoteModalOpen, setIsPromoteModalOpen] = useState(false);
+  const [adminToPromote, setAdminToPromote] = useState<{id: number; name: string} | null>(null);
+  const [isPromoting, setIsPromoting] = useState(false);
   
   // Form state for adding/editing admins
   const [showForm, setShowForm] = useState(false);
@@ -126,13 +137,37 @@ const AdminManagement = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    const adminType = activeTab === 'admins' ? 'admin' : 'system admin';
-    if (!window.confirm(`Are you sure you want to delete this ${adminType}?`)) {
-      return;
+  // Show delete confirmation modal
+  const handleDeleteClick = (id: number) => {
+    // Get the admin's name for display in the confirmation modal
+    let adminName = '';
+    
+    if (activeTab === 'admins') {
+      const admin = admins.find(a => a.id === id);
+      if (admin) {
+        adminName = `${admin.firstName} ${admin.lastName}`;
+      }
+    } else {
+      const admin = systemAdmins.find(a => a.id === id);
+      if (admin) {
+        adminName = `${admin.firstName} ${admin.lastName}`;
+      }
     }
     
+    setAdminToDelete({ id, name: adminName });
+    setIsDeleteModalOpen(true);
+  };
+  
+  // Perform the actual deletion
+  const handleDelete = async () => {
+    if (!adminToDelete) return;
+    
+    const id = adminToDelete.id;
+    const adminType = activeTab === 'admins' ? 'admin' : 'system admin';
+    
     try {
+      setIsDeleting(true);
+      
       await adminApi.deleteAdmin(id);
       
       if (activeTab === 'admins') {
@@ -141,29 +176,53 @@ const AdminManagement = () => {
         setSystemAdmins(systemAdmins.filter(a => a.id !== id));
       }
       
+      // Close the modal and reset state
+      setIsDeleteModalOpen(false);
+      setAdminToDelete(null);
+      setIsDeleting(false);
       setError(null);
     } catch (error) {
       console.error(`Error deleting ${adminType}:`, error);
       setError(`Failed to delete ${adminType}. Please try again later.`);
+      setIsDeleting(false);
     }
   };
 
-  const handlePromote = async (id: number) => {
-    if (!window.confirm("Are you sure you want to promote this admin to system admin?")) {
-      return;
+  // Show promotion confirmation modal
+  const handlePromoteClick = (id: number) => {
+    // Get the admin's name for display in the confirmation modal
+    const admin = admins.find(a => a.id === id);
+    if (admin) {
+      const adminName = `${admin.firstName} ${admin.lastName}`;
+      setAdminToPromote({ id, name: adminName });
+      setIsPromoteModalOpen(true);
     }
+  };
+  
+  // Perform the actual promotion
+  const handlePromote = async () => {
+    if (!adminToPromote) return;
+    
+    const id = adminToPromote.id;
     
     try {
+      setIsPromoting(true);
+      
       const promotedAdmin = await adminApi.promoteToSystemAdmin(id);
       
       // Update both lists
       setAdmins(admins.filter(a => a.id !== id));
       setSystemAdmins([...systemAdmins, promotedAdmin]);
       
+      // Close the modal and reset state
+      setIsPromoteModalOpen(false);
+      setAdminToPromote(null);
+      setIsPromoting(false);
       setError(null);
     } catch (error) {
       console.error(`Error promoting admin:`, error);
       setError(`Failed to promote admin. Please try again later.`);
+      setIsPromoting(false);
     }
   };
 
@@ -513,7 +572,7 @@ const AdminManagement = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handlePromote(admin.id)}
+                                onClick={() => handlePromoteClick(admin.id)}
                                 className="h-8 w-8 p-0 text-amber-600 hover:text-amber-700 hover:bg-amber-50"
                                 title="Promote to System Admin"
                               >
@@ -531,7 +590,7 @@ const AdminManagement = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDelete(admin.id)}
+                                onClick={() => handleDeleteClick(admin.id)}
                                 className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                                 title="Delete Admin"
                               >
@@ -611,7 +670,7 @@ const AdminManagement = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDelete(admin.id)}
+                                onClick={() => handleDeleteClick(admin.id)}
                                 className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                                 title="Delete System Admin"
                                 disabled={systemAdmins.length === 1}
@@ -646,6 +705,42 @@ const AdminManagement = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setAdminToDelete(null);
+          setIsDeleting(false);
+        }}
+        onConfirm={handleDelete}
+        title={`Delete ${activeTab === 'admins' ? 'Admin' : 'System Admin'}`}
+        itemName={adminToDelete?.name || ''}
+        itemType={activeTab === 'admins' ? 'admin' : 'system admin'}
+        warningText={`This action cannot be undone. It will permanently delete this user and all associated data.`}
+        isLoading={isDeleting}
+      />
+      
+      {/* Promote Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isPromoteModalOpen}
+        onClose={() => {
+          setIsPromoteModalOpen(false);
+          setAdminToPromote(null);
+          setIsPromoting(false);
+        }}
+        onConfirm={handlePromote}
+        title="Promote to System Admin"
+        description="Are you sure you want to promote this user to system admin? This action will grant them elevated privileges."
+        itemName={adminToPromote?.name || ''}
+        itemType="admin"
+        warningText={`Promoting to system admin will grant full system access privileges and cannot be easily reversed.`}
+        isLoading={isPromoting}
+        confirmButtonText="Promote"
+        confirmButtonVariant="default"
+        iconType="promote"
+      />
     </DashboardLayout>
   );
 };

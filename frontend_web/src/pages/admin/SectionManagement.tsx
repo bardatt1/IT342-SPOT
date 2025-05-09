@@ -15,6 +15,7 @@ import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription, AlertTitle } from '../../components/ui/alert';
 import { Tabs, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Plus, Pencil, Trash2, UserCog, Book, BookOpen, AlertTriangle, CalendarDays } from 'lucide-react';
+import DeleteConfirmationModal from '../../components/ui/modal/DeleteConfirmationModal';
 
 const SectionManagement = () => {
   const navigate = useNavigate();
@@ -48,6 +49,11 @@ const SectionManagement = () => {
   // State for assigning teacher modal
   const [showAssignTeacherModal, setShowAssignTeacherModal] = useState(false);
   const [selectedTeacherId, setSelectedTeacherId] = useState<string>('');
+  
+  // State for delete confirmation modal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [sectionToDelete, setSectionToDelete] = useState<{id: number; name: string} | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -113,17 +119,33 @@ const SectionManagement = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm('Are you sure you want to delete this section?')) {
-      return;
+  // Show delete confirmation modal
+  const handleDeleteClick = (id: number) => {
+    const section = sections.find(s => s.id === id);
+    if (section) {
+      setSectionToDelete({ id, name: section.sectionName || `Section #${id}` });
+      setIsDeleteModalOpen(true);
     }
+  };
+  
+  // Perform the actual deletion
+  const handleDelete = async () => {
+    if (!sectionToDelete) return;
     
     try {
-      await sectionApi.delete(id);
-      setSections(sections.filter(s => s.id !== id));
+      setIsDeleting(true);
+      
+      await sectionApi.delete(sectionToDelete.id);
+      setSections(sections.filter(s => s.id !== sectionToDelete.id));
+      
+      // Close the modal and reset state
+      setIsDeleteModalOpen(false);
+      setSectionToDelete(null);
+      setIsDeleting(false);
     } catch (error) {
       console.error('Error deleting section:', error);
       setError('Failed to delete section. Please try again later.');
+      setIsDeleting(false);
     }
   };
 
@@ -200,6 +222,11 @@ const SectionManagement = () => {
   const getCourseName = (courseId: number) => {
     const course = courses.find(c => c.id === courseId);
     return course ? `${course.courseCode} - ${course.courseName}` : 'Unknown Course';
+  };
+  
+  const getCourseCode = (courseId: number) => {
+    const course = courses.find(c => c.id === courseId);
+    return course ? course.courseCode : 'N/A';
   };
 
   const getTeacherName = (teacherId?: number) => {
@@ -420,7 +447,7 @@ const SectionManagement = () => {
                 <Table>
                   <TableHeader className="bg-[#215f47]/5">
                     <TableRow>
-                      <TableHead className="text-[#215f47] font-medium w-[60px]">ID</TableHead>
+                      <TableHead className="text-[#215f47] font-medium w-[100px]">Course Code</TableHead>
                       <TableHead className="text-[#215f47] font-medium">Course</TableHead>
                       <TableHead className="text-[#215f47] font-medium">Section Name</TableHead>
                       <TableHead className="text-[#215f47] font-medium">Teacher</TableHead>
@@ -431,7 +458,11 @@ const SectionManagement = () => {
                   <TableBody>
                     {sections.map((section) => (
                       <TableRow key={section.id} className="hover:bg-[#215f47]/5 transition-colors">
-                        <TableCell className="font-medium">{section.id}</TableCell>
+                        <TableCell className="font-medium">
+                          <Badge variant="outline" className="bg-[#215f47]/5 border-[#215f47]/20 text-[#215f47] font-medium">
+                            {getCourseCode(section.courseId)}
+                          </Badge>
+                        </TableCell>
                         <TableCell>
                           <span className="font-medium">{getCourseName(section.courseId)}</span>
                         </TableCell>
@@ -477,7 +508,7 @@ const SectionManagement = () => {
                           <Button
                             variant="ghost"
                             size="sm"
-                            onClick={() => handleDelete(section.id)}
+                            onClick={() => handleDeleteClick(section.id)}
                             className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50 mr-1"
                           >
                             <Trash2 className="h-4 w-4" />
@@ -492,6 +523,22 @@ const SectionManagement = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Section Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setSectionToDelete(null);
+          setIsDeleting(false);
+        }}
+        onConfirm={handleDelete}
+        title="Delete Section"
+        itemName={sectionToDelete?.name || ''}
+        itemType="section"
+        warningText="This action cannot be undone. It will permanently delete this section and all associated data."
+        isLoading={isDeleting}
+      />
     </DashboardLayout>
   );
 };

@@ -10,6 +10,7 @@ import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../../components/ui/tabs';
 import { Plus, Pencil, Trash2, UserCog, Users, AlertTriangle, X } from 'lucide-react';
+import DeleteConfirmationModal from '../../components/ui/modal/DeleteConfirmationModal';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../../components/ui/table';
 
 const UserManagement = () => {
@@ -19,7 +20,10 @@ const UserManagement = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   
-  // No need for separate error dialog state, we'll use the existing error state
+  // State for delete confirmation modal
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState<{id: number; name: string} | null>(null);
+  const [isDeleting, setIsDeleting] = useState(false);
   
   // Form state for adding new users
   const [showForm, setShowForm] = useState(false);
@@ -40,9 +44,7 @@ const UserManagement = () => {
   // Function to generate a secure temporary password based on physical ID
   const generateSecurePassword = (physicalId: string): string => {
     // Create temporary password using first 5 digits of physical ID + "TEMP"
-    // Plus a random 3-digit number for added security
-    const randomDigits = Math.floor(Math.random() * 900 + 100).toString();
-    const plainPassword = physicalId.substring(0, 5).toUpperCase() + 'TEMP' + randomDigits;
+    const plainPassword = physicalId.substring(0, 5).toUpperCase() + 'TEMP';
     console.log(`Creating temporary password for ID: ${physicalId}`);
     
     // Note: The actual password hashing happens on the backend for security
@@ -134,12 +136,37 @@ const UserManagement = () => {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!window.confirm(`Are you sure you want to delete this ${activeTab === 'students' ? 'student' : 'teacher'}?`)) {
-      return;
+  // Show delete confirmation modal
+  const handleDeleteClick = (id: number) => {
+    // Get the user's name for display in the confirmation modal
+    let userName = '';
+    
+    if (activeTab === 'students') {
+      const student = students.find(s => s.id === id);
+      if (student) {
+        userName = `${student.firstName} ${student.lastName}`;
+      }
+    } else {
+      const teacher = teachers.find(t => t.id === id);
+      if (teacher) {
+        userName = `${teacher.firstName} ${teacher.lastName}`;
+      }
     }
     
+    setUserToDelete({ id, name: userName });
+    setIsDeleteModalOpen(true);
+  };
+  
+  // Perform the actual deletion
+  const handleDelete = async () => {
+    if (!userToDelete) return;
+    
+    const id = userToDelete.id;
+    const userType = activeTab === 'students' ? 'student' : 'teacher';
+    
     try {
+      setIsDeleting(true);
+      
       if (activeTab === 'students') {
         await studentApi.delete(id);
         setStudents(students.filter(s => s.id !== id));
@@ -147,8 +174,12 @@ const UserManagement = () => {
         await teacherApi.delete(id);
         setTeachers(teachers.filter(t => t.id !== id));
       }
+      
+      // Close the modal and reset state
+      setIsDeleteModalOpen(false);
+      setUserToDelete(null);
     } catch (error: any) {
-      console.error(`Error deleting ${activeTab === 'students' ? 'student' : 'teacher'}:`, error);
+      console.error(`Error deleting ${userType}:`, error);
       
       // Check for database constraint error
       if (error?.response?.data?.message && error.response.data.message.includes('constraint')) {
@@ -240,7 +271,7 @@ const UserManagement = () => {
             firstName: formData.firstName || 'Temporary', // Placeholder values for required backend fields
             middleName: formData.middleName || null,
             lastName: formData.lastName || 'Account',
-            email: formData.email || `${formData.physicalId}@edu-spot.me`, // Generate temporary email if not provided
+            email: formData.email || `${formData.physicalId}@spot-edu.me`, // Generate temporary email if not provided
             studentPhysicalId: formData.physicalId, // This is the only required field
             year: formData.year || '1',
             program: formData.program || 'Temporary Program',
@@ -273,7 +304,7 @@ const UserManagement = () => {
             firstName: formData.firstName || 'Temporary', // Placeholder values for required backend fields
             middleName: formData.middleName || null,
             lastName: formData.lastName || 'Account',
-            email: formData.email || `${formData.physicalId}@edu-spot.me`, // Generate temporary email if not provided
+            email: formData.email || `${formData.physicalId}@spot-edu.me`, // Generate temporary email if not provided
             teacherPhysicalId: formData.physicalId, // This is the only required field
             // Generate a hashed password based on the physical ID
             password: formData.password || generateSecurePassword(formData.physicalId)
@@ -423,7 +454,7 @@ const UserManagement = () => {
                       name="email"
                       value={formData.email}
                       onChange={handleInputChange}
-                      placeholder="Leave empty for temporary email"
+                      placeholder="Leave blank for auto-generated email (PhysID + '@spot-edu.me')"
                       className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
                     />
                   </div>
@@ -456,7 +487,7 @@ const UserManagement = () => {
                         // Clear password error when user changes input
                         if (error && error.includes('Password')) setError(null);
                       }}
-                      placeholder="Leave empty for auto-generated password"
+                      placeholder="Leave blank for auto-generated password (First 5 characters of PhysID + 'TEMP')"
                       className="border-[#215f47]/20 focus:border-[#215f47] focus:ring-2 focus:ring-[#215f47]/20"
                     />
                   </div>
@@ -580,7 +611,7 @@ const UserManagement = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDelete(student.id)}
+                                onClick={() => handleDeleteClick(student.id)}
                                 className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -650,7 +681,7 @@ const UserManagement = () => {
                               <Button
                                 variant="ghost"
                                 size="sm"
-                                onClick={() => handleDelete(teacher.id)}
+                                onClick={() => handleDeleteClick(teacher.id)}
                                 className="h-8 w-8 p-0 text-red-500 hover:text-red-700 hover:bg-red-50"
                               >
                                 <Trash2 className="h-4 w-4" />
@@ -673,6 +704,22 @@ const UserManagement = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Delete Confirmation Modal */}
+      <DeleteConfirmationModal
+        isOpen={isDeleteModalOpen}
+        onClose={() => {
+          setIsDeleteModalOpen(false);
+          setUserToDelete(null);
+          setIsDeleting(false);
+        }}
+        onConfirm={handleDelete}
+        title={`Delete ${activeTab === 'students' ? 'Student' : 'Teacher'}`}
+        itemName={userToDelete?.name || ''}
+        itemType={activeTab === 'students' ? 'student' : 'teacher'}
+        warningText={`This action cannot be undone. It will permanently delete this user and all associated data.`}
+        isLoading={isDeleting}
+      />
     </DashboardLayout>
   );
 };

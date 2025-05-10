@@ -40,10 +40,10 @@ const FirstLoginModal: React.FC<FirstLoginModalProps> = ({ onClose }) => {
                 <div className="flex items-start gap-2">
                   <AlertTriangle className="h-5 w-5 text-yellow-600 mt-0.5 flex-shrink-0" />
                   <div>
-                    <h4 className="font-medium text-[#215f47]">Temporary Password Detected</h4>
+                    <h4 className="font-medium text-[#215f47]">Default Email Detected</h4>
                     <p className="text-sm text-gray-600">
-                      Your account is currently using a default password. For security reasons, 
-                      please update it and complete your profile information.                      
+                      Your account is currently using a default email. For security reasons, 
+                      please update it to a unique email and complete your profile information.                      
                     </p>
                   </div>
                 </div>

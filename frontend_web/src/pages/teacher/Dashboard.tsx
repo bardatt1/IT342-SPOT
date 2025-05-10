@@ -1,34 +1,42 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import DashboardLayout from '../../components/ui/layout/DashboardLayout';
 import { useAuth } from '../../contexts/AuthContext';
 import { sectionApi, type Section } from '../../lib/api/section';
 import { attendanceApi } from '../../lib/api/attendance';
-import { Calendar, Users, QrCode, AlertTriangle, RefreshCw } from 'lucide-react';
+import { scheduleApi, type Schedule, daysOfWeek } from '../../lib/api/schedule';
+import { Calendar, Users, QrCode, AlertTriangle, RefreshCw, Clock, MapPin, ChevronLeft, ChevronRight, CalendarClock } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import FirstLoginModal from '../../components/ui/FirstLoginModal';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '../../components/ui/card';
 import { Badge } from '../../components/ui/badge';
 import { Alert, AlertDescription } from '../../components/ui/alert';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '../../components/ui/dialog';
 
 const TeacherDashboard = () => {
   const { user } = useAuth();
   const [sections, setSections] = useState<Section[]>([]);
   const [activeSection, setActiveSection] = useState<Section | null>(null);
+  const [sectionSchedules, setSectionSchedules] = useState<{[sectionId: number]: Schedule[]}>({});
+  const [activeSchedules, setActiveSchedules] = useState<Schedule[]>([]);
+  const [isWithinSchedule, setIsWithinSchedule] = useState(false);
+  const [showScheduleDialog, setShowScheduleDialog] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<{
     imageBase64: string;
     url: string;
     expiresInSeconds: number;
   } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isLoadingSchedules, setIsLoadingSchedules] = useState(false);
   const [isGeneratingQr, setIsGeneratingQr] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showFirstLoginModal, setShowFirstLoginModal] = useState(false);
+  const timeCheckIntervalRef = useRef<number | null>(null);
 
   // Check for temporary password when user data is loaded
   useEffect(() => {
     // Check if this is a temporary account based on email pattern
     const isTemporaryAccount = 
-      // Check if email starts with the teacher's physical ID
+      // Check if email ends with @edu-spot.me
       user?.email?.endsWith('@spot-edu.me') ||
       // Or if the backend explicitly flags it
       user?.hasTemporaryPassword;
@@ -70,6 +78,97 @@ const TeacherDashboard = () => {
 
     fetchSections();
   }, [user?.id]);
+  
+  // Fetch schedules for all sections when sections are loaded
+  useEffect(() => {
+    const fetchAllSchedules = async () => {
+      if (sections.length === 0) return;
+      
+      setIsLoadingSchedules(true);
+      console.log(`Fetching schedules for all sections`);
+      
+      // Create a copy of the current section schedules object
+      const newSectionSchedules = {...sectionSchedules};
+      
+      // Fetch schedules for each section that doesn't already have schedules fetched
+      const fetchPromises = sections.map(async (section) => {
+        // Skip if we already have schedules for this section
+        if (newSectionSchedules[section.id] !== undefined) return;
+        
+        try {
+          console.log(`Fetching schedules for section with ID: ${section.id}`);
+          const schedules = await scheduleApi.getBySectionId(section.id);
+          console.log(`Retrieved ${schedules.length} schedules for section ${section.id}:`, schedules);
+          newSectionSchedules[section.id] = schedules;
+        } catch (error) {
+          console.error(`Error fetching schedules for section ${section.id}:`, error);
+          newSectionSchedules[section.id] = [];
+        }
+      });
+      
+      // Wait for all fetch operations to complete
+      await Promise.all(fetchPromises);
+      
+      // Update state with all fetched schedules
+      setSectionSchedules(newSectionSchedules);
+      setIsLoadingSchedules(false);
+    };
+
+    fetchAllSchedules();
+  }, [sections]);
+  
+  // Update active schedules when active section changes
+  useEffect(() => {
+    if (!activeSection?.id) {
+      setActiveSchedules([]);
+      return;
+    }
+    
+    // Use schedules from the sectionSchedules object for the active section
+    const schedules = sectionSchedules[activeSection.id] || [];
+    setActiveSchedules(schedules);
+  }, [activeSection?.id, sectionSchedules]);
+  
+  // Set up interval to check if current time is within schedule
+  useEffect(() => {
+    // Check if current time is within any schedule
+    const checkTimeWithinSchedule = () => {
+      if (activeSchedules.length === 0) {
+        setIsWithinSchedule(false);
+        return;
+      }
+      
+      const now = new Date();
+      const currentDay = now.getDay() === 0 ? 7 : now.getDay(); // Convert Sunday from 0 to 7 to match backend
+      
+      const currentHours = now.getHours();
+      const currentMinutes = now.getMinutes();
+      const currentTime = `${currentHours.toString().padStart(2, '0')}:${currentMinutes.toString().padStart(2, '0')}`;
+      
+      // Check if current time falls within any schedule for today
+      const isWithin = activeSchedules.some(schedule => {
+        // Check if schedule is for today
+        if (schedule.dayOfWeek !== currentDay) return false;
+        
+        // Compare current time with schedule start and end times
+        return currentTime >= schedule.timeStart && currentTime <= schedule.timeEnd;
+      });
+      
+      setIsWithinSchedule(isWithin);
+    };
+    
+    // Check immediately
+    checkTimeWithinSchedule();
+    
+    // Set up interval to check every minute
+    timeCheckIntervalRef.current = window.setInterval(checkTimeWithinSchedule, 60000);
+    
+    return () => {
+      if (timeCheckIntervalRef.current !== null) {
+        clearInterval(timeCheckIntervalRef.current);
+      }
+    };
+  }, [activeSchedules]);
 
   const handleGenerateQrCode = async () => {
     if (!activeSection) return;
@@ -92,6 +191,34 @@ const TeacherDashboard = () => {
       setActiveSection(section);
       setQrCodeData(null); // Reset QR code when changing sections
     }
+  };
+  
+  const handlePrevSection = () => {
+    const currentIndex = sections.findIndex(section => section.id === activeSection?.id);
+    const newIndex = currentIndex <= 0 ? sections.length - 1 : currentIndex - 1;
+    handleSectionChange(sections[newIndex].id);
+  };
+  
+  const handleNextSection = () => {
+    const currentIndex = sections.findIndex(section => section.id === activeSection?.id);
+    const newIndex = currentIndex >= sections.length - 1 ? 0 : currentIndex + 1;
+    handleSectionChange(sections[newIndex].id);
+  };
+  
+  // Format time for display (12-hour format with AM/PM)
+  const formatTimeForDisplay = (time: string): string => {
+    if (!time) return '';
+    const [hours, minutes] = time.split(':');
+    const hour = parseInt(hours, 10);
+    const period = hour >= 12 ? 'PM' : 'AM';
+    const displayHour = hour % 12 || 12;
+    return `${displayHour}:${minutes} ${period}`;
+  };
+  
+  // Get day name from dayOfWeek number
+  const getDayName = (dayOfWeek: number): string => {
+    const day = daysOfWeek.find(d => d.value === dayOfWeek);
+    return day ? day.label : '';
   };
 
   if (isLoading) {
@@ -164,14 +291,84 @@ const TeacherDashboard = () => {
             </CardContent>
           </Card>
         ) : (
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <>
+            {/* Section Carousel */}
+            <div className="mb-6">
+              <h3 className="text-lg font-medium text-[#215f47] mb-3">Your Class Sections</h3>
+              <div className="relative">
+                <div className="flex overflow-hidden">
+                  <div className="flex transition-transform duration-300 ease-in-out">
+                    {/* Section cards displayed in a row */}
+                    <div className="flex space-x-4 p-2">
+                      {sections.map((section) => (
+                        <Card 
+                          key={section.id} 
+                          className={`w-64 flex-shrink-0 cursor-pointer transition-all duration-200 ${
+                            activeSection?.id === section.id 
+                              ? 'border-[#215f47] shadow-md' 
+                              : 'border-gray-200 opacity-70 hover:opacity-100'
+                          }`}
+                          onClick={() => handleSectionChange(section.id)}
+                        >
+                          <CardHeader className="pb-2">
+                            <CardTitle className="text-md font-medium">{section.course?.courseCode}</CardTitle>
+                            <CardDescription>{section.sectionName}</CardDescription>
+                          </CardHeader>
+                          <CardContent className="pb-3">
+                            <div className="text-sm">
+                              {sectionSchedules[section.id] ? (
+                                sectionSchedules[section.id].length > 0 ? (
+                                  <Badge variant="outline" className="bg-[#215f47]/10 text-[#215f47] border-none">
+                                    {sectionSchedules[section.id].length} Schedule(s)
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="bg-gray-100 text-gray-500 border-none">
+                                    No Schedule
+                                  </Badge>
+                                )
+                              ) : (
+                                <Badge variant="outline" className="bg-gray-100 text-gray-500 border-none">
+                                  Loading...
+                                </Badge>
+                              )}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+                {sections.length > 1 && (
+                  <>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="absolute left-0 top-1/2 -translate-y-1/2 -ml-3 bg-white border-[#215f47]/20 hover:bg-[#215f47]/10 z-10"
+                      onClick={handlePrevSection}
+                    >
+                      <ChevronLeft className="h-4 w-4" />
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="icon" 
+                      className="absolute right-0 top-1/2 -translate-y-1/2 -mr-3 bg-white border-[#215f47]/20 hover:bg-[#215f47]/10 z-10"
+                      onClick={handleNextSection}
+                    >
+                      <ChevronRight className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
+              </div>
+            </div>
+          
+            <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
             {/* Section Information */}
             <Card className="border-[#215f47]/20 shadow-sm hover:shadow transition-shadow duration-200">
               <CardHeader className="px-6 pb-2 pt-6">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg font-medium text-[#215f47]">Section Information</CardTitle>
                   <Badge variant="outline" className="bg-[#215f47]/5 text-[#215f47] px-2 py-1">
-                    Active
+                    {isWithinSchedule ? 'Currently Active' : 'Inactive'}
                   </Badge>
                 </div>
                 <CardDescription className="text-gray-500">
@@ -204,6 +401,43 @@ const TeacherDashboard = () => {
                     
                     <div className="flex items-center gap-3 p-3 rounded-md border border-[#215f47]/10 bg-[#215f47]/5">
                       <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#215f47]/10">
+                        <CalendarClock className="h-5 w-5 text-[#215f47]" />
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-xs font-medium text-gray-500">Schedules</span>
+                        {isLoadingSchedules ? (
+                          <p className="text-sm text-gray-500">Loading schedules...</p>
+                        ) : activeSchedules.length > 0 ? (
+                          <div>
+                            <div className="flex justify-between items-center">
+                              <p className="text-sm font-medium text-[#215f47]">{activeSchedules.length} schedule(s)</p>
+                              <Button 
+                                variant="link" 
+                                className="text-xs text-[#215f47] p-0 h-auto" 
+                                onClick={() => setShowScheduleDialog(true)}
+                              >
+                                View All
+                              </Button>
+                            </div>
+                            <div className="mt-1">
+                              {activeSchedules.slice(0, 1).map(schedule => (
+                                <div key={schedule.id} className="text-xs text-gray-600">
+                                  {getDayName(schedule.dayOfWeek)}, {formatTimeForDisplay(schedule.timeStart)} - {formatTimeForDisplay(schedule.timeEnd)}
+                                </div>
+                              ))}
+                              {activeSchedules.length > 1 && (
+                                <div className="text-xs text-gray-500 mt-1">{activeSchedules.length - 1} more schedule(s)...</div>
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-sm text-gray-500">No schedules available</p>
+                        )}
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-3 p-3 rounded-md border border-[#215f47]/10 bg-[#215f47]/5">
+                      <div className="flex h-10 w-10 items-center justify-center rounded-full bg-[#215f47]/10">
                         <QrCode className="h-5 w-5 text-[#215f47]" />
                       </div>
                       <div>
@@ -214,10 +448,21 @@ const TeacherDashboard = () => {
                       </div>
                     </div>
                     
+                    {(!isWithinSchedule || activeSchedules.length === 0) && (
+                      <Alert className="bg-amber-50 border-amber-200 mt-2">
+                        <AlertTriangle className="h-4 w-4 text-amber-500" />
+                        <AlertDescription className="text-amber-700 text-sm">
+                          {activeSchedules.length === 0 
+                            ? "QR generation is disabled because this section has no schedule set up."
+                            : "QR generation is disabled because the current time is outside of class schedule."}
+                        </AlertDescription>
+                      </Alert>
+                    )}
+                    
                     <Button 
                       className="w-full mt-2 bg-[#215f47] hover:bg-[#215f47]/90 text-white gap-2 py-2" 
                       onClick={handleGenerateQrCode}
-                      disabled={isGeneratingQr}
+                      disabled={isGeneratingQr || !isWithinSchedule || activeSchedules.length === 0}
                     >
                       {isGeneratingQr ? (
                         <>
@@ -277,6 +522,46 @@ const TeacherDashboard = () => {
               </CardContent>
             </Card>
           </div>
+            
+            {/* Schedule Dialog */}
+            <Dialog open={showScheduleDialog} onOpenChange={setShowScheduleDialog}>
+              <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Class Schedules</DialogTitle>
+                  <DialogDescription>
+                    {activeSection?.course?.courseCode} - {activeSection?.sectionName}
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="py-4">
+                  {activeSchedules.length === 0 ? (
+                    <p className="text-center text-gray-500 py-4">No schedules for this section</p>
+                  ) : (
+                    <div className="space-y-4">
+                      {activeSchedules.map(schedule => (
+                        <div key={schedule.id} className="flex items-start gap-3 p-3 rounded-md border border-[#215f47]/10 bg-[#215f47]/5">
+                          <div className="flex-shrink-0 mt-1">
+                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[#215f47]/10">
+                              <Clock className="h-4 w-4 text-[#215f47]" />
+                            </div>
+                          </div>
+                          <div className="flex-1">
+                            <p className="text-sm font-medium text-[#215f47]">{getDayName(schedule.dayOfWeek)}</p>
+                            <p className="text-sm text-gray-600 mt-1">
+                              {formatTimeForDisplay(schedule.timeStart)} - {formatTimeForDisplay(schedule.timeEnd)}
+                            </p>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <MapPin className="h-3 w-3 text-gray-400" />
+                            <span className="text-xs text-gray-500">{schedule.room}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
       </div>
     </DashboardLayout>

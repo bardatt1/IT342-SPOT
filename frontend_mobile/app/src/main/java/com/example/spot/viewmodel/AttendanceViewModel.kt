@@ -5,12 +5,15 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spot.model.StudentAttendance
 import com.example.spot.repository.AttendanceRepository
+import com.example.spot.repository.SectionRepository
 import com.example.spot.util.NetworkResult
 import com.example.spot.util.TokenManager
+import com.example.spot.util.NotificationLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import java.time.LocalTime
 import java.time.format.DateTimeFormatter
 
@@ -20,6 +23,7 @@ import java.time.format.DateTimeFormatter
 class AttendanceViewModel : ViewModel() {
     private val TAG = "AttendanceViewModel"
     private val attendanceRepository = AttendanceRepository()
+    private val sectionRepository = SectionRepository()
     
     // State for student attendance check-in
     private val _attendanceState = MutableStateFlow<AttendanceState>(AttendanceState.Idle)
@@ -48,11 +52,31 @@ class AttendanceViewModel : ViewModel() {
                 when (val result = attendanceRepository.logAttendance(sectionId)) {
                     is NetworkResult.Success -> {
                         _attendanceState.value = AttendanceState.Success(result.data)
+                        
+                        // Get section details for better notification context
+                        val sectionResult = sectionRepository.getSectionById(sectionId)
+                        val sectionName = if (sectionResult is NetworkResult.Success) {
+                            sectionResult.data.sectionName ?: sectionResult.data.course.courseName
+                        } else {
+                            "Section #$sectionId"
+                        }
+                        
+                        // Format current date for the notification
+                        val currentDate = LocalDate.now().format(DateTimeFormatter.ofPattern("MMM d, yyyy"))
+                        
+                        // Log the attendance activity
+                        NotificationLogger.logAttendanceRecorded(
+                            sectionName = sectionName,
+                            date = currentDate,
+                            sectionId = sectionId
+                        )
                     }
                     is NetworkResult.Error -> {
                         _attendanceState.value = AttendanceState.Error(result.message)
                     }
-                    else -> {}
+                    else -> {
+                        _attendanceState.value = AttendanceState.Error("Unknown error occurred")
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Error logging attendance", e)
@@ -106,7 +130,9 @@ class AttendanceViewModel : ViewModel() {
                         Log.e(TAG, "Error loading attendance: ${result.message}")
                         _sectionAttendanceState.value = SectionAttendanceState.Error(result.message)
                     }
-                    else -> {}
+                    else -> {
+                        _sectionAttendanceState.value = SectionAttendanceState.Error("Unknown error occurred")
+                    }
                 }
             } catch (e: Exception) {
                 Log.e(TAG, "Exception loading attendance history", e)

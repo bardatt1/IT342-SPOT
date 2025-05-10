@@ -41,6 +41,8 @@ class AuthViewModel : ViewModel() {
     private val _isTemporaryPassword = MutableStateFlow<Boolean>(false)
     val isTemporaryPassword: StateFlow<Boolean> = _isTemporaryPassword
     
+
+    
     // Events
     fun loginUser(studentPhysicalId: String, password: String) {
         _loginState.value = AuthState.Loading
@@ -139,6 +141,8 @@ class AuthViewModel : ViewModel() {
         _passwordChangeState.value = PasswordChangeState.Idle
     }
     
+
+    
     /**
      * Change the password for a user
      */
@@ -224,3 +228,5 @@ sealed class PasswordChangeState {
     object Success : PasswordChangeState()
     data class Error(val message: String) : PasswordChangeState()
 }
+
+

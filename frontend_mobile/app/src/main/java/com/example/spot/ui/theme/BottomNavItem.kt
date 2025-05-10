@@ -11,6 +11,6 @@ sealed class BottomNavItem(
 ) {
     object Dashboard : BottomNavItem("dashboard", "Dashboard", Icons.Default.Home)
     object Classes : BottomNavItem("classes", "Classes", Icons.Default.List)
-    object Notifications : BottomNavItem("notifications", "Notifications", Icons.Default.Notifications)
+    object Notifications : BottomNavItem("notifications", "Activity Log", Icons.Default.Notifications)
     object Profile : BottomNavItem("profile", "Profile", Icons.Default.Person)
 }

@@ -3,6 +3,7 @@ package com.example.spot.viewmodel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spot.model.Seat
+import com.example.spot.model.PickSeatRequest
 import com.example.spot.repository.SeatRepository
 import com.example.spot.util.NetworkResult
 import com.example.spot.util.TokenManager
@@ -12,7 +13,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 /**
- * ViewModel for seat operations following MVI pattern
+ * ViewModel for seat operations
  */
 class SeatViewModel : ViewModel() {
     
@@ -28,7 +29,9 @@ class SeatViewModel : ViewModel() {
     private val _pickSeatState = MutableStateFlow<SeatPickState>(SeatPickState.Idle)
     val pickSeatState: StateFlow<SeatPickState> = _pickSeatState
     
-    // Events
+    /**
+     * Load all seats for the section
+     */
     fun loadSeatsForSection(sectionId: Long) {
         _seatsState.value = SeatsState.Loading
         
@@ -40,11 +43,16 @@ class SeatViewModel : ViewModel() {
                 is NetworkResult.Error -> {
                     _seatsState.value = SeatsState.Error(result.message)
                 }
-                else -> {}
+                else -> {
+                    _seatsState.value = SeatsState.Error("Unknown error occurred")
+                }
             }
         }
     }
     
+    /**
+     * Load the student's assigned seat in a section
+     */
     fun loadStudentSeat(sectionId: Long) {
         _studentSeatState.value = StudentSeatState.Loading
         
@@ -62,11 +70,16 @@ class SeatViewModel : ViewModel() {
                 is NetworkResult.Error -> {
                     _studentSeatState.value = StudentSeatState.Error(result.message)
                 }
-                else -> {}
+                else -> {
+                    _studentSeatState.value = StudentSeatState.Error("Unknown error occurred")
+                }
             }
         }
     }
     
+    /**
+     * Pick a seat in a section
+     */
     fun pickSeat(sectionId: Long, row: Int, column: Int) {
         _pickSeatState.value = SeatPickState.Loading
         
@@ -77,18 +90,31 @@ class SeatViewModel : ViewModel() {
                 return@launch
             }
             
-            when (val result = seatRepository.pickSeat(userId, sectionId, row, column)) {
+            // Create PickSeatRequest object
+            val pickSeatRequest = PickSeatRequest(
+                studentId = userId,
+                sectionId = sectionId,
+                row = row,
+                column = column
+            )
+            
+            when (val result = seatRepository.pickSeat(pickSeatRequest)) {
                 is NetworkResult.Success -> {
                     _pickSeatState.value = SeatPickState.Success(result.data)
                 }
                 is NetworkResult.Error -> {
                     _pickSeatState.value = SeatPickState.Error(result.message)
                 }
-                else -> {}
+                else -> {
+                    _pickSeatState.value = SeatPickState.Error("Unknown error occurred")
+                }
             }
         }
     }
     
+    /**
+     * Reset all states to Idle
+     */
     fun resetStates() {
         _seatsState.value = SeatsState.Idle
         _studentSeatState.value = StudentSeatState.Idle

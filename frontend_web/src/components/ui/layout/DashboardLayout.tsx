@@ -1,7 +1,7 @@
 import { ReactNode, useState, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../../contexts/AuthContext';
-import { LogOut, User, BookOpen, Users, Calendar, BarChart } from 'lucide-react';
+import { LogOut, User, BookOpen, Users, Calendar, BarChart, Shield, UserCog } from 'lucide-react';
 import { teacherApi } from '../../../lib/api/teacher';
 import { Button } from '../button';
 import { Avatar, AvatarFallback } from '../avatar';
@@ -33,12 +33,13 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   });
 
   const isAdmin = user?.role === 'ADMIN';
+  const isSystemAdmin = user?.role === 'SYSTEMADMIN';
   
-  // Fetch teacher details if user is not admin - only once when component mounts or user changes
+  // Fetch teacher details if user is a teacher (not admin or system admin) - only once when component mounts or user changes
   useEffect(() => {
     const fetchTeacherDetails = async () => {
-      // Only fetch if we don't already have the teacher name and user is a teacher
-      if (!isAdmin && user?.id && !teacherName) {
+      // Only fetch if we don't already have the teacher name and user is a teacher (not admin or system admin)
+      if (!isAdmin && !isSystemAdmin && user?.id && !teacherName) {
         try {
           const teacherData = await teacherApi.getCurrentTeacher();
           const nameData = {
@@ -64,6 +65,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     navigate('/login');
   };
 
+  const systemAdminNavItems = [
+    { name: 'Dashboard', href: '/system-admin/dashboard', icon: <Shield className="w-5 h-5" /> },
+    { name: 'Admins', href: '/system-admin/admins', icon: <UserCog className="w-5 h-5" /> },
+    { name: 'Users', href: '/admin/users', icon: <Users className="w-5 h-5" /> },
+    { name: 'Courses', href: '/admin/courses', icon: <BookOpen className="w-5 h-5" /> },
+    { name: 'Sections & Schedules', href: '/admin/sections', icon: <Calendar className="w-5 h-5" /> },
+  ];
+  
   const adminNavItems = [
     { name: 'Dashboard', href: '/admin/dashboard', icon: <BarChart className="w-5 h-5" /> },
     { name: 'Users', href: '/admin/users', icon: <Users className="w-5 h-5" /> },
@@ -80,7 +89,14 @@ const DashboardLayout = ({ children }: DashboardLayoutProps) => {
     { name: 'Seat Management', href: '/teacher/seats', icon: <User className="w-5 h-5" /> },
   ];
 
-  const navItems = isAdmin ? adminNavItems : teacherNavItems;
+  let navItems;
+  if (isSystemAdmin) {
+    navItems = systemAdminNavItems;
+  } else if (isAdmin) {
+    navItems = adminNavItems;
+  } else {
+    navItems = teacherNavItems;
+  }
 
   // Get initials for avatar
   const getInitials = () => {

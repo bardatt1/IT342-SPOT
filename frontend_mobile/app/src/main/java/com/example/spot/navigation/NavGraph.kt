@@ -1,5 +1,6 @@
 package com.example.spot.navigation
 
+
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
@@ -42,7 +43,9 @@ fun AppNavGraph(
         modifier = modifier
     ) {
         composable(Routes.LOGIN) {
-            LoginScreen(navController)
+            LoginScreen(
+                navController = navController
+            )
         }
         composable(Routes.WELCOME) {
             WelcomeScreen(navController)

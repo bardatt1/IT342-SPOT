@@ -4,8 +4,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spot.model.Enrollment
 import com.example.spot.repository.EnrollmentRepository
+import com.example.spot.repository.SectionRepository
 import com.example.spot.util.NetworkResult
 import com.example.spot.util.TokenManager
+import com.example.spot.util.NotificationLogger
 import com.example.spot.viewmodel.EnrollmentsState
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,6 +20,7 @@ import kotlinx.coroutines.launch
 class EnrollmentViewModel : ViewModel() {
     
     private val enrollmentRepository = EnrollmentRepository()
+    private val sectionRepository = SectionRepository()
     
     // UI States
     private val _enrollmentsState = MutableStateFlow<EnrollmentsState>(EnrollmentsState.Idle)
@@ -55,7 +58,9 @@ class EnrollmentViewModel : ViewModel() {
                 is NetworkResult.Error -> {
                     _enrollmentsState.value = EnrollmentsState.Error(result.message)
                 }
-                else -> {}
+                else -> {
+                    _enrollmentsState.value = EnrollmentsState.Error("Unknown error occurred")
+                }
             }
         }
     }
@@ -77,7 +82,9 @@ class EnrollmentViewModel : ViewModel() {
                 is NetworkResult.Error -> {
                     _enrollmentStatus.value = EnrollmentStatusState.Error(result.message)
                 }
-                else -> {}
+                else -> {
+                    _enrollmentStatus.value = EnrollmentStatusState.Error("Unknown error occurred")
+                }
             }
         }
     }
@@ -90,13 +97,27 @@ class EnrollmentViewModel : ViewModel() {
                 is NetworkResult.Success -> {
                     _enrollAction.value = EnrollActionState.Success(result.data)
                     
+                    // Log the enrollment activity
+                    val enrollment = result.data
+                    val section = enrollment.section
+                    val courseName = section.course.courseName
+                    val sectionName = section.sectionName
+                    
+                    NotificationLogger.logEnrollment(
+                        courseName = courseName,
+                        sectionName = sectionName,
+                        sectionId = section.id
+                    )
+                    
                     // No need to explicitly call loadStudentEnrollments here
                     // as the cache update in the repository will trigger the flow collector
                 }
                 is NetworkResult.Error -> {
                     _enrollAction.value = EnrollActionState.Error(result.message)
                 }
-                else -> {}
+                else -> {
+                    _enrollAction.value = EnrollActionState.Error("Unknown error occurred")
+                }
             }
         }
     }

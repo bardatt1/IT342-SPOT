@@ -33,13 +33,16 @@ import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.spot.model.Enrollment
+import com.example.spot.model.EnrollErrorType
 import com.example.spot.navigation.Routes
 import com.example.spot.ui.theme.*
+import com.example.spot.util.TimeUtil
 import com.example.spot.viewmodel.ClassesViewModel
-import com.example.spot.viewmodel.EnrollmentsState
 import com.example.spot.viewmodel.EnrollState
+import com.example.spot.viewmodel.EnrollmentsState
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
+import java.time.LocalDateTime
 
 @Composable
 fun ClassesScreen(
@@ -68,13 +71,37 @@ fun ClassesScreen(
                 classesViewModel.resetEnrollState()
             }
             is EnrollState.Error -> {
-                val message = (enrollState as EnrollState.Error).message
-                snackbarHostState.showSnackbar(
-                    "Enrollment failed: $message",
-                    duration = SnackbarDuration.Short
-                )
-                // Don't hide the form on error, but also don't immediately try to focus
-                // as this might cause the FocusRequester error
+                val errorState = (enrollState as EnrollState.Error)
+                val message = errorState.message
+                val errorType = errorState.errorType
+                
+                // Different UI handling based on error type
+                when (errorType) {
+                    EnrollErrorType.DUPLICATE_SECTION -> {
+                        // Already enrolled in this section - show info message and close form
+                        snackbarHostState.showSnackbar(
+                            "You are already enrolled in this section.",
+                            duration = SnackbarDuration.Short
+                        )
+                        showEnrollmentForm = false
+                    }
+                    EnrollErrorType.DUPLICATE_COURSE -> {
+                        // Already enrolled in another section of this course - show warning
+                        snackbarHostState.showSnackbar(
+                            "You are already enrolled in a different section of this course.",
+                            duration = SnackbarDuration.Long
+                        )
+                    }
+                    else -> {
+                        // For other errors, show the full error message
+                        snackbarHostState.showSnackbar(
+                            "Enrollment failed: $message",
+                            duration = SnackbarDuration.Short
+                        )
+                    }
+                }
+                
+                // Reset state but keep the form open for most errors
                 classesViewModel.resetEnrollState()
             }
             else -> { /* No action needed for other states */ }
@@ -475,12 +502,19 @@ fun ClassesScreen(
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                             }
+                            
+                            // Sort enrollments to prioritize those where QR scanning is enabled
+                            val sortedEnrollments = remember(enrollments, LocalDateTime.now().minute) {
+                                enrollments.sortedByDescending { enrollment ->
+                                    TimeUtil.isWithinClassSchedule(enrollment.section)
+                                }
+                            }
 
                             LazyColumn(
                                 verticalArrangement = Arrangement.spacedBy(16.dp),
                                 contentPadding = PaddingValues(vertical = 8.dp)
                             ) {
-                                items(enrollments) { enrollment ->
+                                items(sortedEnrollments) { enrollment ->
                                     ClassCard(enrollment, navController)
                                 }
                             }
@@ -513,6 +547,12 @@ fun ClassCard(enrollment: Enrollment, navController: NavController) {
             section.schedule.isBlank() -> "No schedule information available"
             else -> section.schedule
         }
+    }
+    
+    // Check if current time is within class schedule
+    // Using key ensures it recomposes if the schedule changes
+    val isWithinSchedule = remember(section.id, LocalDateTime.now().minute) { 
+        TimeUtil.isWithinClassSchedule(section) 
     }
     
     Card(
@@ -661,10 +701,15 @@ fun ClassCard(enrollment: Enrollment, navController: NavController) {
                     Text("Seat Plan")
                 }
                 
+                // Scan QR button with conditional enabling
                 Button(
                     onClick = { navController.navigate(Routes.QR_SCANNER) },
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Green700)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isWithinSchedule) Green700 else Color.Gray,
+                        contentColor = Color.White
+                    ),
+                    enabled = isWithinSchedule
                 ) {
                     Icon(
                         imageVector = Icons.Default.QrCodeScanner,
@@ -674,6 +719,19 @@ fun ClassCard(enrollment: Enrollment, navController: NavController) {
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Scan QR")
                 }
+            }
+            
+            // Show schedule indicator if not within schedule
+            if (!isWithinSchedule) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "QR scanning is only available during class hours",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

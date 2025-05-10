@@ -338,7 +338,7 @@ fun AttendanceCalendarContent(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    for (day in listOf("S", "M", "T", "W", "T", "F", "S")) {
+                    for (day in listOf("M", "T", "W", "T", "F", "S", "S")) {
                         Text(
                             text = day,
                             style = MaterialTheme.typography.bodyMedium,
@@ -598,13 +598,13 @@ private fun createCalendarDays(
     
     // Determine the start day (previous month days to show)
     var startDay = firstOfMonth
-    while (startDay.dayOfWeek.value % 7 != 1) { // Start from Monday (1)
+    while (startDay.dayOfWeek.value != 1) { // Start from Monday (1)
         startDay = startDay.minusDays(1)
     }
     
     // Determine the end day (next month days to show)
     var endDay = lastOfMonth
-    while (endDay.dayOfWeek.value % 7 != 0) { // End with Sunday (0)
+    while (endDay.dayOfWeek.value != 7) { // End with Sunday (7)
         endDay = endDay.plusDays(1)
     }
     

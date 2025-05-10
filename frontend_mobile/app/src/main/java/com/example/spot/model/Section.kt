@@ -40,6 +40,11 @@ data class Section(
     
     // Convert 24-hour time format to 12-hour format with AM/PM
     private fun convertTo12HourFormat(time24Hour: String): String {
+        // If already in 12-hour format with AM/PM, return as is
+        if (time24Hour.contains(" AM", ignoreCase = true) || time24Hour.contains(" PM", ignoreCase = true)) {
+            return time24Hour
+        }
+        
         try {
             // Handle possible formats like "HH:mm" or "HH:mm:ss"
             val parts = time24Hour.split(":")

@@ -35,4 +35,7 @@ public class Admin {
     @NotBlank
     @Size(max = 100)
     private String password;
+    
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean systemAdmin = false;
 }

@@ -22,9 +22,16 @@ export const teacherApi = {
   // Get all teachers
   getAll: async (): Promise<Teacher[]> => {
     try {
-      // Using admin endpoint for getting all teachers
-      const response = await axiosInstance.get('/admin/teachers');
-      return response.data.data || response.data || [];
+      // Try to use system-admin endpoint first, fall back to admin endpoint
+      try {
+        const response = await axiosInstance.get('/system-admin/teachers');
+        return response.data.data || response.data || [];
+      } catch (systemAdminError) {
+        // If the system-admin endpoint fails, try the regular admin endpoint
+        console.log('Falling back to admin endpoint for teachers');
+        const response = await axiosInstance.get('/admin/teachers');
+        return response.data.data || response.data || [];
+      }
     } catch (error) {
       console.error('Error fetching teachers:', error);
       return []; // Return empty array on error

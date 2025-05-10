@@ -150,49 +150,56 @@ class AuthRepository {
     }
     
     /**
-     * Login with Google OAuth
-     * Note: Google login still uses email format for compatibility with backend API
+     * Login with Google OAuth using mobile app-specific flow
      */
     suspend fun loginWithGoogle(email: String, googleId: String): NetworkResult<JwtResponse> {
         return withContext(Dispatchers.IO) {
             try {
-                Log.d("AuthRepository", "Initiating Google login for: $email")
+                Log.d("AuthRepository", "Initiating direct Google OAuth login for: $email with ID: $googleId")
                 
-                // First check if the email exists in the system
-                val emailCheckResponse = try {
-                    apiService.checkEmailInUse(email)
-                } catch (e: Exception) {
-                    Log.e("AuthRepository", "Failed to check email existence", e)
-                    return@withContext NetworkResult.Error("Failed to verify email account: ${e.localizedMessage}")
-                }
-                
-                if (emailCheckResponse.result == "SUCCESS") {
-                    val emailExists = emailCheckResponse.data ?: false
+                // APPROACH 1: Try the dedicated Google OAuth endpoint first (direct OAuth flow)
+                try {
+                    Log.d("AuthRepository", "Attempting to use direct OAuth endpoint")
+                    val oauthResponse = apiService.googleOauthLogin(
+                        registrationType = "student", // Default to student, can be changed based on app logic
+                        email = email,
+                        googleId = googleId
+                    )
                     
-                    if (emailExists) {
-                        Log.d("AuthRepository", "Email exists, attempting login with Google credentials")
+                    if (oauthResponse.result == "SUCCESS" && oauthResponse.data != null) {
+                        Log.d("AuthRepository", "Direct OAuth login successful")
+                        TokenManager.saveAuthData(
+                            token = oauthResponse.data.accessToken,
+                            userId = oauthResponse.data.id,
+                            userType = oauthResponse.data.userType,
+                            email = oauthResponse.data.email,
+                            name = oauthResponse.data.name
+                        )
+                        return@withContext NetworkResult.Success(oauthResponse.data)
+                    }
+                    
+                    // If we get here, the direct OAuth didn't work but didn't throw an exception
+                    Log.w("AuthRepository", "Direct OAuth returned unsuccessful result: ${oauthResponse.message}")
+                    // Fall through to try binding approach
+                } catch (e: Exception) {
+                    // Log the error but continue to try the binding approach
+                    Log.w("AuthRepository", "Direct OAuth endpoint failed, trying binding approach", e)
+                    // Don't return here, continue to binding approach
+                }
+
+                // APPROACH 2: Try to bind the Google account and then log in
+                try {
+                    Log.d("AuthRepository", "Trying to bind Google account: $email with ID: $googleId")
+                    val bindResponse = apiService.bindGoogleAccount(email, googleId)
+                    
+                    if (bindResponse.result == "SUCCESS") {
+                        Log.d("AuthRepository", "Google account binding successful, attempting login")
                         
-                        // Use the email directly with Google placeholder password
-                        // Backend will recognize this as a Google login attempt
-                        val loginResponse = try {
-                            apiService.login(LoginRequest(email, "google-oauth-placeholder"))
-                        } catch (e: HttpException) {
-                            if (e.code() == 401) {
-                                // Try binding the Google account and then login again
-                                Log.d("AuthRepository", "Login failed, trying to bind Google account")
-                                return@withContext bindAndLogin(email, googleId)
-                            } else {
-                                Log.e("AuthRepository", "HTTP error during Google login: ${e.code()}", e)
-                                return@withContext NetworkResult.Error("Server error: ${e.message()}")
-                            }
-                        } catch (e: Exception) {
-                            Log.e("AuthRepository", "Error during Google login", e)
-                            return@withContext NetworkResult.Error("Network error: ${e.localizedMessage}")
-                        }
+                        // Now try to login with the bound account
+                        val loginResponse = apiService.login(LoginRequest(email, "google-oauth-placeholder"))
                         
-                        // Process successful response
                         if (loginResponse.result == "SUCCESS" && loginResponse.data != null) {
-                            Log.d("AuthRepository", "Google login successful")
+                            Log.d("AuthRepository", "Login after binding successful")
                             TokenManager.saveAuthData(
                                 token = loginResponse.data.accessToken,
                                 userId = loginResponse.data.id,
@@ -202,21 +209,29 @@ class AuthRepository {
                             )
                             return@withContext NetworkResult.Success(loginResponse.data)
                         } else {
-                            Log.e("AuthRepository", "Google login failed with error: ${loginResponse.message}")
-                            return@withContext NetworkResult.Error(loginResponse.message)
+                            Log.e("AuthRepository", "Login after binding failed: ${loginResponse.message}")
+                            return@withContext NetworkResult.Error("Binding succeeded but login failed: ${loginResponse.message}")
                         }
                     } else {
-                        // Email doesn't exist, need to register first
-                        Log.d("AuthRepository", "Email not found in system, registration required")
-                        return@withContext NetworkResult.Error("Account not found. Please register first.")
+                        Log.e("AuthRepository", "Google account binding failed: ${bindResponse.message}")
+                        return@withContext NetworkResult.Error("Google account binding failed: ${bindResponse.message}")
                     }
-                } else {
-                    Log.e("AuthRepository", "Email check failed: ${emailCheckResponse.message}")
-                    return@withContext NetworkResult.Error(emailCheckResponse.message)
+                } catch (e: HttpException) {
+                    // If we get a 401 error, the user might not exist or credentials are wrong
+                    if (e.code() == 401 || e.code() == 404) {
+                        Log.e("AuthRepository", "User not found or authentication failed during binding")
+                        return@withContext NetworkResult.Error("Account not found or authentication failed. Please register first.")
+                    } else {
+                        Log.e("AuthRepository", "HTTP error during binding: ${e.code()}", e)
+                        return@withContext NetworkResult.Error("Server error (${e.code()}): ${e.message()}")
+                    }
+                } catch (e: Exception) {
+                    Log.e("AuthRepository", "Unexpected error during Google binding", e)
+                    return@withContext NetworkResult.Error("Network error: ${e.localizedMessage}")
                 }
             } catch (e: Exception) {
-                Log.e("AuthRepository", "Unexpected error during Google login", e)
-                return@withContext NetworkResult.Error("Network error: ${e.localizedMessage}")
+                Log.e("AuthRepository", "Overall failure in Google login process", e)
+                return@withContext NetworkResult.Error("Failed to complete Google Sign-In: ${e.localizedMessage}")
             }
         }
     }

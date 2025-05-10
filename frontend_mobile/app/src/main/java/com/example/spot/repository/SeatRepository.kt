@@ -85,11 +85,10 @@ class SeatRepository {
     /**
      * Pick a seat in a section
      */
-    suspend fun pickSeat(studentId: Long, sectionId: Long, row: Int, column: Int): NetworkResult<Seat> {
+    suspend fun pickSeat(pickSeatRequest: PickSeatRequest): NetworkResult<Seat> {
         return withContext(Dispatchers.IO) {
             try {
-                val seatRequest = PickSeatRequest(studentId, sectionId, row, column)
-                val response = apiService.pickSeat(seatRequest)
+                val response = apiService.pickSeat(pickSeatRequest)
                 
                 if (response.result == "SUCCESS" && response.data != null) {
                     NetworkResult.Success(response.data)

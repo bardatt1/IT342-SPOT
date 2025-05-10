@@ -9,11 +9,13 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Login
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material.icons.filled.Warning
 import androidx.compose.material3.*
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -33,6 +35,7 @@ import androidx.compose.ui.window.Dialog
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import com.example.spot.R
+
 import com.example.spot.navigation.Routes
 import com.example.spot.ui.theme.Green700
 import com.example.spot.ui.theme.TextDark
@@ -43,7 +46,7 @@ fun LoginScreen(
     navController: NavController,
     authViewModel: AuthViewModel = viewModel()
 ) {
-    // Collect login state first
+    // Collect login state
     val loginState by authViewModel.loginState.collectAsState()
     
     // UI State variables
@@ -55,6 +58,8 @@ fun LoginScreen(
     var studentPhysicalId by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    
+
     
     // Collect password change state
     val passwordChangeState by authViewModel.passwordChangeState.collectAsState()
@@ -89,6 +94,8 @@ fun LoginScreen(
             }
         }
     }
+    
+
     
     LaunchedEffect(passwordChangeState) {
         when (passwordChangeState) {
@@ -316,7 +323,7 @@ fun LoginScreen(
                             Text("Sign in")
                             Spacer(modifier = Modifier.width(8.dp))
                             Icon(
-                                imageVector = Icons.Filled.Login,
+                                imageVector = Icons.AutoMirrored.Filled.Login,
                                 contentDescription = "Login",
                                 modifier = Modifier.size(16.dp)
                             )
@@ -326,10 +333,12 @@ fun LoginScreen(
                 
                 Spacer(modifier = Modifier.height(24.dp))
                 
+                Spacer(modifier = Modifier.height(16.dp))
+                
                 Text(
                     text = "Protected access for authorized personnel only",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray,
+                    color = Color.DarkGray,
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(bottom = 8.dp)
                 )

@@ -4,6 +4,7 @@ import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.spot.model.Enrollment
+import com.example.spot.model.EnrollErrorType
 import com.example.spot.model.Schedule
 import com.example.spot.model.Section
 import com.example.spot.repository.EnrollmentRepository
@@ -58,13 +59,62 @@ class ClassesViewModel : ViewModel() {
         val key = _enrollmentKey.value.trim()
         
         if (key.isEmpty()) {
-            _enrollState.value = EnrollState.Error("Please enter an enrollment key")
+            _enrollState.value = EnrollState.Error("Please enter an enrollment key", EnrollErrorType.INVALID_KEY)
             return
         }
         
         _enrollState.value = EnrollState.Loading
         
         viewModelScope.launch {
+            // First, check if this key is for a section we're already enrolled in or in the same course
+            // Get current enrollments from the state
+            val currentState = _enrollmentsState.value
+            
+            if (currentState is EnrollmentsState.Success) {
+                val currentEnrollments = currentState.enrollments
+                
+                // Get section info for this enrollment key (use a lightweight API call)
+                try {
+                    val sectionInfo = enrollmentRepository.getSectionByEnrollmentKey(key)
+                    
+                    if (sectionInfo is NetworkResult.Success<Section>) {
+                        val newSection = sectionInfo.data
+                        
+                        // Check if student is already enrolled in this exact section
+                        val existingSectionEnrollment = currentEnrollments.find { 
+                            it.section.id == newSection.id 
+                        }
+                        
+                        if (existingSectionEnrollment != null) {
+                            // Already enrolled in this exact section - return error
+                            _enrollState.value = EnrollState.Error(
+                                "You are already enrolled in this section.",
+                                EnrollErrorType.DUPLICATE_SECTION
+                            )
+                            return@launch
+                        }
+                        
+                        // Check if student is enrolled in a different section of the same course
+                        val existingCourseEnrollment = currentEnrollments.find { 
+                            it.section.course.id == newSection.course.id && it.section.id != newSection.id
+                        }
+                        
+                        if (existingCourseEnrollment != null) {
+                            // Already enrolled in a different section of the same course - return error
+                            _enrollState.value = EnrollState.Error(
+                                "You are already enrolled in a different section of this course (${existingCourseEnrollment.section.course.courseCode} - ${existingCourseEnrollment.section.sectionName}).",
+                                EnrollErrorType.DUPLICATE_COURSE
+                            )
+                            return@launch
+                        }
+                    }
+                } catch (e: Exception) {
+                    // If section lookup fails, continue with normal enrollment flow
+                    Log.e(TAG, "Error checking existing enrollments: ${e.message}")
+                }
+            }
+            
+            // If we got here, proceed with the enrollment
             when (val result = enrollmentRepository.enrollStudent(key)) {
                 is NetworkResult.Success -> {
                     _enrollState.value = EnrollState.Success(result.data)
@@ -75,10 +125,47 @@ class ClassesViewModel : ViewModel() {
                 }
                 is NetworkResult.Error -> {
                     Log.e(TAG, "Failed to enroll student: ${result.message}")
-                    _enrollState.value = EnrollState.Error(result.message)
+                    
+                    // Parse the error message to determine the specific error type
+                    val errorMessage = result.message
+                    val errorType = when {
+                        errorMessage.startsWith("[DUPLICATE_SECTION]") -> {
+                            // Already enrolled in this section
+                            EnrollErrorType.DUPLICATE_SECTION
+                        }
+                        errorMessage.startsWith("[DUPLICATE_COURSE]") -> {
+                            // Already enrolled in a different section of the same course
+                            EnrollErrorType.DUPLICATE_COURSE
+                        }
+                        errorMessage.startsWith("[INVALID_KEY]") -> {
+                            // Invalid enrollment key
+                            EnrollErrorType.INVALID_KEY
+                        }
+                        errorMessage.startsWith("[CLOSED]") -> {
+                            // Section not open for enrollment
+                            EnrollErrorType.CLOSED_ENROLLMENT
+                        }
+                        errorMessage.startsWith("[NETWORK_ERROR]") -> {
+                            // Network or server error
+                            EnrollErrorType.NETWORK_ERROR
+                        }
+                        else -> {
+                            // General error
+                            EnrollErrorType.GENERAL
+                        }
+                    }
+                    
+                    // Clean up error message by removing the marker prefix
+                    val cleanErrorMessage = if (errorMessage.contains("]")) {
+                        errorMessage.substringAfter("]").trim()
+                    } else {
+                        errorMessage
+                    }
+                    
+                    _enrollState.value = EnrollState.Error(cleanErrorMessage, errorType)
                 }
                 else -> {
-                    _enrollState.value = EnrollState.Error("Unknown error occurred")
+                    _enrollState.value = EnrollState.Error("Unknown error occurred", EnrollErrorType.GENERAL)
                 }
             }
         }
@@ -263,5 +350,7 @@ sealed class EnrollState {
     object Idle : EnrollState()
     object Loading : EnrollState()
     data class Success(val enrollment: Enrollment) : EnrollState()
-    data class Error(val message: String) : EnrollState()
+    data class Error(val message: String, val errorType: EnrollErrorType = EnrollErrorType.GENERAL) : EnrollState()
 }
+
+

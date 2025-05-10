@@ -194,11 +194,35 @@ class EnrollmentRepository {
                     
                     NetworkResult.Success(response.data)
                 } else {
-                    NetworkResult.Error(response.message)
+                    // Check for specific error messages related to duplicate enrollments
+                    val errorMessage = response.message.lowercase()
+                    
+                    when {
+                        // Already enrolled in the same section
+                        errorMessage.contains("already enrolled") && errorMessage.contains("section") -> {
+                            NetworkResult.Error("[DUPLICATE_SECTION] You are already enrolled in this section.")
+                        }
+                        // Enrolled in different section of same course
+                        errorMessage.contains("already enrolled") && errorMessage.contains("course") -> {
+                            NetworkResult.Error("[DUPLICATE_COURSE] You are already enrolled in a different section of this course.")
+                        }
+                        // Invalid enrollment key
+                        errorMessage.contains("invalid") && errorMessage.contains("key") -> {
+                            NetworkResult.Error("[INVALID_KEY] The enrollment key you entered is invalid or has expired.")
+                        }
+                        // Section not open for enrollment
+                        errorMessage.contains("not open") || errorMessage.contains("closed") -> {
+                            NetworkResult.Error("[CLOSED] This section is not open for enrollment.")
+                        }
+                        // Default error message
+                        else -> {
+                            NetworkResult.Error(response.message)
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("EnrollmentRepository", "Enroll student error", e)
-                NetworkResult.Error("Network error: ${e.localizedMessage}")
+                NetworkResult.Error("[NETWORK_ERROR] Unable to process your enrollment request. Please try again later.")
             }
         }
     }
@@ -219,6 +243,28 @@ class EnrollmentRepository {
             } catch (e: Exception) {
                 Log.e("EnrollmentRepository", "Error fetching schedules", e)
                 return@withContext NetworkResult.Error("Network error: ${e.message}")
+            }
+        }
+    }
+    
+    /**
+     * Get section information by enrollment key
+     * This is used for client-side validation before attempting enrollment
+     */
+    suspend fun getSectionByEnrollmentKey(enrollmentKey: String): NetworkResult<Section> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val response = apiService.getSectionByEnrollmentKey(enrollmentKey)
+                
+                if (response.result == "SUCCESS" && response.data != null) {
+                    NetworkResult.Success(response.data)
+                } else {
+                    // If no section is found with this key, it's likely an invalid key
+                    NetworkResult.Error("[INVALID_KEY] Section not found with this enrollment key")
+                }
+            } catch (e: Exception) {
+                Log.e("EnrollmentRepository", "Error getting section by enrollment key", e)
+                NetworkResult.Error("Network error: ${e.message}")
             }
         }
     }

@@ -33,6 +33,7 @@ import com.example.spot.model.Enrollment
 import com.example.spot.navigation.Routes
 import com.example.spot.ui.theme.Green700
 import com.example.spot.ui.theme.TextDark
+import com.example.spot.util.TimeUtil
 import com.example.spot.util.TokenManager
 import com.example.spot.viewmodel.EnrollActionState
 import com.example.spot.viewmodel.EnrollmentViewModel
@@ -194,22 +195,34 @@ fun DashboardScreen(
                                 )
                             }
                             
-                            LazyColumn(
-                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                contentPadding = PaddingValues(bottom = 16.dp)
+                            Column(
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                items(enrollments) { enrollment ->
-                                    EnrollmentCard(
-                                        enrollment = enrollment,
-                                        onScanQrClick = {
-                                            // Navigate to QR scanner
-                                            navController.navigate(Routes.QR_SCANNER)
-                                        },
-                                        onSeatPlanClick = {
-                                            // Navigate to seat plan
-                                            navController.navigate("${Routes.SEAT_PLAN.replace("{sectionId}", enrollment.section.id.toString())}")
-                                        }
-                                    )
+                                // Sort enrollments to prioritize those where QR scanning is enabled
+                                val sortedEnrollments = remember(enrollments, LocalDateTime.now().minute) {
+                                    enrollments.sortedByDescending { enrollment ->
+                                        TimeUtil.isWithinClassSchedule(enrollment.section)
+                                    }
+                                }
+                                
+                                LazyColumn(
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                    contentPadding = PaddingValues(bottom = 16.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    items(sortedEnrollments) { enrollment ->
+                                        EnrollmentCard(
+                                            enrollment = enrollment,
+                                            onScanQrClick = {
+                                                // Navigate to QR scanner
+                                                navController.navigate(Routes.QR_SCANNER)
+                                            },
+                                            onSeatPlanClick = {
+                                                // Navigate to seat plan
+                                                navController.navigate("${Routes.SEAT_PLAN.replace("{sectionId}", enrollment.section.id.toString())}")
+                                            }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -610,6 +623,12 @@ fun EnrollmentCard(
     val section = enrollment.section
     val course = section.course
     
+    // Check if current time is within class schedule
+    // Using key ensures it recomposes if the schedule changes
+    val isWithinSchedule = remember(section.id, LocalDateTime.now().minute) { 
+        TimeUtil.isWithinClassSchedule(section) 
+    }
+    
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -709,10 +728,15 @@ fun EnrollmentCard(
                     Text("Seat Plan")
                 }
                 
+                // Scan QR button with conditional enabling
                 Button(
                     onClick = onScanQrClick,
                     modifier = Modifier.weight(1f),
-                    colors = ButtonDefaults.buttonColors(containerColor = Green700)
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isWithinSchedule) Green700 else Color.Gray,
+                        contentColor = Color.White
+                    ),
+                    enabled = isWithinSchedule
                 ) {
                     Icon(
                         imageVector = Icons.Default.QrCodeScanner,
@@ -722,6 +746,19 @@ fun EnrollmentCard(
                     Spacer(modifier = Modifier.width(4.dp))
                     Text("Scan QR")
                 }
+            }
+            
+            // Show schedule indicator if not within schedule
+            if (!isWithinSchedule) {
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = "QR scanning is only available during class hours",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray,
+                    fontSize = 12.sp,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
         }
     }

@@ -49,7 +49,11 @@ public class CustomUserDetailsService implements UserDetailsService {
         Admin admin = adminRepository.findByEmail(email)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with email: " + email));
         
-        return createUserDetails(email, admin.getPassword(), "ROLE_ADMIN");
+        if (admin.isSystemAdmin()) {
+            return createUserDetails(email, admin.getPassword(), "ROLE_SYSTEMADMIN");
+        } else {
+            return createUserDetails(email, admin.getPassword(), "ROLE_ADMIN");
+        }
     }
 
     private UserDetails createUserDetails(String username, String password, String role) {

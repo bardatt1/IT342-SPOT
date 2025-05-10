@@ -3,6 +3,7 @@ package edu.cit.spot.service.impl;
 import edu.cit.spot.dto.admin.AdminDto;
 import edu.cit.spot.dto.admin.AdminUpdateRequest;
 import edu.cit.spot.dto.admin.CreateAdminRequest;
+import edu.cit.spot.dto.admin.CreateSystemAdminRequest;
 import edu.cit.spot.entity.Admin;
 import edu.cit.spot.exception.ResourceNotFoundException;
 import edu.cit.spot.repository.AdminRepository;
@@ -101,6 +102,70 @@ public class AdminServiceImpl implements AdminService {
         return admins.stream()
             .map(AdminDto::fromEntity)
             .collect(Collectors.toList());
+    }
+    
+    @Override
+    public List<AdminDto> getAllSystemAdmins() {
+        List<Admin> admins = adminRepository.findAll();
+        
+        return admins.stream()
+            .filter(Admin::isSystemAdmin)
+            .map(AdminDto::fromEntity)
+            .collect(Collectors.toList());
+    }
+    
+    @Override
+    @Transactional
+    public AdminDto createSystemAdmin(CreateSystemAdminRequest request) {
+        // Check if email is already in use
+        if (adminRepository.existsByEmail(request.email())) {
+            throw new IllegalArgumentException("Email is already in use: " + request.email());
+        }
+        
+        // Create new system admin
+        Admin admin = new Admin();
+        admin.setFirstName(request.firstName());
+        admin.setMiddleName(request.middleName());
+        admin.setLastName(request.lastName());
+        admin.setEmail(request.email());
+        admin.setPassword(passwordEncoder.encode(request.password()));
+        admin.setSystemAdmin(true);
+        
+        Admin savedAdmin = adminRepository.save(admin);
+        
+        return AdminDto.fromEntity(savedAdmin);
+    }
+    
+    @Override
+    @Transactional
+    public AdminDto promoteToSystemAdmin(Long id) {
+        Admin admin = adminRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Admin", "id", id));
+        
+        if (admin.isSystemAdmin()) {
+            throw new IllegalArgumentException("Admin is already a System Admin");
+        }
+        
+        admin.setSystemAdmin(true);
+        Admin updatedAdmin = adminRepository.save(admin);
+        
+        return AdminDto.fromEntity(updatedAdmin);
+    }
+    
+    @Override
+    @Transactional
+    public AdminDto demoteFromSystemAdmin(Long id) {
+        Admin admin = adminRepository.findById(id)
+            .orElseThrow(() -> new ResourceNotFoundException("Admin", "id", id));
+        
+        if (!admin.isSystemAdmin()) {
+            throw new IllegalArgumentException("Admin is not a System Admin");
+        }
+        
+        admin.setSystemAdmin(false);
+        Admin updatedAdmin = adminRepository.save(admin);
+        
+        return AdminDto.fromEntity(updatedAdmin);
     }
 
     @Override

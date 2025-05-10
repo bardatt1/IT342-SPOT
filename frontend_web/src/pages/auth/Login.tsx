@@ -51,7 +51,10 @@ const Login = () => {
       // Determine redirect based on user type from API response
       let targetRoute = "/"
 
-      if (userType === "ADMIN") {
+      if (userType === "SYSTEMADMIN") {
+        console.log("User is SYSTEMADMIN, redirecting to system admin dashboard")
+        targetRoute = "/system-admin/dashboard"
+      } else if (userType === "ADMIN") {
         console.log("User is ADMIN, redirecting to admin dashboard")
         targetRoute = "/admin/dashboard"
       } else if (userType === "TEACHER") {

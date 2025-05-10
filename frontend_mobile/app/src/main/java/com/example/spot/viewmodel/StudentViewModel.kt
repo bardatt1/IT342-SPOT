@@ -7,6 +7,7 @@ import com.example.spot.model.StudentUpdateRequest
 import com.example.spot.repository.StudentRepository
 import com.example.spot.util.NetworkResult
 import com.example.spot.util.TokenManager
+import com.example.spot.util.NotificationLogger
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.first
@@ -47,7 +48,9 @@ class StudentViewModel : ViewModel() {
                 is NetworkResult.Error -> {
                     _studentState.value = StudentState.Error(result.message)
                 }
-                else -> {}
+                else -> {
+                    _studentState.value = StudentState.Error("Unknown error occurred")
+                }
             }
         }
     }
@@ -86,6 +89,39 @@ class StudentViewModel : ViewModel() {
                     _profileUpdateState.value = ProfileUpdateState.Success(result.data)
                     // Refresh the student state with updated data
                     _studentState.value = StudentState.Success(result.data)
+                    
+                    // Log profile update in notifications
+                    val fieldsUpdated = mutableListOf<String>()
+                    
+                    // Determine which fields were updated by comparing with current state
+                    val currentStudentState = _studentState.value
+                    if (currentStudentState is StudentState.Success) {
+                        val currentStudent = currentStudentState.student
+                        
+                        // Check which fields were updated
+                        if (firstName != currentStudent.firstName) fieldsUpdated.add("First Name")
+                        if (middleName != currentStudent.middleName) fieldsUpdated.add("Middle Name")
+                        if (lastName != currentStudent.lastName) fieldsUpdated.add("Last Name")
+                        if (studentYear != currentStudent.year) fieldsUpdated.add("Year")
+                        if (studentProgram != currentStudent.program) fieldsUpdated.add("Program")
+                        if (studentEmail != currentStudent.email) fieldsUpdated.add("Email")
+                        if (studentPhysicalId != currentStudent.studentPhysicalId) fieldsUpdated.add("Student ID")
+                        if (newPassword != null) fieldsUpdated.add("Password")
+                    }
+                    
+                    // If we couldn't determine specific fields, just log generic update
+                    if (fieldsUpdated.isEmpty()) {
+                        NotificationLogger.logProfileUpdate("Profile information", studentId)
+                    } else {
+                        // Log specific fields that were updated
+                        val updatedFieldsStr = fieldsUpdated.joinToString(", ")
+                        NotificationLogger.logProfileUpdate(updatedFieldsStr, studentId)
+                    }
+                    
+                    // If password was changed, log it separately
+                    if (newPassword != null) {
+                        NotificationLogger.logPasswordChange(studentId)
+                    }
                 }
                 is NetworkResult.Error -> {
                     _profileUpdateState.value = ProfileUpdateState.Error(result.message)

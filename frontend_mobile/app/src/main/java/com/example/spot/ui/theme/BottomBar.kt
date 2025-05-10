@@ -24,65 +24,24 @@ fun BottomBar(navController: NavController) {
     val navBackStackEntry = navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry.value?.destination?.route
 
-    Box {
-        NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceEvenly
-            ) {
-                items.take(2).forEach { item ->
-                    NavigationBarItem(
-                        icon = { Icon(item.icon, contentDescription = item.label) },
-                        label = { Text(item.label) },
-                        selected = currentRoute == item.route,
-                        onClick = {
-                            if (currentRoute != item.route) {
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+    NavigationBar(containerColor = MaterialTheme.colorScheme.surface) {
+        items.forEach { item ->
+            NavigationBarItem(
+                icon = { Icon(item.icon, contentDescription = item.label) },
+                label = { Text(item.label) },
+                selected = currentRoute == item.route,
+                onClick = {
+                    if (currentRoute != item.route) {
+                        navController.navigate(item.route) {
+                            popUpTo(navController.graph.startDestinationId) {
+                                saveState = true
                             }
+                            launchSingleTop = true
+                            restoreState = true
                         }
-                    )
+                    }
                 }
-
-                // Spacer to create space for the floating button
-                Spacer(modifier = Modifier.width(48.dp))
-
-                items.takeLast(2).forEach { item ->
-                    NavigationBarItem(
-                        icon = { Icon(item.icon, contentDescription = item.label) },
-                        label = { Text(item.label) },
-                        selected = currentRoute == item.route,
-                        onClick = {
-                            if (currentRoute != item.route) {
-                                navController.navigate(item.route) {
-                                    popUpTo(navController.graph.startDestinationId) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            }
-                        }
-                    )
-                }
-            }
-        }
-
-        // Floating button in the center
-        FloatingActionButton(
-            onClick = { navController.navigate(Routes.QR_SCANNER) },
-            containerColor = Green700,
-            contentColor = Color.White,
-            modifier = Modifier
-                .align(Alignment.TopCenter) // Fixed: Changed TopCenter to Alignment.TopCenter
-                .offset(y = (-28).dp) // Adjust to position above the nav bar
-        ) {
-            Icon(Icons.Default.QrCodeScanner, contentDescription = "Scan QR Code")
+            )
         }
     }
 }

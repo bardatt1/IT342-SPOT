@@ -2,7 +2,6 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { GoogleOAuthProvider } from '@react-oauth/google';
 import { AuthProvider } from './contexts/AuthContext';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import AdminRoute from './components/auth/AdminRoute';
 
 // Authentication Pages
 import Login from './pages/auth/Login';
@@ -13,6 +12,9 @@ import UserManagement from './pages/admin/UserManagement';
 import CourseManagement from './pages/admin/CourseManagement';
 import SectionManagement from './pages/admin/SectionManagement';
 import ScheduleManagement from './pages/admin/ScheduleManagement';
+
+// SystemAdmin Pages
+import SystemAdminDashboard from './pages/system_admin/Dashboard';
 
 // Teacher Pages
 import TeacherDashboard from './pages/teacher/Dashboard';
@@ -53,41 +55,41 @@ function App() {
               <Route 
                 path="/admin/dashboard" 
                 element={
-                  <AdminRoute>
+                  <ProtectedRoute allowedRoles={['ADMIN', 'SYSTEMADMIN']}>
                     <AdminDashboard />
-                  </AdminRoute>
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/admin/users" 
                 element={
-                  <AdminRoute>
+                  <ProtectedRoute allowedRoles={['ADMIN', 'SYSTEMADMIN']}>
                     <UserManagement />
-                  </AdminRoute>
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/admin/courses" 
                 element={
-                  <AdminRoute>
+                  <ProtectedRoute allowedRoles={['ADMIN', 'SYSTEMADMIN']}>
                     <CourseManagement />
-                  </AdminRoute>
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/admin/sections" 
                 element={
-                  <AdminRoute>
+                  <ProtectedRoute allowedRoles={['ADMIN', 'SYSTEMADMIN']}>
                     <SectionManagement />
-                  </AdminRoute>
+                  </ProtectedRoute>
                 } 
               />
               <Route 
                 path="/admin/schedules" 
                 element={
-                  <AdminRoute>
+                  <ProtectedRoute allowedRoles={['ADMIN', 'SYSTEMADMIN']}>
                     <ScheduleManagement />
-                  </AdminRoute>
+                  </ProtectedRoute>
                 } 
               />
               
@@ -141,13 +143,25 @@ function App() {
                 } 
               />
               
+              {/* SystemAdmin Routes */}
+              <Route 
+                path="/system-admin/dashboard" 
+                element={
+                  <ProtectedRoute allowedRoles={['SYSTEMADMIN']}>
+                    <SystemAdminDashboard />
+                  </ProtectedRoute>
+                } 
+              />
+              
               {/* Dashboard route that redirects based on role */}
               <Route 
                 path="/dashboard" 
                 element={
                   <ProtectedRoute>
                     {({ user }: any) => {
-                      if (user?.role === 'ADMIN') {
+                      if (user?.role === 'SYSTEMADMIN') {
+                        return <Navigate to="/system-admin/dashboard" replace />;
+                      } else if (user?.role === 'ADMIN') {
                         return <Navigate to="/admin/dashboard" replace />;
                       } else if (user?.role === 'TEACHER') {
                         return <Navigate to="/teacher/dashboard" replace />;

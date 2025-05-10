@@ -302,8 +302,8 @@ fun SeatPlanScreen(
                                 section = currentSection ?: successState.section,
                                 selectedSeatState = selectedSeatState,
                                 userId = userId,
-                                onSeatSelected = { row, col -> viewModel.selectSeat(SeatCoordinate(row, col)) },
-                                onSubmitSeatSelection = { viewModel.submitSeatSelection() }
+                                onSeatSelected = { row, col -> viewModel.selectSeat(row, col) },
+                                onSubmitSeatSelection = viewModel::submitSeatSelection
                             )
                         }
                         is SeatPlanState.Loading -> {

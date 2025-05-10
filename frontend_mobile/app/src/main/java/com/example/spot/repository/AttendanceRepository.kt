@@ -135,14 +135,43 @@ class AttendanceRepository {
             try {
                 val response = apiService.logAttendance(LogAttendanceRequest(sectionId))
                 
-                if (response.result == "success" && response.data != null) {
+                if (response.result.equals("SUCCESS", ignoreCase = true) && response.data != null) {
                     NetworkResult.Success(response.data)
                 } else {
                     NetworkResult.Error(response.message)
                 }
+            } catch (e: HttpException) {
+                // Extract response body for error details if available
+                val errorBody = e.response()?.errorBody()?.string()
+                Log.e(TAG, "Log attendance error (HTTP ${e.code()}): $errorBody", e)
+                
+                return@withContext when (e.code()) {
+                    400 -> {
+                        // Check for known error patterns directly in the error body
+                        val lowerErrorBody = errorBody?.lowercase() ?: ""
+                        
+                        // Special check for duplicate attendance patterns
+                        if (lowerErrorBody.contains("already recorded") || 
+                            lowerErrorBody.contains("already marked") || 
+                            lowerErrorBody.contains("duplicate")) {
+                            // For duplicate attendance, return a special format that can be detected by UI
+                            Log.i(TAG, "Duplicate attendance detected: $errorBody")
+                            NetworkResult.Error("[DUPLICATE_ATTENDANCE] Attendance already recorded for today")
+                        } else {
+                            NetworkResult.Error("Invalid request: Please try again")
+                        }
+                    }
+                    401 -> NetworkResult.Error("Authentication error: Please log in again")
+                    403 -> NetworkResult.Error("Access denied: You don't have permission")
+                    500 -> NetworkResult.Error("Server error: Please try again later")
+                    else -> NetworkResult.Error("Network error: HTTP ${e.code()}")
+                }
+            } catch (e: IOException) {
+                Log.e(TAG, "Log attendance network error", e)
+                return@withContext NetworkResult.Error("Network error: Unable to connect to server")
             } catch (e: Exception) {
-                Log.e(TAG, "Log attendance error", e)
-                NetworkResult.Error("Network error: " + (e.localizedMessage ?: "Unknown error"))
+                Log.e(TAG, "Log attendance error (Ask Gemini)", e)
+                return@withContext NetworkResult.Error("Error: " + (e.localizedMessage ?: "Unknown error"))
             }
         }
     }
